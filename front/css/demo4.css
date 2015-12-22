@@ -1,0 +1,36 @@
+ul {
+	width: 80%;
+	border: 1px solid gray;
+	float: left;
+	margin: 0;
+	padding: 0;
+	list-style-type: none;
+}
+
+li {
+	display:inline;
+/* 	float:left; */
+}
+
+
+p {
+	clear: left;
+	border: 1px solid red;
+	margin-top: 100px;
+	position: absolute;
+}
+
+a {
+	float:left;
+	width: 7em;
+	text-decoration: none; /*a标签的下划线*/
+	color: white;
+	background-color: purple;
+	padding: 0.2em 0.6em;
+	border-right: 1px solid white;
+}
+
+a:hover {
+	background-color: #ff3300;
+}
+

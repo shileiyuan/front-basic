@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>test1</title>
+<script type="text/javascript">
+	var change = function(){
+		window.location = "https://www.google.com/";
+	};
+	var sayHi = function(){
+		setTimeout(function(){
+			console.log("hello");	
+		},2000);
+	};
+	var inputName = function(){
+		do{
+			var name = prompt("What is your name?");
+			var correct = confirm("You entered '"+name+"'");
+		}while(!correct)
+		alert("Hello, "+name);
+	};
+	var showDialog = function(){
+		var returnValue = showModalDialog("modal.html",["Enter 3D point coordinates","x","y","z"],"dialogwidth:400;dialogheight:300;resizable:yes");
+		//alert(returnValue);
+		console.log(returnValue);
+	};
+</script>
+</head>
+<body>
+	<button onclick="change()">google</button><br/>
+	<button onclick="sayHi()">sayHi</button><br/>	
+	<button onclick="inputName()">inputName</button><br/>	
+	<button onclick="showDialog()">showDialog</button><br/>
+	
+</body>
+</html>
