@@ -1,0 +1,8 @@
+{
+  "name": "front-basic",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "git@github.com:shileiyuan/front-basic.git",
+  "author": "yuan <shuxingo7@163.com>",
+  "license": "MIT"
+}
