@@ -4,5 +4,11 @@
   "main": "index.js",
   "repository": "git@github.com:shileiyuan/front-basic.git",
   "author": "yuan <shuxingo7@163.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "autoprefixer": "^9.3.1",
+    "d3": "^5.7.0",
+    "postcss": "^7.0.5",
+    "ramda": "^0.25.0"
+  }
 }
