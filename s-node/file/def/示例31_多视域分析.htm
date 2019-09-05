@@ -1,0 +1,408 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>6.0多视域分析</title>
+	<script language="javascript" type="text/javascript" event="FireOnLayerNotify(layerid , type)"
+        for="VPSDKCtrl">
+		var layer = layermap[layerid];
+        var opt = layer.GetLayerResult();
+            if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_vertical")
+            {
+            var val = opt.GetConfigValueByKey("VerticalResult");
+            alert(val);
+        }
+    </script>
+    <script language="javascript" type="text/javascript">
+
+        var layermap = new Array();
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+			//LoadDOMMTDS();
+			//LoadDEMMTDS();
+            LoadDOMMTDS();
+            LoadCPM();
+			AddOption();
+        }
+
+		var cpmLayer；
+        function LoadCPM() {
+             var tlo = map.CreateLayerOptions("球面模型");
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions");
+            tlo.AddConfig("DataSourceTypeName", "cpm");
+            tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl");
+            cpmLayer = map.CreateLayer("ModelLayer", tlo);
+            map.AddLayer(cpmLayer);
+            cpmLayer.Locate();
+        }
+
+       
+		
+		var mtdsdemlayer;
+		//////加载DEM数据
+		function LoadDEMMTDS() {
+			var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.125:8090/files/hz/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+			tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+			tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+			tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+			tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+			mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+			map.AddLayer(mtdsdemlayer); ///添加DEM图层
+			mtdsdemlayer.Locate(); ////DEM图层定位
+		}
+
+		var mtdsdomlayer;
+		//////加载DOM数据
+		function LoadDOMMTDS() {
+			var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+			mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+			map.AddLayer(mtdsdomlayer); ///添加DOM图层
+			mtdsdomlayer.Locate(); ////DOM图层定位
+		}
+		
+	//多视域分析开启	
+	function MultiViewStart()
+	{
+			var selOption = document.getElementById("SelOption");
+			switch( SelOption.selectedIndex )
+			{
+			case 0: //"普通":
+			    CommonStart();
+			break;
+			
+		    case 1://"固定距离":
+			    FixedStart();
+			break;
+			
+			case 2://"固定距离转角":
+			    FixedRangeAngle();
+			break;
+			
+			default:
+			    alert("no item selected!!!");
+			}
+	}
+	
+	//多视域分析移除	
+	function MultiViewClose()
+	{
+			var selOption = document.getElementById("SelOption");
+			switch( SelOption.selectedIndex )
+			{
+			case 0: //"普通":
+			    CommonClose();
+			break;
+			
+		    case 1://"固定距离":
+			    FixedClose();
+			break;
+			
+			case 2://"固定距离转角":
+			    FixedRangeRemove();
+			break;
+			
+			default:
+			    alert("no item selected!!!");
+			}
+	}
+
+    //普通多视域分析 
+    var commonViewshed;
+	 function CommonStart() 
+	 {
+         if( null != commonViewshed )                                  //这里会将上次创建的分析图层移除，需要多个类型视域分析，需自行添加
+         {
+            map.RemoveLayer(commonViewshed);
+            commonViewshed = null;
+         }    
+        var mlo3 = map.CreateLayerOptions("");
+        mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//配置项名称
+        mlo3.AddConfig("DataSourceTypeName", "as_multviewshed");		//插件名称
+
+        mlo3.AddConfig("CameraCountMax","3");							//支持视域分析最大个数
+		mlo3.AddConfig("CameraNames","camera1;camera2;camera3;")		//唯一标志ID
+		
+	    mlo3.AddConfig("HAngles","30;40;50;");							//视域分析水平夹角 
+	    mlo3.AddConfig("VAngles","30;40;50;");							//视域分析垂直夹角 
+		
+		mlo3.AddConfig("DefaultVAngle","66");							//默认垂直夹角，未设置垂直夹角时使用 
+		mlo3.AddConfig("DefaultHAngle","66");							//默认水平夹角，未设置水平交角时使用 
+		
+	    commonViewshed = map.CreateLayer("AnalysisLayer", mlo3);
+	    map.AddLayer(commonViewshed);
+    }
+	
+	function CommonClose() 
+	{
+		map.RemoveLayer(commonViewshed);
+	}
+	
+	//固定视距、水平，垂直方向夹角多视域分析
+	function FixedStart()
+	{
+        if( null != commonViewshed )                                  //这里会将上次创建的分析图层移除，需要多个类型视域分析，需自行添加
+        {
+            map.RemoveLayer(commonViewshed);
+            commonViewshed = null;
+        }    
+        
+		var mlo3 = map.CreateLayerOptions("");
+        mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//配置项名称
+        mlo3.AddConfig("DataSourceTypeName", "as_multviewshed");	    //插件名称
+
+        mlo3.AddConfig("CameraCountMax","3");							//支持视域分析最大个数 
+		mlo3.AddConfig("CameraNames","camera1;camera2;camera3;")	    //唯一标志ID 
+		
+	    mlo3.AddConfig("HAngles","30;40;50;");							//视域分析水平夹角 
+	    mlo3.AddConfig("VAngles","30;40;50;");							//视域分析垂直夹角 
+		mlo3.AddConfig("FixedDistances","50;100;150;")					//固定距离 
+		
+		mlo3.AddConfig("DefaultVAngle","66");							//默认垂直夹角，未设置垂直夹角时使用 
+		mlo3.AddConfig("DefaultHAngle","66");							//默认水平夹角，未设置水平交角时使用 
+		mlo3.AddConfig("DefaultFixedDistance","2000")					//固定距离 
+		
+	    commonViewshed = map.CreateLayer("AnalysisLayer", mlo3);
+	    map.AddLayer(commonViewshed);
+	}
+
+	
+	function FixedClose() 
+	{
+       if( null != commonViewshed )
+       {
+		    map.RemoveLayer(commonViewshed);
+       }
+	}
+	
+    //固定视距，水平转角，垂直转角多视域分析
+	function FixedRangeAngle()
+	{
+        if( null != commonViewshed )
+        {
+            map.RemoveLayer(commonViewshed);                            //这里会将上次创建的分析图层移除，需要多个类型视域分析，需自行添加
+            commonViewshed = null;
+        }    
+        
+		var mlo3 = map.CreateLayerOptions("");
+        mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//配置项名称
+        mlo3.AddConfig("DataSourceTypeName", "as_multviewshed");	    //插件名称
+
+        mlo3.AddConfig("CameraCountMax","3");							//支持视域分析最大个数 
+		mlo3.AddConfig("CameraNames","camera1;camera2;camera3;");		//唯一标志ID 
+		
+	    mlo3.AddConfig("HAngles","30;40;50;");							//视域分析水平夹角 
+	    mlo3.AddConfig("VAngles","30;40;50;");							//视域分析垂直夹角 
+		mlo3.AddConfig("HRotateAngles","35;180;270;");					//水平转角正北为0度，顺时针360
+		mlo3.AddConfig("VRotateAngles","-30;0;30;");					//正下方-90水平0,正上方90
+		mlo3.AddConfig("FixedDistances","5000000;1000000;15000000;");	//固定距离 
+		
+		mlo3.AddConfig("DefaultVAngle","66");							//默认垂直夹角，未设置垂直夹角时使用 
+		mlo3.AddConfig("DefaultHAngle","66");							//默认水平夹角，未设置水平交角时使用 
+		mlo3.AddConfig("DefaultFixedDistance","2000");					//默认固定距离 
+		mlo3.AddConfig("DefaultVRotateAngle","90");						//默认水平转角
+		mlo3.AddConfig("DefaultHRotateAngle","90");						//默认垂直转角
+		mlo3.AddConfig("Points","119.205240964,29.9611976754,-0.0730524882674;0,0,0;"+
+								"119.323898778,30.0471061421,-0.239164832048;0,0,0;"+
+								"119.069924078,30.0198931866,-0.258735077456;0,0,0;"); //参数为"起始点;目标点" ex："119.205240964,29.9611976754,-0.0730524882674;0,0,0;"
+		mlo3.AddConfig("IsLoad", "true");
+		
+	    commonViewshed = map.CreateLayer("AnalysisLayer", mlo3);
+	    map.AddLayer(commonViewshed);
+	}
+	
+	function FixedRangeRemove()
+	{
+        if( null != commonViewshed )
+        {
+            map.RemoveLayer(commonViewshed);
+            commonViewshed = null;
+        }
+		
+	}
+	
+	//激活绘制
+	function ActiveDraw()
+	{
+
+        if( null != commonViewshed  )
+        {
+            var mlo3 = map.CreateLayerOptions("");
+		    mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions");  //分析配置项
+		    mlo3.AddConfig("DataSourceTypeName", "as_multviewshed");     //数据源插件
+            mlo3.AddConfig("ActivateDraw","true");	                     //激活绘制	
+            mlo3.AddConfig("IsActive", "true");                          //激活响应器
+       			
+		    commonViewshed.UpdateLayerOptions(mlo3); 
+        }
+		
+	}
+
+
+	//使绘制失效
+	function DeactiveDraw()
+	{
+       if( null != commonViewshed )
+       {
+            var mlo3 = map.CreateLayerOptions("");
+		    mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions");   //分析配置项
+		    mlo3.AddConfig("DataSourceTypeName", "as_multviewshed");      //数据源插件
+;				
+            mlo3.AddConfig("IsActive", "false");                          //使分析响应器失效
+		    commonViewshed.UpdateLayerOptions(mlo3); 
+       }
+		
+	}
+	
+    //更新目标
+	function UpdateTargets() 
+	{
+       if( null != commonViewshed )
+       {
+            var mlo3 = map.CreateLayerOptions("");
+		    mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //分析配置项
+		    mlo3.AddConfig("DataSourceTypeName", "as_multviewshed");    //数据源插件
+		    mlo3.AddConfig("UpdateTargets","camera2;camera3;");			//需要更新在目标 
+		    mlo3.AddConfig("HAngles","20;20;25;");						//视频的水平涨角 
+		    mlo3.AddConfig("VAngles","20;20;");							//视频的水平涨角 
+		    mlo3.AddConfig("IsActive", "true");		
+		    commonViewshed.UpdateLayerOptions(mlo3); 
+       }
+		
+	}
+    
+    //移除目标
+	function RemoveTargets()
+	{
+      if( null != commonViewshed )
+      {
+            var mlo3 = map.CreateLayerOptions("");
+		    mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //分析配置项
+		    mlo3.AddConfig("DataSourceTypeName", "as_multviewshed");    //多视域分析插件
+		    mlo3.AddConfig("RemoveTargets","camera2;camera3;");			//需要更新的目标		
+            mlo3.AddConfig("IsActive", "false");                        //禁用分析响应器	                           
+		    commonViewshed.UpdateLayerOptions(mlo3); 
+      }
+		
+	}
+
+	//设置显隐
+	function SetVisible()
+	{
+        if( null != commonViewshed )
+        {
+            commonViewshed.SetVisible( 1^commonViewshed.GetVisible() ); 
+        }
+		
+	}
+
+	//输出当前操作的视域信息
+	function GetResult()
+	{
+        if( null != commonViewshed )
+        {
+            alert(
+			"Count:"+commonViewshed.GetLayerResult().GetConfigSetCount()+"\n"+                           //视域分析个数
+			"EyePoint:"+commonViewshed.GetLayerResult().GetConfigValueByKey("EyePoint")+"\n"+            //视点
+			"AimPoint:"+commonViewshed.GetLayerResult().GetConfigValueByKey("AimPoint")+"\n"+            //目标点
+			"VAngle:"+commonViewshed.GetLayerResult().GetConfigValueByKey("VAngle")+"\n"+                //垂直角度
+			"HAngle:"+commonViewshed.GetLayerResult().GetConfigValueByKey("HAngle")+"\n"+                //水平角度 
+			"FixedDistance:"+commonViewshed.GetLayerResult().GetConfigValueByKey("FixedDistance")+"\n"+  //固定距离
+			"VRotatAngle:"+commonViewshed.GetLayerResult().GetConfigValueByKey("VRotatAngle")+"\n"+      //垂直转角
+			"HRotatAngle:"+commonViewshed.GetLayerResult().GetConfigValueByKey("HRotatAngle")+"\n"       //水平转角 
+			);
+        }
+	}
+
+	 //添加配置选项
+	    var serverArray = new Array("普通","固定距离","固定距离转角");
+        function AddOption() {
+
+            var Option = document.getElementById("SelOption");
+            if ( null != Option ) {
+
+                var TextNode;
+                var ElementOption;
+                for (var i = 0; i < serverArray.length; ++i) {
+
+                    ElementOption = document.createElement("option");
+                    TextNode = document.createTextNode(serverArray[i]);
+                    ElementOption.appendChild( TextNode );
+                    Option.appendChild(ElementOption);
+                }
+            }
+
+        }
+
+
+        function RemoveOption() {
+
+            var Option = document.getElementById("SelOption");
+            if ( null != Option ) {
+               
+                Option.options.remove(Option.selectedIndex);
+                if ( Option.options.length == 1 ) {
+                     
+                    Option.options.length = 0;
+                    serverArray.length    = 0;
+                    if (null != parseLogicTool){
+
+                        tools.DestoryTools(parseLogicTool);                       //销毁加载工具
+                        parseLogicTool = null;
+                    }
+                }
+            }
+        }
+
+ </script>
+
+</head>
+<body onload="InitScene()">
+
+    <p>多视域分析选择: <select id ="SelOption"  style="width:110px;height= 44px " /> </p>
+	<input type="button" value="加载"                 onclick="MultiViewStart()" />
+	<input type="button" value="移除"                 onclick="MultiViewClose()" />
+    <p>
+	<input type="button" value="显隐"                 onclick="SetVisible()" /> 
+	<input type="button" value="激活绘制"             onclick="ActiveDraw()" />
+	<input type="button" value="禁用绘制"             onclick="DeactiveDraw()" />
+	<input type="button" value="更新多个目标"         onclick="UpdateTargets()" />
+	<input type="button" value="移除目标"             onclick="RemoveTargets()" />
+	<input type="button" value="获取分析结果"         onclick="GetResult()" />
+	</p>
+   
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

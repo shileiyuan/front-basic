@@ -1,0 +1,565 @@
+﻿<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=8">
+    <title>6.0球面版本视屏接入</title>
+	<!--<script language="javascript" type="text/javascript" event="FireOnLButtonUp(x , y)" for="VPSDKCtrl">-->
+	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+		//alert(1);
+		var str = res.GetResponserResult().GetConfigValueByKey("PickPointList");
+		alert(str);
+	</script>
+	
+    <script language="javascript" type="text/javascript">
+
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+            var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        var cpmLayer;
+        //////加载模型数据
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值
+            tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+        }
+
+        ////删除模型数据
+        function RemoveCPM() {
+            map.RemoveLayer(cpmLayer); ////删除模型数据
+        }
+
+        /////显隐模型数据
+        var cpmVisble = true;
+        function VisibleCPM() {
+            if (cpmVisble) {
+                cpmVisble = false;
+            } else {
+                cpmVisble = true;
+            }
+            cpmLayer.SetVisible(cpmVisble); /////显隐模型数据
+        }
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+            var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+			tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+			
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+        /////显隐模型数据
+        var gmsVisble = true;
+        function VisibleGMS() {
+            if (gmsVisble) {
+                gmsVisble = false;
+            } else {
+                gmsVisble = true;
+            }
+            gmsLayer.SetVisible(gmsVisble); /////显隐模型数据
+        }
+
+        //视频接入
+        var videolLayer;
+        //var Url = "F:\\大华演示\\大华数据\\testvideo.avi;";
+        var Url = "rtsp://admin:kelan666@192.168.1.64:554/h264/ch33/main/av_stream";
+        function addLocalVideo() {
+            var mlo = map.CreateLayerOptions("Video");                       //服务器上存放模型数据的文件夹名称
+            mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions");       //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            mlo.AddConfig("DataSourceTypeName", "as_videoprj");
+            mlo.AddConfig("CameraCountMax", "4");                            //视屏投影最大数 
+            mlo.AddConfig("HAngles", "30;40;50;60;");                  		 //视域垂直方向夹角
+            mlo.AddConfig("Scales", "1.7777;1.888;1.799;1.00077;1.7777;"); 	 //视域水平方向夹角
+            mlo.AddConfig("VideoResources", Url);                            //视屏源,多个路径应"url0;url1;url2" 路径之间用分号隔开         
+            videoLayer = map.CreateLayer("AnalysisLayer", mlo);              //添加图层
+            map.AddLayer(videoLayer);
+        }
+
+        function updateVideoOptions() {
+            var mlo = map.CreateLayerOptions("Video");                      //服务器上存放模型数据的文件夹名称
+            mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions");      //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            mlo.AddConfig("DataSourceTypeName", "as_videoprj");            	//插件类型
+            mlo.AddConfig("UpdateTargets", "0;1;");                         //更新目标为下标索引
+
+            mlo.AddConfig("HAngles", "23;40;");                          	//视域垂直方向夹角
+            mlo.AddConfig("Scales", "1.33;2.0;");                           //视域水平方向夹角
+            //mlo.AddConfig("IsLoad", "true");                              //是否加载Points配制信息
+            //mlo.AddConfig("Points", "120.20288485,30.2409875155,39.2973065404;120.202289562,30.2447194756,118.960731347;120.201879742,30.2397737521,33.3204415673;120.202856134,30.2408821244,157.216761225;"); //点集
+
+            videoLayer.UpdateLayerOptions(mlo);
+        }
+
+        function ClearLocalVideo() {
+            if (null != videoLayer) {
+                map.RemoveLayer(videoLayer);
+            }
+        }
+
+
+        var mtdsdomlayer;
+        //////加载DOM数据
+        function LoadDOMMTDS() {
+            var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            ////////以下部分可以通过图层信息获取获得相应的配置//////
+            tlo.AddConfig("Url", "http://192.168.1.125:8090/files/hz/DOM"); 					//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "png"); 			//切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); 			//数据的坐标参考
+            tlo.AddConfig("MaxX", " 120.714010586176"); //数据的范围X向最大值
+            tlo.AddConfig("MinX", " 118.339686018686"); //数据的范围X向最小值
+            tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+            tlo.AddConfig("MinY", " 29.188584444612"); 	//数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); 			//数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); 			//数据显示的最大层级
+
+            mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtdsdomlayer); ///添加DOM图层
+            mtdsdomlayer.Locate(); ////DOM图层定位
+        }
+
+        //////删除DOM数据
+        function RemoveDOMMTDS() {
+            map.RemoveLayer(mtdsdomlayer); ////删除DOM数据
+        }
+
+        var id = 0;
+        var videoArea;
+        var addmap = true;
+        function AddVideoAreaMap() {
+            if (addmap) {
+                // 添加分析图层
+                var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+                tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+                tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件
+                videoArea = map.CreateLayer("AnalysisLayer", tlo); 			// 创建分析图层，第一项参数必须为AnalysisLayer
+                map.AddLayer(videoArea); 									// 添加分析图层
+            }
+            addmap = false;
+        }
+
+        function removeAnalysis() {
+            if (!addmap) {
+                map.RemoveLayer(videoArea);
+            }
+            addmap = true;
+        }
+
+
+        function VideoAreaCreate1() {
+            // 创建单个区域投影
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件
+
+            tlo.AddConfig("IsCreateSingleArea", "true"); 			// 是否需要创建区域
+            tlo.AddConfig("IsDelete", "false"); 					// 是否删除
+            tlo.AddConfig("IsAllOperator", "false"); 				// 是否批量操作
+
+            tlo.AddConfig("LineColor", "0.3, 0.3, 0.4, 1.0"); 		// 线框颜色rgba
+            tlo.AddConfig("LineWidth", "5.0"); 						// 线框宽
+            tlo.AddConfig("ID", String(id)); 						// 所创建区域ID			
+
+            alert(id);
+
+            //tlo.AddConfig( "MoveType", "0" );							// 是否移动及移动方式, 不添加默认不移动
+            //tlo.AddConfig( "MoveDistance", "0.0, 0.0, 0.0" );			// 移动(经纬度、高程), 不添加默认不移动
+            //tlo.AddConfig( "ImageIsVisible", "true" );				// 视频可见否, 不添加默认为可见
+            //tlo.AddConfig( "LineIsVisible", "true" );					// 绘制时线框可见否
+
+            //tlo.AddConfig("VideoResources", "172.6.3.173,9000,system,123456,1000014$1$0$0,1;");
+            //tlo.AddConfig("VideoResources", "share2233");//  name
+
+            //tlo.AddConfig("VideoResources", "videored");// 
+            //tlo.AddConfig("VideoResources", "172.6.12.108,9000,system,123456,1000117$1$0$0,1;");
+            //tlo.AddConfig( "VideoResources", "E:\\视频投影测试\\5162.avi" ); // 视频路径
+
+            tlo.AddConfig("VideoResources", "F:\\本地数据\\testvideo.avi"); // 视频路径
+            videoArea.UpdateLayerOptions(tlo); 						//更新图层
+        }
+
+
+
+        function IsVisible11() {
+            var tlo = map.CreateLayerOptions("vArea"); 					//  创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//  创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		//  此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						//  所创建区域ID	
+            tlo.AddConfig("ImageIsVisible", "true");                 //  图片显隐
+            videoArea.UpdateLayerOptions(tlo); 						//  更新图层
+        }
+
+
+        function IsVisible12() {
+            var tlo = map.CreateLayerOptions("vArea"); 					 // 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	 // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		 // 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						 // 所创建区域ID	
+            tlo.AddConfig("ImageIsVisible", "false");
+            videoArea.UpdateLayerOptions(tlo); 						 //  更新图层
+        }
+        function deleteV() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						// 所创建区域ID	
+            tlo.AddConfig("IsDelete", "true");
+            videoArea.UpdateLayerOptions(tlo); 						//更新图层
+        }
+
+        function move1() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						// 所创建区域ID	
+            tlo.AddConfig("MoveType", "1"); 						// 是否移动及移动方式, 不添加默认不移动
+            tlo.AddConfig("MoveDistance", "0.0000001, 0.0, 0.0"); 	// 移动(经纬度、高程), 不添加默认不移动
+            videoArea.UpdateLayerOptions(tlo); 						// 更新图层
+        }
+
+        function move2() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 								// 所创建区域ID	
+            tlo.AddConfig("MoveType", "1"); 						// 是否移动及移动方式, 不添加默认不移动
+            tlo.AddConfig("MoveDistance", "-0.0000001, 0.0, 0.0"); // 移动(经纬度、高程), 不添加默认不移动
+            videoArea.UpdateLayerOptions(tlo); 						// 更新图层
+        }
+
+        function move3() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 								// 所创建区域ID	
+            tlo.AddConfig("MoveType", "1"); 						// 是否移动及移动方式, 不添加默认不移动
+            tlo.AddConfig("MoveDistance", "0.0, 0.0000001, 0.0"); // 移动(经纬度、高程), 不添加默认不移动
+            videoArea.UpdateLayerOptions(tlo); 						// 更新图层
+        }
+
+        function move4() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						// 所创建区域ID	
+            tlo.AddConfig("MoveType", "1"); 						// 是否移动及移动方式, 不添加默认不移动
+            tlo.AddConfig("MoveDistance", "0.0, -0.0000001, 0.0"); // 移动(经纬度、高程), 不添加默认不移动
+            videoArea.UpdateLayerOptions(tlo); 						// 更新图层
+        }
+
+        function move4() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						// 所创建区域ID	
+            tlo.AddConfig("MoveType", "1"); 						// 是否移动及移动方式, 不添加默认不移动
+            tlo.AddConfig("MoveDistance", "0.0, -0.0000001, 0.0"); // 移动(经纬度、高程), 不添加默认不移动
+            videoArea.UpdateLayerOptions(tlo); 						// 更新图层
+        }
+
+        function move5() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						// 所创建区域ID	
+            tlo.AddConfig("MoveType", "1"); 						// 是否移动及移动方式, 不添加默认不移动
+            tlo.AddConfig("MoveDistance", "0.0, 0.0, 0.050"); 	// 移动(经纬度、高程), 不添加默认不移动
+            videoArea.UpdateLayerOptions(tlo); 						// 更新图层
+        }
+
+
+        function move6() {
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						// 所创建区域ID	
+            tlo.AddConfig("MoveType", "1"); 						// 是否移动及移动方式, 不添加默认不移动
+            tlo.AddConfig("MoveDistance", "0.0, 0.0, -0.050"); 	// 移动(经纬度、高程), 不添加默认不移动
+            videoArea.UpdateLayerOptions(tlo); 						//更新图层
+        }
+
+        function AreaID() {
+            var obj = document.getElementById("VPSDKCtrl");
+            id = document.getElementById("Textid").value;
+            alert(id);
+        }
+
+        function SaveFile(paramData) {
+
+            var fObject, file;
+            fObject = new ActiveXObject("Scripting.FileSystemObject");
+            file = fObject.CreateTextFile("F:\\Video.json", true);
+            file.WriteLine(paramData);
+            file.Close();
+
+        }
+
+
+        function ReadFile() {
+
+            var fObject, file, content;
+            fObject = new ActiveXObject("Scripting.FileSystemObject");
+            file = fObject.OpenTextFile("F:\\Video.json", 1);
+            content = file.ReadLine();
+
+            file.Close();
+
+            return content;
+
+        }
+
+
+        function GetJsonObject(jsonContent) {
+            var json;
+            if (null != jsonContent)
+                json = eval('(' + jsonContent + ')');
+            return json;
+        }
+
+
+
+        function GetJsonArray(jsonData) {
+
+            var jsonArray = {
+                "LayerOptionsName": 'AnalysisLayerOptions',
+                "DataSourceTypeName": "as_videoarea"
+            };
+            return jsonArray;
+        }
+
+
+
+
+
+
+
+
+        var strResult = "";
+        function GetResult() {
+
+            var tlo = map.CreateLayerOptions("vArea"); 					// 创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		// 此处格式固定，使用区域投影插件
+
+            tlo.AddConfig("IsSaveParam", "true");
+            tlo.AddConfig("SaveID", String(id)); 					// 需要保存的ID，必须有，若id不对应，则没有参数传出
+            videoArea.UpdateLayerOptions(tlo); 						// 更新图层
+
+            //获取视频投影参数
+            var strResult = "{" + '"' + "AreaPoints" + '"' + ":";
+
+            strResult += '"' + videoArea.GetLayerResult().GetConfigValueByKey("AreaPoints") + '"';
+            strResult += "," + '"' + "TransFormNodePos" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("TransFormNodePos") + '"';
+            strResult += "," + '"' + "ID" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("ID") + '"';
+            strResult += "," + '"' + "LineIsVisible" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("LineIsVisible") + '"';
+            strResult += "," + '"' + "LineWidth" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("LineWidth") + '"';
+            strResult += "," + '"' + "LineColor" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("LineColor") + '"';
+
+            strResult += "," + '"' + "VideoResources" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("VideoResources") + '"';
+            strResult += "," + '"' + "ImageVisible" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("ImageIsVisible") + '"';
+            strResult += "," + '"' + "ImageFitType" + '"' + ":" + '"' + videoArea.GetLayerResult().GetConfigValueByKey("ImageFitType") + '"' + "}";
+
+            var jsonData = "{" + '"' + "Result" + '"' + ":" + "[" + strResult + "]" + "}";
+
+            alert("jsonData: " + jsonData);
+
+            SaveFile(jsonData);
+
+        }
+
+
+
+        function LoadFromPoints() {
+            var tlo = map.CreateLayerOptions("vArea"); 					    //创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		    //此处格式固定，使用区域投影插件
+            tlo.AddConfig("IsLoad", "true"); 						    //通过参数重加载视频投影			
+            tlo.AddConfig("ID", "1"); 								    //区域ID，此处暂以1代替,需传入实际值
+            tlo.AddConfig("AreaPoints", "-2773079.7452687267,3188179.7438122863,-4770502.0691869687;-2773089.4260719651,3188147.5648013852,-4770517.1975322943;-2773123.8679005909,3188148.7398322774,-4770495.5460356213;-2773113.2236533877,3188180.5134198237,-4770480.3626755755;");
+            tlo.AddConfig("TransFormNodePos", "-2.77315e+006,3.18821e+006,-4.77057e+006");                 //偏移量，传入对应保存的值
+            tlo.AddConfig("LineWidth", "5");                                                               //线框宽度   
+            tlo.AddConfig("LineColor", "0,0.1,0.8,0.5");                                                   //线框颜色  
+            tlo.AddConfig("LineIsVisible", "false");
+            tlo.AddConfig("VideoResources", "F:\\本地数据\\testvideo.avi"); //视屏资源路径
+            tlo.AddConfig("ImageIsVisible", "true");                                                       //图片显隐
+            tlo.AddConfig("ImageFitType", "1");                                                            //贴合方式
+
+            videoArea.UpdateLayerOptions(tlo); 						                                   //更新图层
+        }
+
+
+        function LoadFromFile() {
+
+            var tlo = map.CreateLayerOptions("vArea"); 					    //创建分析图层配置，给配置起个名称，任意名称
+
+            var strContent = ReadFile();                                      //贴合方式
+            alert("Content: " + strContent);
+            var jsonData = eval('(' + strContent + ')');
+
+
+            var jsonArray = new Array;
+            jsonArray['LayerOptionsName'] = 'AnalysisLayerOptions';
+            jsonArray['DataSourceTypeName'] = 'as_videoarea';
+            jsonArray['IsLoad'] = 'true';
+
+            jsonArray['ID'] = jsonData.Result[0].ID;
+            jsonArray['AreaPoints'] = jsonData.Result[0].AreaPoints;
+            jsonArray['TransFormNodePos'] = jsonData.Result[0].TransFormNodePos;
+            jsonArray['LineWidth'] = jsonData.Result[0].LineWidth;
+            jsonArray['LineColor'] = jsonData.Result[0].LineColor;
+            jsonArray['LineIsVisible'] = jsonData.Result[0].LineIsVisible;
+            jsonArray['VideoResources'] = "F:\\本地数据\\testvideo.avi";
+            jsonArray['ImageIsVisible'] = jsonData.Result[0].ImageVisible;
+            jsonArray['ImageFitType'] = jsonData.Result[0].ImageFitType;
+
+            for (var key in jsonArray) {
+                tlo.AddConfig(key, jsonArray[key]);
+            }
+            videoArea.UpdateLayerOptions(tlo); 						                                   //更新图层
+
+        }
+
+        //角点一操作
+        function AngleOnePoint() {
+            var tlo = map.CreateLayerOptions("vArea"); 					//创建分析图层配置，给配置起个名称，任意名称
+
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		    // 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						       // 所创建区域ID	
+
+            tlo.AddConfig("MoveType", "20");                             //角点标识
+            tlo.AddConfig("MoveDistance", "0.0,   -0.0000001, 0.0");            //经度，纬度，高程
+
+            videoArea.UpdateLayerOptions(tlo); 						   //更新图层
+        }
+
+        //角点二操作
+        function AngleTwoPoint() {
+
+            var tlo = map.CreateLayerOptions("vArea"); 					//创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		    // 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						        // 所创建区域ID	
+            tlo.AddConfig("MoveType", "21");                              //角点标识
+            tlo.AddConfig("MoveDistance", "0.0, -0.0000001, 0.0");                //经度，纬度，高程 
+            videoArea.UpdateLayerOptions(tlo);
+
+        }
+
+        //角点三操作
+        function AngleThreePoint() {
+
+            var tlo = map.CreateLayerOptions("vArea"); 					 //创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		    // 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						        // 所创建区域ID	
+            tlo.AddConfig("MoveType", "22");                               //角点标识
+            tlo.AddConfig("MoveDistance", "0.0,   0.0000001, 0.0");                 //经度，纬度，高程
+            videoArea.UpdateLayerOptions(tlo);
+        }
+
+        //角点四操作
+        function AngleFourPoint() {
+            var tlo = map.CreateLayerOptions("vArea"); 					 //创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	// 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_videoarea"); 		    // 此处格式固定，使用区域投影插件	
+
+            tlo.AddConfig("ID", String(id)); 						        // 所创建区域ID	
+            tlo.AddConfig("MoveType", "23");                               //角点标识
+            tlo.AddConfig("MoveDistance", "0.0,  0.0000001, 0.0");                 //经度，纬度，高程 
+            videoArea.UpdateLayerOptions(tlo);
+        }
+
+    </script>
+
+</head>
+
+
+
+<body onload="InitScene()">
+
+    <br/>服务加载:
+    <input id="Button1"  type="button"   value="加载CPM"       onclick="LoadCPM()" />
+    <input id="Button4"  type="button"   value="卸载CPM"       onclick="RemoveCPM()" />
+    <input id="Button5"  type="button"   value="显隐CPM"       onclick="VisibleCPM()" />
+
+    <input id="Button11" type="button"   value="加载地形"      onclick = "LoadDOMMTDS()" />
+    <input id="Button12" type="button"   value="删除地形"      onclick = "RemoveDOMMTDS()" />
+
+    <input id="Button2"  type="button"   value="加载GMS"       onclick="LoadGMS()" />
+    <input id="Button6"  type="button"   value="卸载GMS"       onclick="RemoveGMS()" />
+    <input id="Button7"  type="button"   value="显隐GMS"       onclick="VisibleGMS()" />
+
+    <br/>视屏投影方式一(陈):
+    <input id="Button8"  type="button"   value = "视屏接入"      onclick = "addLocalVideo()" />
+    <input id="Button17" type="button"   value = "更新视屏参数"  onclick = "updateVideoOptions()" />
+    <input id="Button10" type="button"   value=  "清除视屏接入"  onclick = "ClearLocalVideo()" />
+
+    <br/>视屏投影方式二(郭):   
+	<input id="Button300" type="button" value="开启分析" onclick="AddVideoAreaMap()" />
+	<input id="Button13"  type="button" value="区域id"   onclick="AreaID()"/>
+	<input id="Textid"    type="text"   value="0"                          />	
+	<input id="Button301" type="button" value="创建投影" onclick="VideoAreaCreate1()" />
+	<input id="Button302" type="button" value="显示"     onclick="IsVisible11()" />
+	<input id="Button303" type="button" value="隐藏"     onclick="IsVisible12()" />
+	<input id="Button304" type="button" value="删除"     onclick="deleteV()" />
+	<input id="Button305" type="button" value="经纬+"    onclick="move1()" />
+	<input id="Button305" type="button" value="经纬-"    onclick="move2()" />
+	<input id="Button305" type="button" value="纬度+"    onclick="move3()" />
+	<input id="Button305" type="button" value="纬度-"    onclick="move4()" />
+	<input id="Button305" type="button" value="抬高"     onclick="move5()" />
+	<input id="Button305" type="button" value="降低"     onclick="move6()" />
+	<input id="Button305" type="button" value="获取结果" onclick="GetResult()" />
+	<input id="Button305" type="button" value="从点集合重加载"   onclick="LoadFromPoints()" />
+    <input id="Button3"   type="button" value="从文件集合重加载" onclick="LoadFromFile()" />
+	<input id="Button305" type="button" value="移除分析" onclick="removeAnalysis()" />
+    <br/>区域边角点位移:   
+    <input id="Button9"   type="button" value="边角点一"  onclick="AngleOnePoint()" />
+    <input id="Button14"  type="button" value="边角点二"  onclick="AngleTwoPoint()" />
+	<input id="Button15"  type="button" value="边角点三"  onclick="AngleThreePoint()" />
+    <input id="Button16"  type="button" value="边角点四"  onclick="AngleFourPoint()" />
+  
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 980px">
+    </object>
+</body>
+</html>

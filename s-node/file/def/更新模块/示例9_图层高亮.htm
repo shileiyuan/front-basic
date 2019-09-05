@@ -1,0 +1,92 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>图层高亮</title>
+
+    <script language="javascript" type="text/javascript">
+  
+        var obj;
+        var map;
+		var ope = new Array();
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            //obj.attachEvent("FireOnLButtonDown", LButtonDown);
+            //obj.attachEvent("FireOnOperationNotify", FireOnOperationNotify);
+
+            map = obj.GetIMapMgrPtr();
+        }
+
+ 
+
+		var textshpLayer;
+        var gmsLayer;
+		var polygoneditLayer;
+		var mtdsdomlayer;
+        //////加载模型数据
+        function LoadGMS() {
+			var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+			mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+			map.AddLayer(mtdsdomlayer); ///添加DOM图层
+			
+			var tlo1 = map.CreateLayerOptions("HaiKang2_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo1.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo1.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+            tlo1.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo1.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo1); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+		}
+			
+		function CreateHaloOperation()
+		{
+			var tlo = map.CreateOperationOptions("Halo"); //创建配置类型,操作类型的配置
+            tlo.AddConfig("OptionsTypeName", "HighlightOperationOptions");
+			tlo.AddConfig("LayerIdList", gmsLayer.GetLayerId());
+			tlo.AddConfig("LinghtState", "true");
+			tlo.AddConfig("Color", "0.2, 0.2, 0.2, 0.9");
+
+            operationPtr = map.CreateOperation("HighlightOperation", tlo); //根据配置创建模型调整操作
+            map.AddOperation(operationPtr);   
+		}
+		
+		function RemoveOperation()
+		{
+			var tlo = map.CreateOperationOptions("Halo"); //创建配置类型,操作类型的配置
+            tlo.AddConfig("OptionsTypeName", "HighlightOperationOptions");
+			tlo.AddConfig("LayerIdList", gmsLayer.GetLayerId());
+			tlo.AddConfig("LinghtState", "false");
+
+            operationPtr = map.CreateOperation("HighlightOperation", tlo); //根据配置创建模型调整操作
+            map.AddOperation(operationPtr);  
+			
+            map.RemoveOperation(operationPtr);
+            operationPtr = null;
+		}
+    </script>
+</head>
+<body onload="InitScene()">
+  
+    <input type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input type="button" value="启动高亮操作"  onclick="CreateHaloOperation()" />
+    <input type="button" value="移除操作"  onclick="RemoveOperation()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 100%"></object>
+</body>
+</html>

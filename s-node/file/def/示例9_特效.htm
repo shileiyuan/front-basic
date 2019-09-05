@@ -1,0 +1,1082 @@
+<HTML>
+<HEAD>
+	<META http-equiv="X-UA-Compatible" content="IE=8"/>
+    <TITLE> 示例9粒子特效 </TITLE>
+
+    <SCRIPT language="javascript" type="text/javascript" event="FireOnLButtonUp(tx,ty)" for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+        // 喷泉
+		if(fountainStart)
+        {
+            FountainCreate(tx + "," + ty);
+            fountainStart = false;
+        }
+
+		// 火焰
+        if(fireStart)
+        {
+            FireCreate(tx + "," + ty);
+            fireStart = false;
+        }
+		
+		// 雨效
+        if(rainStart)
+        {
+            RainCreate(tx + "," + ty);
+            rainStart = false;
+        }
+		
+		// 雪效
+        if(snowStart)
+        {
+            SnowCreate(tx + "," + ty);
+            snowStart = false;
+        }
+    </script>
+	
+    <SCRIPT language="javascript" type="text/javascript" event="FireOnLayerNotify(layerid , type)" for="VPSDKCtrl">
+		//////layerid 是指图层的id，本地方只是作为一个实例，直接用的圆的图层
+		var layer = layermap[layerid];
+		var opt = layer.GetLayerResult();
+        if(type == 1000)
+        {
+			var sParticlePosition = opt.GetConfigValueByKey("ParticlePosition");
+            var data = sParticlePosition.split(",");
+			var position = data[0] + "," + data[1] + "," + data[2];
+			
+			var particleLayer = map.GetParticleSystemLayer(layerid);
+//			particleLayer.AddParticles("Splash", 1, position, "0,0,0", "", "", false);
+            //particleLayer.AddParticles("Drop", param(2,8), position, "", "", "RainEmitter2",  false);
+        }
+    </script>
+	
+    <SCRIPT language="javascript" type="text/javascript">
+	
+		var obj;
+		var map;
+		var layermap = new Array();
+		var transformate;
+		var dataPath;
+		
+		function GetSDKPath()
+		{
+			var path = obj.GetSDKPath();
+			for(var i = 0; i < 2 ; ++i)
+			{
+				path = path.substring(0, path.lastIndexOf('\\'));
+			}
+			return path + "\\data\\";
+		}
+
+		function InitScene() {
+			obj = document.getElementById("VPSDKCtrl");
+			obj.InitLic("192.168.1.50@8088@");
+			map = obj.GetIMapMgrPtr();
+			transformate = map.CreateTransformation();
+			//LoadDEMMTDS();
+			LoadDOMMTDS();
+			LoadCPM();
+			
+			var navigation = map.CreateNavigation();
+			var desP = map.CreatePosition(120.13710339, 30.26978126, 10);
+			navigation.FlyToDest(desP, 0.5 * 3.14, -0.25*3.14, 20, 3);
+			
+			//dataPath = GetSDKPath();
+			dataPath = "F:\\CooGis_SDK_6.0\\Code\\branches\\SDK_6.0\\bin\\data";
+			
+			AddResState();
+        }
+		
+		var resState;
+		function AddResState()
+		{
+			var resp = map.CreateResponserOptions("UIStateResponser");
+			resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\msyh.TTF"); 									/// 字体格式文件路径
+			resp.AddConfig("StateCurrent", "true");															/// 当前视点信息开关
+			resp.AddConfig("StateMouse", "true");															/// 当前鼠标信息开关
+			resp.AddConfig("StateHeight", "true");															/// 当前高度信息开关
+			//resp.AddConfig("CurrentShow", "中心视点： ");													/// 中心视点文字
+			//resp.AddConfig("MouseShow", " 鼠标位置：");													/// 鼠标位置文字
+			//resp.AddConfig("LonShow", " 经度： ");														/// 经度文字
+			//resp.AddConfig("LatShow", " 纬度： ");														/// 纬度文字
+			//resp.AddConfig("HeightShow", " 高程：");														/// 高程文字
+			resState = map.CreateResponser("UIStateResponser", resp); 										/// 创建状态栏响应器，必须为UIStateResponser
+			map.AddResponser(resState);
+        }
+
+		var rainStart = false;
+		function Rain() {
+			rainStart = rainStart ? false : true;
+		}
+		
+		var snowStart = false;
+		function Snow() {
+			snowStart = snowStart ? false : true;
+		}
+		
+		var fountainStart = false;
+		function Fountain()
+		{
+			fountainStart = fountainStart ? false : true;
+		}
+
+		var fireStart = false;
+		function Fire() 
+		{
+			fireStart = fireStart ? false : true;
+		}
+
+		var sizeRatio = 1.0;
+		var rainRatio = 0.5;
+
+		function param(min, max) {
+			return min + rainRatio * (max - min);
+		}
+		
+		// 取单位向量用于控制方向
+		function Normalize(x, y, z)
+		{
+			var length = Math.sqrt(x * x + y * y + z * z );
+			var mx = x / length;
+			var my = y / length;
+			var mz = z / length;
+			return map.CreatePosition(mx, my, mz);
+		}
+		
+		function VectorDirection(x1, y1, z1, x2, y2, z2)
+		{
+			var vec1 = Math.sqrt(x1 * x1 + y1 * y1 + z1 * z1);
+			var vec2 = Math.sqrt(x2 * x2 + y2 * y2 + z2 * z2);
+			
+			var tmp = x1 * x2 + y1 * y2 + z1 * z2;
+			return tmp / (vec1 * vec2);
+		}
+		
+		// 区域大小控制
+		function Record(x, y, z)
+		{
+			var length = Math.sqrt(x * x + y * y + z * z );
+			var factor = (5.0 / length) + 1;
+			var mx = x * factor;
+			var my = y * factor;
+			var mz = z * factor;
+			return map.CreatePosition(mx, my, mz);
+		}
+
+		var particleRainLayer;
+		var dropEmitter;
+		var dataRecord;
+		
+		var dropRender;
+		var splashRender;
+		
+		var clicklonglatPos;
+ 		////// 加载雨效
+		function RainCreate(pos) 
+		{
+			var screenPos = pos.split(",");
+			var longlatPos = transformate.ScreenPosToWorldPos(screenPos[0], screenPos[1]);												/// 将屏幕坐标点转换成经纬度坐标
+			var worldPos = transformate.ConvertLongLatHeightToXYZ(longlatPos);															/// 经纬度转场景坐标
+			clicklonglatPos = longlatPos;
+			
+			var DirectPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 0));		/// 取投影坐标
+			var DirectVec = Normalize(DirectPos.GetX(), DirectPos.GetY(), DirectPos.GetZ());											/// 计算投影坐标单位向量
+			
+			var RecordPos = Record(worldPos.GetX(), worldPos.GetY(), worldPos.GetZ());													/// 配置区域
+			
+			var ZoneXYZPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 20));		/// 取投影坐标
+			var ZonePos = map.CreatePosition(ZoneXYZPos.GetX() - worldPos.GetX(), ZoneXYZPos.GetY() - worldPos.GetY(), ZoneXYZPos.GetZ() - worldPos.GetZ());
+			
+			//var dataPath = obj.GetSDKPath().substring(0, 53) + "data";
+			var dataPath = "F:\\CooGis_SDK_6.0\\Code\\branches\\SDK_6.0\\bin\\data";																	/// 纹理存放路径获取
+
+			////建粒子渲染类型
+			var rainRender = map.CreateParticleRender();
+			rainRender.AddConfig("RenderType", "ParticleLineRender"); 																	/// 创建线粒子渲染类型, ParticleLineRender代表线粒子渲染类型
+			rainRender.AddConfig("Width", param(1.0, 4.0) * sizeRatio); 																/// 线宽
+			rainRender.AddConfig("Length", "-0.30"); 																					/// 线长
+			
+			//// 建立粒子模板
+			
+			/// param 参数
+			/*第一个参数标识参数生成方式
+			 *	RedParam				红色参数
+			 *	GreenParam				绿色参数
+			 *	BlueParam				蓝色参数
+			 *	AlphaParam				透明度
+			 *	SizeParam				大小参数
+			 *	MassParam				质量参数		
+			 *	AngleParam				粒子角度
+			 *	TextureIndexParam		纹理参数
+			 *	RotationSpeedParam		速度参数
+			 *	Custom0Param			保留1
+			 *	Custom1Param			保留2
+			 *	Custom2Param			保留3
+			*/
+
+			// 第二个参数三部分组成， 分号(;)分割
+			/* 第二个参数第一部分标识生成方式
+			 *   0 为 无生成方式
+			 *	 1 为 线性生成方式
+			 *   2 为 随机生成方式
+			 *   4 为 差值生成方式
+			类型值取上述类型之和 */
+			
+			// 第二个参数第二部分标识参数具体值
+			// 第二个参数第三部分标识差值参数， 竖线(|)分割
+	 
+			var rainParticleModel = map.CreateParticleModel();
+			rainParticleModel.AddConfig("RedParam", "0;" + param(1.0, 0.40));
+			rainParticleModel.AddConfig("GreenParam", "0;" + param(1.0, 0.40));
+			rainParticleModel.AddConfig("BlueParam", "0;" + param(1.0, 0.42));
+			rainParticleModel.AddConfig("AlphaParam", "0;0.2");
+			rainParticleModel.AddConfig("MassParam", "2;" + param(0.4, 0.8) + "," + param(0.8, 1.6));
+			/// 非 param 参数
+			rainParticleModel.AddConfig("Immortal", "true");        																	/// 永生参数
+			
+			//// 设置粒子区域对象
+			var rainZone = map.CreateParticleZone();    																				/// 创建发射区区域
+			rainZone.AddConfig("ZoneType", "SphereZone");   																			/// 创建球形区域类型, SphereZone代表球形区域类型
+			rainZone.AddConfig("Radius", "200");     																					/// 区域半径
+			rainZone.AddConfig("Position", ZonePos.GetX() + "," + ZonePos.GetY() + "," + ZonePos.GetZ());								/// 区域位置 / 基准位置
+			rainZone.AddConfig("AutoPosition", "true");     																			/// 自动视野
+			rainZone.AddConfig("Position", worldPos.GetX() + "," + worldPos.GetY() + "," + worldPos.GetZ());							/// 区域位置 / 基准位置
+			
+			
+			//// 设置粒子发射器
+			var rainEmitter = map.CreateParticleEmitter();  																			/// 创建发射器
+			rainEmitter.AddConfig("EmitterType", "SphericEmitter");     																/// 创建球形发射器，SphericEmitter代表球形发射器
+			rainEmitter.AddConfig("Name", "RainEmitter");   																			/// 雨粒子发射器名字，可取任意，但唯一，后期修改针对名字
+			/// 基础参数
+			rainEmitter.AddConfig("ParticleZone", rainZone.GetConfig());   																/// 配置发射区域
+			rainEmitter.AddConfig("Flow", param(0.0, 200000.0));   																		/// 发射器每秒发射粒子数
+			rainEmitter.AddConfig("MinForce", param(5.0, 10.0));																		/// 最小推力
+			rainEmitter.AddConfig("MaxForce", param(5.0, 10.0));																		/// 最大推力
+			/// 子类参数
+			rainEmitter.AddConfig("Direction", (-1 * DirectVec.GetX()) + "," + (-1 * DirectVec.GetY()) + "," + (-1 * DirectVec.GetZ()));/// 发射器方向 0,-1,0   
+			rainEmitter.AddConfig("MinAngle", "0");																						/// 发射器最小偏移角
+			rainEmitter.AddConfig("MaxAngle", "0.157");																					/// 发射器最大偏移角
+
+			//// 设置粒子组
+			var rainGroup = map.CreateParticleGroup();																					/// 创建粒子组
+			rainGroup.AddConfig("Name", "Rain");																						/// 粒子组名字
+			rainGroup.AddConfig("Capacity", "8000");																					/// 粒子组粒子容量
+			rainGroup.AddConfig("ParticleRender", rainRender.GetConfig());																/// 配置粒子渲染器
+			rainGroup.AddConfig("ParticleModel", rainParticleModel.GetConfig());														/// 配置粒子模板
+			rainGroup.AddConfig("ParticleEmitters", rainEmitter.GetConfig());															/// 配置粒子发射器
+			rainGroup.AddConfig("Friction", "0.7");																						/// 摩擦力系数
+			rainGroup.AddConfig("Gravity", (-200 * DirectVec.GetX()) + "," + (-200 * DirectVec.GetY()) + "," + (-200 * DirectVec.GetZ()));	/// 重力方向
+			rainGroup.AddConfig("CustomUpdate", "true");																				/// 粒子更新开启 雨效雪效开启
+			rainGroup.AddConfig("CustomUpdateType", 2);																					/// 粒子更新类型
+			//rainGroup.AddConfig("CustomParticlePosition", DirectPos.GetX() + "," + DirectPos.GetY() + "," + DirectPos.GetZ());		/// 粒子更新位置
+			rainGroup.AddConfig("CustomParticlePosition", "0,0,30");																		/// 粒子更新位置(高度)
+
+
+
+			//// 水花效果
+			///  粒子渲染类型
+			dropRender = map.CreateParticleRender();																					/// 建粒子渲染类型
+			dropRender.AddConfig("RenderType", "ParticlePointRender"); 																	/// 创建点粒子渲染类型, ParticlePointRender代表点粒子渲染类型
+			dropRender.AddConfig("Size", 2.0 * sizeRatio);																				/// 点的大小
+			///  粒子模板
+			var dropParticleModel = map.CreateParticleModel();
+			dropParticleModel.AddConfig("RedParam", "0;" + param(1.0, 0.40));
+			dropParticleModel.AddConfig("GreenParam", "0;" + param(1.0, 0.40));
+			dropParticleModel.AddConfig("BlueParam", "0;" + param(1.0, 0.42));
+			dropParticleModel.AddConfig("AlphaParam", "0;0.6");
+			dropParticleModel.AddConfig("MassParam", "2;" + param(0.4, 0.8) + "," + param(3.0, 4.0));
+			dropParticleModel.AddConfig("MinLifeTime", param(0.05, 0.3));																/// 最小生命周期
+			dropParticleModel.AddConfig("MaxLifeTime", param(0.1, 0.5));																/// 最大生命周期
+			///  粒子发射器
+			dropEmitter = map.CreateParticleEmitter();
+			dropEmitter.AddConfig("EmitterType", "SphericEmitter");																		/// 发射器类型
+			dropEmitter.AddConfig("Name", "DropEmitter");   																			/// 发射器名称
+			dropEmitter.AddConfig("MinForce", param(0.1, 1.0));																			/// 最小推力
+			dropEmitter.AddConfig("MaxForce", param(0.2, 2.0));																			/// 最大推力
+			dropEmitter.AddConfig("Direction", DirectVec.GetX() + "," + DirectVec.GetY() + "," + DirectVec.GetZ()); 					/// 发射器方向
+			dropEmitter.AddConfig("MinAngle", "0");																						/// 发射器最小偏移角
+			dropEmitter.AddConfig("MaxAngle", "0.628");																					/// 发射器最大偏移角
+			///  设置粒子组
+			var dropGroup = map.CreateParticleGroup();
+			dropGroup.AddConfig("Name", "Drop");
+			dropGroup.AddConfig("Capacity", "16000");
+			dropGroup.AddConfig("ParticleRender", dropRender.GetConfig());
+			dropGroup.AddConfig("ParticleModel", dropParticleModel.GetConfig());
+			dropGroup.AddConfig("ParticleEmitters", dropEmitter.GetConfig());
+			dropGroup.AddConfig("Friction", "0.7");
+			dropGroup.AddConfig("Gravity", (-2 * DirectVec.GetX()) + "," + (-2 * DirectVec.GetY()) + "," + (-2 * DirectVec.GetZ()));
+
+
+
+			//// 爆炸效果
+			///  粒子渲染类型
+			splashRender = map.CreateParticleRender();																					/// 建粒子渲染类型
+			splashRender.AddConfig("RenderType", "ParticleQuadRender");																	/// 创建四边形粒子渲染类型, ParticleQuadRenderer代表四边形粒子渲染类型
+			splashRender.AddConfig("XScale", "0.1");																					/// X轴缩放比例
+			splashRender.AddConfig("YScale", "0.1");																					/// Y轴缩放比例
+			splashRender.AddConfig("TextureEnable", "true");																			/// 是否启用纹理
+			
+			var splashParticleModel = map.CreateParticleModel();
+			splashParticleModel.AddConfig("RedParam", "0;" + param(1.0, 0.40));
+			splashParticleModel.AddConfig("GreenParam", "0;" + param(1.0, 0.40));
+			splashParticleModel.AddConfig("BlueParam", "0;" + param(1.0, 0.42));
+			splashParticleModel.AddConfig("AlphaParam", "1;1.0,0.0");
+			splashParticleModel.AddConfig("SizeParam", "3;0,0," + param(0.375, 2.25) + "," + param(0.75, 3.78));  						/// 粒子大小
+			splashParticleModel.AddConfig("AngleParam", "2;0.0,6.283");																	/// 粒子角度 1表示参数随机生成
+			splashParticleModel.AddConfig("MinLifeTime", param(0.2, 0.3));
+			splashParticleModel.AddConfig("MaxLifeTime", param(0.4, 0.5));
+			
+			var splashGroup = map.CreateParticleGroup();
+			splashGroup.AddConfig("Name", "Splash");
+			splashGroup.AddConfig("Capacity", "2400");
+			splashGroup.AddConfig("ParticleRender", splashRender.GetConfig());
+			splashGroup.AddConfig("ParticleModel", splashParticleModel.GetConfig());
+			splashGroup.AddConfig("ImageUrl", dataPath + "//texture//waterdrops.bmp.dds");												/// 配置纹理
+			splashGroup.AddConfig("BlendMode", "770,1,1");																				/// 设置混合模式
+
+			//// 设置粒子发射器
+			var rainEmitter2 = map.CreateParticleEmitter();  																			/// 创建发射器
+			rainEmitter2.AddConfig("EmitterType", "SphericEmitter");     																/// 创建球形发射器，SphericEmitter代表球形发射器
+			rainEmitter2.AddConfig("Name", "RainEmitter2");   																			/// 雨粒子发射器名字，可取任意，但唯一，后期修改针对名字
+			rainEmitter2.AddConfig("MinForce", param(0.1, 1.0));																		/// 最小推力
+			rainEmitter2.AddConfig("MaxForce", param(0.2, 2.0));																		/// 最大推力
+			rainEmitter2.AddConfig("Direction", (DirectVec.GetX()) + "," + (DirectVec.GetY()) + "," + (DirectVec.GetZ()));				/// 发射器方向 0,-1,0   
+			rainEmitter2.AddConfig("MinAngle", "0");																					/// 发射器最小偏移角
+			rainEmitter2.AddConfig("MaxAngle", "0.628");																				/// 发射器最大偏移角
+			
+			
+			var tlo = map.CreateLayerOptions("particle");																				/// 创建粒子图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ParticleSystemLayerOptions"); 															/// 创建配置类型, ParticleSystemLayerOptions代表粒子图层数据配置
+			tlo.AddConfig("ParticleGroups", rainGroup.GetConfig() + dropGroup.GetConfig() + splashGroup.GetConfig());					/// 配置粒子组
+			tlo.AddConfig("AlphaTest", "516,0.5,0,1");																					/// 设置alpha测试
+			tlo.AddConfig("BlendMode", "770,771,1");																					/// 设置混合模式
+			tlo.AddConfig("CustomUpdateEmitter", rainEmitter2.GetConfig());																/// 更新中使用的发射器
+			tlo.AddConfig("ParticlePosition", longlatPos.GetX() + "," + longlatPos.GetY() + "," + longlatPos.GetZ());					/// 粒子图层坐标(经纬度)
+			particleRainLayer = map.CreateLayer("ParticleSystemLayer", tlo);															/// 创建雨效粒子图层，第一项参数必须为ParticleSystemLayer
+			
+			layermap[particleRainLayer.GetLayerID()] = particleRainLayer;
+			particleRainLayer.AddObserver();
+			map.AddLayer(particleRainLayer);																							/// 添加粒子图层            
+		}
+		
+		function RemoveRainLayer() {
+			map.RemoveLayer(particleRainLayer);
+		}
+		////// 加载雪效
+		function SnowCreate(pos) 
+		{
+			var screenPos = pos.split(",");
+			var longlatPos = transformate.ScreenPosToWorldPos(screenPos[0], screenPos[1]);												/// 将屏幕坐标点转换成经纬度坐标
+			var worldPos = transformate.ConvertLongLatHeightToXYZ(longlatPos);															/// 经纬度转场景坐标
+			clicklonglatPos = longlatPos;
+			
+			var DirectPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 0));		/// 取投影坐标
+			var DirectVec = Normalize(DirectPos.GetX(), DirectPos.GetY(), DirectPos.GetZ());											/// 计算投影坐标单位向量
+			
+			var RecordPos = Record(worldPos.GetX(), worldPos.GetY(), worldPos.GetZ());													/// 配置区域
+			
+			var ZoneXYZPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 20));		/// 取投影坐标
+			var ZonePos = map.CreatePosition(ZoneXYZPos.GetX() - worldPos.GetX(), ZoneXYZPos.GetY() - worldPos.GetY(), ZoneXYZPos.GetZ() - worldPos.GetZ());
+			
+			var dataPath = "F:\\CooGis_SDK_6.0\\Code\\branches\\SDK_6.0\\bin\\data";	
+			//var dataPath = obj.GetSDKPath().substring(0, 53) + "data";																	/// 纹理存放路径获取
+
+			////建粒子渲染类型
+			var snowRender = map.CreateParticleRender();
+			snowRender.AddConfig("RenderType", "ParticlePointRender"); 																	/// 创建点粒子渲染类型
+			snowRender.AddConfig("WorldSizeEnable", "true");			 																/// 
+			snowRender.AddConfig("Size", "10.00"); 																						/// 点大小
+			
+			//// 建立粒子模板
+			
+			/// param 参数
+			/*第一个参数标识参数生成方式
+			 *	RedParam				红色参数
+			 *	GreenParam				绿色参数
+			 *	BlueParam				蓝色参数
+			 *	AlphaParam				透明度
+			 *	SizeParam				大小参数
+			 *	MassParam				质量参数		
+			 *	AngleParam				粒子角度
+			 *	TextureIndexParam		纹理参数
+			 *	RotationSpeedParam		速度参数
+			 *	Custom0Param			保留1
+			 *	Custom1Param			保留2
+			 *	Custom2Param			保留3
+			*/
+
+			// 第二个参数三部分组成， 分号(;)分割
+			/* 第二个参数第一部分标识生成方式
+			 *   0 为 无生成方式
+			 *	 1 为 线性生成方式
+			 *   2 为 随机生成方式
+			 *   4 为 差值生成方式
+			类型值取上述类型之和 */
+			
+			// 第二个参数第二部分标识参数具体值
+			// 第二个参数第三部分标识差值参数， 竖线(|)分割
+	 
+			var snowParticleModel = map.CreateParticleModel();
+			snowParticleModel.AddConfig("RedParam", "0;1");
+			snowParticleModel.AddConfig("GreenParam", "0;1");
+			snowParticleModel.AddConfig("BlueParam", "0;1");
+			snowParticleModel.AddConfig("MassParam", "2;" + param(0.5, 0.6) + "," + param(0.8, 1.0));
+			snowParticleModel.AddConfig("AlphaParam", "1;" + param(0.5, 0.6) + "," + param(0.8, 1.0));
+			snowParticleModel.AddConfig("SizeParam", "1;" + param(0.5, 0.6) + "," + param(0.8, 1.0));
+			/// 非 param 参数
+			snowParticleModel.AddConfig("Immortal", "true");        																	/// 永生参数
+			
+			//// 设置粒子区域对象
+			var snowZone = map.CreateParticleZone();    																				/// 创建发射区区域
+			snowZone.AddConfig("ZoneType", "SphereZone");   																			/// 创建球形区域类型, SphereZone代表球形区域类型
+			snowZone.AddConfig("Radius", "200");     																					/// 区域半径
+			snowZone.AddConfig("Position", ZonePos.GetX() + "," + ZonePos.GetY() + "," + ZonePos.GetZ());								/// 区域位置 / 基准位置
+			snowZone.AddConfig("AutoPosition", "true");     																			/// 自动视野
+			snowZone.AddConfig("Position", worldPos.GetX() + "," + worldPos.GetY() + "," + worldPos.GetZ());							/// 区域位置 / 基准位置
+			
+			
+			//// 设置粒子发射器
+			var snowEmitter = map.CreateParticleEmitter();  																			/// 创建发射器
+			snowEmitter.AddConfig("EmitterType", "SphericEmitter");     																/// 创建球形发射器，SphericEmitter代表球形发射器
+			snowEmitter.AddConfig("Name", "RainEmitter");   																			/// 雨粒子发射器名字，可取任意，但唯一，后期修改针对名字
+			/// 基础参数
+			snowEmitter.AddConfig("ParticleZone", snowZone.GetConfig());   																/// 配置发射区域
+			snowEmitter.AddConfig("Flow", param(0.0, 2000.0));   																		/// 发射器每秒发射粒子数
+			snowEmitter.AddConfig("MinForce", param(0.3, 0.5));																			/// 最小推力
+			snowEmitter.AddConfig("MaxForce", param(0.5, 0.7));																			/// 最大推力
+			/// 子类参数
+			snowEmitter.AddConfig("Direction", (-1 * DirectVec.GetX()) + "," + (-1 * DirectVec.GetY()) + "," + (-1 * DirectVec.GetZ()));/// 发射器方向 0,-1,0   
+			snowEmitter.AddConfig("MinAngle", "0");																						/// 发射器最小偏移角
+			snowEmitter.AddConfig("MaxAngle", "0.157");																					/// 发射器最大偏移角
+
+			//// 设置粒子组
+			var snowGroup = map.CreateParticleGroup();																					/// 创建粒子组
+			snowGroup.AddConfig("Name", "Snow");																						/// 粒子组名字
+			snowGroup.AddConfig("Capacity", "8000");																					/// 粒子组粒子容量
+			snowGroup.AddConfig("ParticleRender", snowRender.GetConfig());																/// 配置粒子渲染器
+			snowGroup.AddConfig("ParticleModel", snowParticleModel.GetConfig());														/// 配置粒子模板
+			snowGroup.AddConfig("ParticleEmitters", snowEmitter.GetConfig());															/// 配置粒子发射器
+			snowGroup.AddConfig("Friction", "0.7");																						/// 摩擦力系数
+			snowGroup.AddConfig("Gravity", (-10 * DirectVec.GetX()) + "," + (-10 * DirectVec.GetY()) + "," + (-10 * DirectVec.GetZ()));	/// 重力方向
+			snowGroup.AddConfig("CustomUpdate", "true");																				/// 粒子更新开启 雨效雪效开启
+			snowGroup.AddConfig("CustomUpdateType", 2);																					/// 粒子更新类型
+			//snowGroup.AddConfig("CustomParticlePosition", DirectPos.GetX() + "," + DirectPos.GetY() + "," + DirectPos.GetZ());		/// 粒子更新位置
+			snowGroup.AddConfig("CustomParticlePosition", "0,0,30");																	/// 粒子更新位置(高度)
+			snowGroup.AddConfig("ImageUrl", dataPath + "//texture//SnowLarge.bmp.dds");													/// 配置纹理
+			snowGroup.AddConfig("BlendMode", "770,1,1");																				/// 设置混合模式
+			snowGroup.AddConfig("DepthBuffer", "0,1");																					
+			snowGroup.AddConfig("AlphaTest", "516,0.5,0,1");																			
+			snowGroup.AddConfig("TextureEnv", "0,8448,1");																				/// 
+			snowGroup.AddConfig("TextureEnvFilter", "1,1");																				///
+
+
+			//// 设置粒子发射器
+			var snowEmitter2 = map.CreateParticleEmitter();  																			/// 创建发射器
+			snowEmitter2.AddConfig("EmitterType", "SphericEmitter");     																/// 创建球形发射器，SphericEmitter代表球形发射器
+			snowEmitter2.AddConfig("Name", "snowEmitter2");   																			/// 雨粒子发射器名字，可取任意，但唯一，后期修改针对名字
+			snowEmitter2.AddConfig("MinForce", param(0.1, 1.0));																		/// 最小推力
+			snowEmitter2.AddConfig("MaxForce", param(0.2, 2.0));																		/// 最大推力
+			snowEmitter2.AddConfig("Direction", (DirectVec.GetX()) + "," + (DirectVec.GetY()) + "," + (DirectVec.GetZ()));				/// 发射器方向 0,-1,0   
+			snowEmitter2.AddConfig("MinAngle", "0");																					/// 发射器最小偏移角
+			snowEmitter2.AddConfig("MaxAngle", "0.628");																				/// 发射器最大偏移角
+			
+			
+			var tlo = map.CreateLayerOptions("particle");																				/// 创建粒子图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ParticleSystemLayerOptions"); 															/// 创建配置类型, ParticleSystemLayerOptions代表粒子图层数据配置
+			tlo.AddConfig("ParticleGroups", snowGroup.GetConfig());																		/// 配置粒子组
+			tlo.AddConfig("AlphaTest", "516,0.5,0,1");																					/// 设置alpha测试
+			tlo.AddConfig("BlendMode", "770,771,1");																					/// 设置混合模式
+			tlo.AddConfig("CustomUpdateEmitter", snowEmitter2.GetConfig());																/// 更新中使用的发射器
+			tlo.AddConfig("ParticlePosition", longlatPos.GetX() + "," + longlatPos.GetY() + "," + longlatPos.GetZ());					/// 粒子图层坐标(经纬度)
+			particleSnowLayer = map.CreateLayer("ParticleSystemLayer", tlo);															/// 创建雨效粒子图层，第一项参数必须为ParticleSystemLayer
+			
+			layermap[particleSnowLayer.GetLayerID()] = particleSnowLayer;
+			particleSnowLayer.AddObserver();
+			map.AddLayer(particleSnowLayer);																							/// 添加粒子图层            
+		}
+		
+		function RemoveSnowLayer() {
+			map.RemoveLayer(particleSnowLayer);
+		}
+		
+        var particleFountainLayer;
+        //////加载喷泉图层
+        function FountainCreate(pos) 
+		{
+			// TODO : 颜色混合
+			var screenPos = pos.split(",");
+			var longlatPos = transformate.ScreenPosToWorldPos(screenPos[0], screenPos[1]);												/// 将屏幕坐标点转换成经纬度坐标
+			var worldPos = transformate.ConvertLongLatHeightToXYZ(longlatPos);															/// 经纬度转场景坐标
+
+			var DirectPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 0));		/// 取投影坐标
+			var DirectVec = Normalize(DirectPos.GetX(), DirectPos.GetY(), DirectPos.GetZ());											/// 计算投影坐标单位向量
+
+			var RecordPos = Record(worldPos.GetX(), worldPos.GetY(), worldPos.GetZ());													/// 配置区域
+
+			var ZoneXYZPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 20));		/// 取投影坐标
+			var ZonePos = map.CreatePosition(ZoneXYZPos.GetX() - worldPos.GetX(), ZoneXYZPos.GetY() - worldPos.GetY(), ZoneXYZPos.GetZ() - worldPos.GetZ());
+		
+			////// 创建粒子渲染类型
+			/////水滴样式
+			var particleRenderer;
+			if(1)
+            {
+				///Warning: 部分硬件不支持点粒子，使用四边形粒子代替(TODO)
+				particleRenderer = map.CreateParticleRender();																			/// 建粒子渲染类型
+				particleRenderer.AddConfig("RenderType", "ParticleQuadRender");															/// 创建四边形粒子渲染类型, ParticleQuadRenderer代表四边形粒子渲染类型
+				particleRenderer.AddConfig("XScale", "0.03");																			/// X轴缩放比例
+				particleRenderer.AddConfig("YScale", "0.03");																			/// Y轴缩放比例
+				particleRenderer.AddConfig("TextureEnable", "true");																	/// 是否启用纹理
+			}
+			else{
+				particleRenderer = map.CreateParticleRender();																			/// 建粒子渲染类型
+				particleRenderer.AddConfig("RenderType", "ParticlePointRender");														/// 创建点粒子渲染类型, ParticlePointRenderer代表点粒子渲染类型
+				particleRenderer.AddConfig("Size", "0.03");																				/// 粒子大小
+				particleRenderer.AddConfig("WorldSizeEnable", "true");																	/// 粒子大小参数生效
+			}
+            
+
+			/////水滴颜色
+            //// 建立粒子模板
+            var particleModel = map.CreateParticleModel();																				/// 创建粒子模板
+            particleModel.AddConfig("RedParam", "0;1");																					/// 红色参数
+            particleModel.AddConfig("GreenParam", "0;1");																				/// 绿色参数
+            particleModel.AddConfig("BlueParam", "0;1");																				/// 蓝色参数
+            particleModel.AddConfig("AlphaParam", "0;0.8");																				/// 透明参数
+            particleModel.AddConfig("MinLifeTime", "3.8");																				/// 最小生命周期
+            particleModel.AddConfig("MaxLifeTime", "3.8");																				/// 最大生命周期
+
+			/////喷泉圆锥发射区域
+            //// 设置粒子区域对象		
+            var pointZone = map.CreateParticleZone();																					/// 创建粒子区域
+            pointZone.AddConfig("ZoneType", "PointZone");																				/// 创建点区域类型, PointZone代表点区域类型
+			pointZone.AddConfig("Position", "0,0.5,0");																					/// 创建区域位置
+			
+            //// 设置粒子发射器
+            var particleEmitter = map.CreateParticleEmitter();																			/// 创建区域发射器			
+            particleEmitter.AddConfig("EmitterType", "SphericEmitter");																	/// 创建发射器类型
+            particleEmitter.AddConfig("Direction", DirectVec.GetX() + "," + DirectVec.GetY() + "," + DirectVec.GetZ());					/// 发射方向(0,1,0)
+            particleEmitter.AddConfig("MinAngle", 0.15 * 3.14 + "");																	/// 最小角度
+            particleEmitter.AddConfig("MaxAngle", 0.15 * 3.14 + "");																	/// 最大角度
+            particleEmitter.AddConfig("ParticleZone", pointZone.GetConfig());															/// 设置发射区域
+            particleEmitter.AddConfig("Flow", 500);																						/// 发射数量(TODO: 中断发射)
+            particleEmitter.AddConfig("MinForce", 1.5);																					/// 最小推力
+            particleEmitter.AddConfig("MaxForce", 1.5);																					/// 最大推力
+
+			/////喷泉水花地面反弹
+            //// 设置粒子区域对象
+			var PlaneDirectPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 0));	/// 取投影坐标
+			var PlaneDirectVec = Normalize(PlaneDirectPos.GetX(), PlaneDirectPos.GetY(), PlaneDirectPos.GetZ());						/// 计算投影坐标单位向量
+			
+            var planeZone = map.CreateParticleZone();																					/// 创建粒子区域对象
+            planeZone.AddConfig("ZoneType", "PlaneZone");																				/// 创建平面区域类型, PlaneZone代表平面区域类型
+			planeZone.AddConfig("Normal", PlaneDirectVec.GetX() + "," + PlaneDirectVec.GetY() + "," + PlaneDirectVec.GetZ());			/// 区域方向
+			planeZone.AddConfig("Position", "0, -1, 0");																					/// 区域位置 (TODO: 不生效)
+
+            //// 设置修改器
+            var particleModifier = map.CreateParticleModifier();																		/// 创建修改器
+            particleModifier.AddConfig("ModifierType", "ObstacleModifier");																/// 修改器类型
+            particleModifier.AddConfig("ParticleZone", planeZone.GetConfig());															/// 影响区域
+            particleModifier.AddConfig("Trigger", "8");																					/// 触发信号(INTERSECT_ZONE)
+            particleModifier.AddConfig("BouncingRatio", "0.2");																			/// 反弹系数
+            particleModifier.AddConfig("Friction", "1.0");																				/// 速度因子
+
+            //// 设置粒子组
+            var particleGroup = map.CreateParticleGroup();																				/// 创建粒子组
+            particleGroup.AddConfig("Name", "Fountain");																				/// 粒子名称
+            particleGroup.AddConfig("Capacity", "2000");																				/// 粒子发射数量
+            particleGroup.AddConfig("ParticleRender", particleRenderer.GetConfig());													/// 配置粒子渲染类型
+            particleGroup.AddConfig("ParticleModel", particleModel.GetConfig());														/// 配置粒子模板
+            particleGroup.AddConfig("ParticleEmitters", particleEmitter.GetConfig());													/// 配置粒子发射器
+            particleGroup.AddConfig("ParticleModifiers", particleModifier.GetConfig());													/// 配置粒子修改器
+            particleGroup.AddConfig("Gravity", (-DirectVec.GetX()) + "," + (-DirectVec.GetY()) + "," + (-DirectVec.GetZ()));			/// 重力方向
+            particleGroup.AddConfig("ImageUrl", dataPath + "\\texture\\point.bmp.dds");													/// 资源路径
+            particleGroup.AddConfig("BlendMode", "770,1,1");																			/// 混合模式
+            particleGroup.AddConfig("DepthBuffer", "0,1");																				/// 深度缓存
+            particleGroup.AddConfig("AlphaTest", "516,0.5,0,1");																		/// alpha测试
+
+			//// 粒子图层配置
+            var tlo = map.CreateLayerOptions("particle");																				/// 创建粒子图层
+            tlo.AddConfig("LayerOptionsName", "ParticleSystemLayerOptions");															/// 创建配置类型
+            tlo.AddConfig("ParticleGroups", particleGroup.GetConfig());																	/// 设置粒子组配置
+			tlo.AddConfig("ParticlePosition", longlatPos.GetX() + "," + longlatPos.GetY() + "," + (longlatPos.GetZ() + 2));				/// 粒子图层坐标(经纬度)
+            particleFountainLayer = map.CreateLayer("ParticleSystemLayer", tlo);														/// 创建喷泉粒子图层
+            //layermap[particleFountainLayer.GetLayerID()] = particleFountainLayer;
+            //particleFountainLayer.AddObserver();
+            map.AddLayer(particleFountainLayer);																						/// 添加粒子图层
+        }
+
+        var particleFireLayer;
+        var mSize = 1;
+        //////加载烟火图层
+        function FireCreate(pos)
+		{
+			var screenPos = pos.split(",");
+			var longlatPos = transformate.ScreenPosToWorldPos(screenPos[0], screenPos[1]);												/// 将屏幕坐标点转换成经纬度坐标
+			var worldPos = transformate.ConvertLongLatHeightToXYZ(longlatPos);															/// 经纬度转场景坐标
+			
+			var DirectPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 0));		/// 取投影坐标
+			var DirectVec = Normalize(DirectPos.GetX(), DirectPos.GetY(), DirectPos.GetZ());											/// 计算投影坐标单位向量
+			
+			var RecordPos = Record(worldPos.GetX(), worldPos.GetY(), worldPos.GetZ());													/// 配置区域
+			
+			var ZoneXYZPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(longlatPos.GetX(), longlatPos.GetY(), 20));		/// 取投影坐标
+			var ZonePos = map.CreatePosition(ZoneXYZPos.GetX() - worldPos.GetX(), ZoneXYZPos.GetY() - worldPos.GetY(), ZoneXYZPos.GetZ() - worldPos.GetZ());
+			
+			var dataPath = "F:\\CooGis_SDK_6.0\\Code\\branches\\SDK_6.0\\bin\\data";
+		
+		
+            var scale = mSize / 1.4;
+            if (Math.abs(scale - 0.0) < 1.0e-6) 
+			{
+                scale = 1.0;
+            }
+
+			////// 火焰效果粒子组
+            //// 创建粒子渲染类型
+            var mFireRenderer = map.CreateParticleRender();  																			/// 建粒子渲染类型
+            mFireRenderer.AddConfig("RenderType", "ParticleQuadRender"); 																/// 创建四边形粒子渲染类型
+            mFireRenderer.AddConfig("XScale", 0.3 * scale);																				/// X轴缩放比例
+            mFireRenderer.AddConfig("YScale", 0.3 * scale);																				/// Y轴缩放比例
+            mFireRenderer.AddConfig("TextureEnable", "true");																			/// 是否启用纹理
+            mFireRenderer.AddConfig("AtlasDimensionX", "2");																			/// 纹理切割x向切割数
+            mFireRenderer.AddConfig("AtlasDimensionY", "2");																			/// 纹理切割y向切割数
+			
+			//// 建立粒子模板
+            var mFireModel = map.CreateParticleModel();																					/// 创建粒子模板
+            mFireModel.AddConfig("RedParam", "3;0.8,0.9,0.8,0.9");																		/// 红色参数
+            mFireModel.AddConfig("GreenParam", "3;0.5,0.6,0.5,0.6");																	/// 绿色参数
+            mFireModel.AddConfig("BlueParam", "0;0.3");																					/// 蓝色参数
+            mFireModel.AddConfig("AlphaParam", "1;0.4,0.0");																			/// 透明参数
+			mFireModel.AddConfig("SizeParam", "4;;0.5,2.0,5.0|1.0,0.0");     															/// 粒子大小
+            mFireModel.AddConfig("AngleParam", "3;0.0,6.28,0.0,6.28");																	/// 角度参数
+            mFireModel.AddConfig("TextureIndexParam", "2;0,4.0");																		/// 纹理参数
+            mFireModel.AddConfig("MinLifeTime", 1);																						/// 最小生命周期
+            mFireModel.AddConfig("MaxLifeTime", 1.5);																					/// 最大生命周期
+
+			//// 设置粒子区域对象
+            var zone1 = map.CreateParticleZone();																						/// 创建粒子区域
+            zone1.AddConfig("ZoneType", "SphereZone");																					/// 创建区域类型
+            zone1.AddConfig("Position", (0 * DirectVec.GetX()) + "," + (-1 * DirectVec.GetY()) + "," + (0 * DirectVec.GetZ()));			/// 区域坐标
+            zone1.AddConfig("Radius", 0.5 * scale);																						/// 区域半径
+
+			var direct1 = 1 - VectorDirection(DirectVec.GetX(), DirectVec.GetY(), DirectVec.GetZ(), 0, 1, 0);
+            //// 设置粒子发射器
+            var mFireEmitter1 = map.CreateParticleEmitter();																			/// 创建粒子发射器
+            mFireEmitter1.AddConfig("EmitterType", "StraightEmitter");																	/// 粒子发射器类型
+            mFireEmitter1.AddConfig("Name", "mFireEmitter1");																			/// 发射器名称
+            mFireEmitter1.AddConfig("Direction", (DirectVec.GetX() * direct1) + "," + (DirectVec.GetY() * direct1) + "," + (DirectVec.GetZ() * direct1));/// 发射方向 (0,1,0)
+			//mFireEmitter1.AddConfig("Direction", DirectVec.GetX() + "," + DirectVec.GetY() + "," + DirectVec.GetZ());					/// 发射方向 (0,1,0)
+            mFireEmitter1.AddConfig("ParticleZone", zone1.GetConfig());																	/// 发射器区域
+            mFireEmitter1.AddConfig("Flow", 40);																						/// 发射数量
+            mFireEmitter1.AddConfig("MinForce", 1.0 * scale);																			/// 最小推力
+            mFireEmitter1.AddConfig("MaxForce", 2.5 * scale);																			/// 最大推力
+
+            //// 设置粒子区域对象
+            var zone2 = map.CreateParticleZone();																						/// 创建粒子区域
+            zone2.AddConfig("ZoneType", "SphereZone");																					/// 区域类型
+            zone2.AddConfig("Position", (0.15 * DirectVec.GetX()) + "," + (-1.2 * DirectVec.GetY()) + "," + (0.075 * DirectVec.GetZ()));/// 区域位置
+            zone2.AddConfig("Radius", 0.1 * scale);																						/// 区域半径
+
+			var direct2 = 1 - VectorDirection(DirectVec.GetX(), DirectVec.GetY(), DirectVec.GetZ(), 0, 0.6, 0);
+            //// 设置粒子发射器
+            var mFireEmitter2 = map.CreateParticleEmitter();																			/// 创建粒子发射器
+            mFireEmitter2.AddConfig("EmitterType", "StraightEmitter");																	/// 发射器类型
+            mFireEmitter2.AddConfig("Name", "mFireEmitter2");																			/// 发射器名称
+            mFireEmitter2.AddConfig("Direction", (DirectVec.GetX() * direct2) + "," + (DirectVec.GetY() * direct2) + "," + (DirectVec.GetZ() * direct2));/// 发射器方向
+            mFireEmitter2.AddConfig("ParticleZone", zone2.GetConfig());																	/// 发射器区域
+            mFireEmitter2.AddConfig("Flow", 15);																						/// 发射数量
+            mFireEmitter2.AddConfig("MinForce", 0.5 * scale);																			/// 最小推力
+            mFireEmitter2.AddConfig("MaxForce", 1.5 * scale);																			/// 最大推力
+
+            //// 设置粒子区域对象
+            var zone3 = map.CreateParticleZone();																						/// 创建粒子区域
+            zone3.AddConfig("ZoneType", "SphereZone");																					/// 创建粒子区域类型
+            zone3.AddConfig("Position", (-0.375 * DirectVec.GetX()) + "," + (-1.15 * DirectVec.GetY()) + "," + (-0.375 * DirectVec.GetZ()));/// 区域坐标位置
+            zone3.AddConfig("Radius", 0.3 * scale);																						/// 区域半径
+
+			var direct3 = 1 - VectorDirection(DirectVec.GetX(), DirectVec.GetY(), DirectVec.GetZ(), -0.6, 0.8, -0.8);
+            //// 设置粒子发射器
+            var mFireEmitter3 = map.CreateParticleEmitter();																			/// 创建发射器
+            mFireEmitter3.AddConfig("EmitterType", "StraightEmitter");																	/// 发射器类型
+            mFireEmitter3.AddConfig("Name", "mFireEmitter3");																			/// 发射器名称
+            mFireEmitter3.AddConfig("Direction", (DirectVec.GetX() * direct3) + "," + (DirectVec.GetY() * direct3) + "," + (DirectVec.GetZ() * direct3));/// 发射器方向
+            mFireEmitter3.AddConfig("ParticleZone", zone3.GetConfig());																	/// 发射区域
+            mFireEmitter3.AddConfig("Flow", 15);																						/// 粒子数量
+            mFireEmitter3.AddConfig("MinForce", 0.5 * scale);																			/// 最小推力
+            mFireEmitter3.AddConfig("MaxForce", 1.5 * scale);																			/// 最大推力
+
+            //// 设置粒子区域对象
+            var zone4 = map.CreateParticleZone();																						/// 创建粒子区域
+            zone4.AddConfig("ZoneType", "SphereZone");																					/// 区域类型
+            zone4.AddConfig("Position", (-0.255 * DirectVec.GetX()) + "," + (-1.2 * DirectVec.GetY()) + "," + (0.225 * DirectVec.GetZ()));/// 粒子区域位置
+            zone4.AddConfig("Radius", 0.2 * scale);																						/// 区域半径
+
+			var direct4 = 1 - VectorDirection(DirectVec.GetX(), DirectVec.GetY(), DirectVec.GetZ(), -0.8, 0.5, 0.2);
+            //// 设置粒子发射器
+            var mFireEmitter4 = map.CreateParticleEmitter();																			/// 创建粒子发射器
+            mFireEmitter4.AddConfig("EmitterType", "StraightEmitter");																	/// 发射器类型
+            mFireEmitter4.AddConfig("Name", "mFireEmitter4");																			/// 发射器名称
+            mFireEmitter4.AddConfig("Direction", (DirectVec.GetX() * direct4) + "," + (DirectVec.GetY() * direct4) + "," + (DirectVec.GetZ() * direct4));/// 发射器方向
+            mFireEmitter4.AddConfig("ParticleZone", zone4.GetConfig());																	/// 发射器区域
+            mFireEmitter4.AddConfig("Flow", 10);																						/// 发射器每秒发射粒子数
+            mFireEmitter4.AddConfig("MinForce", 0.5 * scale);																			/// 最小推力
+            mFireEmitter4.AddConfig("MaxForce", 1.5 * scale);																			/// 最大推力
+
+            //// 设置粒子区域对象
+            var zone5 = map.CreateParticleZone();																						/// 创建区域对象
+            zone5.AddConfig("ZoneType", "SphereZone");																					/// 区域类型
+            zone5.AddConfig("Position", (-0.075 * DirectVec.GetX()) + "," + (-1.2 * DirectVec.GetY()) + "," + (-0.3 * DirectVec.GetZ()));/// 区域位置
+            zone5.AddConfig("Radius", 0.2 * scale);																						/// 区域半径
+
+			var direct5 = 1 - VectorDirection(DirectVec.GetX(), DirectVec.GetY(), DirectVec.GetZ(), 0.1, 0.8, -1.0);
+            //// 设置粒子发射器
+            var mFireEmitter5 = map.CreateParticleEmitter();																			/// 创建粒子发射器
+            mFireEmitter5.AddConfig("EmitterType", "StraightEmitter");																	/// 发射器类型
+            mFireEmitter5.AddConfig("Name", "mFireEmitter5");																			/// 发射器名称
+            mFireEmitter5.AddConfig("Direction", (DirectVec.GetX() * direct5) + "," + (DirectVec.GetY() * direct5) + "," + (DirectVec.GetZ() * direct5));/// 发射器方向
+            mFireEmitter5.AddConfig("ParticleZone", zone5.GetConfig());																	/// 发射器区域
+            mFireEmitter5.AddConfig("Flow", 10);																						/// 发射器每秒发射粒子数
+            mFireEmitter5.AddConfig("MinForce", 0.5 * scale);																			/// 最小推力
+            mFireEmitter5.AddConfig("MaxForce", 1.5 * scale);																			/// 最大推力
+			
+			
+			//// 设置粒子组
+            var mFireGroup = map.CreateParticleGroup();																					/// 创建粒子组
+            mFireGroup.AddConfig("Name", "Fire");																						/// 粒子组名称
+            mFireGroup.AddConfig("Capacity", "1350");																					/// 粒子组粒子容量
+            mFireGroup.AddConfig("ParticleRender", mFireRenderer.GetConfig());															/// 粒子组绘制配置
+            mFireGroup.AddConfig("ParticleModel", mFireModel.GetConfig());																/// 粒子组模板配置
+            mFireGroup.AddConfig("ParticleEmitters", mFireEmitter1.GetConfig() + mFireEmitter2.GetConfig() + mFireEmitter3.GetConfig() + mFireEmitter4.GetConfig() + mFireEmitter5.GetConfig());
+																																		/// 粒子组发射器配置
+            //mFireGroup.AddConfig("Gravity", 0.0 + "," + 3.0 * scale + "," + 0.0);														/// 重力方向
+			mFireGroup.AddConfig("Gravity", DirectVec.GetX() + "," + DirectVec.GetY() * scale + "," + DirectVec.GetZ());				/// 重力方向
+			
+			
+            mFireGroup.AddConfig("ImageUrl", dataPath + "\\texture\\fire.bmp.dds");														/// 粒子纹理
+            mFireGroup.AddConfig("BlendMode", "770,1,1");																				/// 混合模式
+            mFireGroup.AddConfig("AlphaTest", "516,0.5,0,1");																			/// alpha测试
+            mFireGroup.AddConfig("DepthBuffer", "0,1");																					/// 深度缓存
+			
+
+			////// 烟雾效果粒子组
+			//// 创建粒子渲染类型
+            var mSmokeRenderer = map.CreateParticleRender();																			/// 建粒子渲染类型
+            mSmokeRenderer.AddConfig("RenderType", "ParticleQuadRender");																/// 创建四边形粒子渲染类型
+            mSmokeRenderer.AddConfig("XScale", 0.3 * scale);																			/// X轴缩放比例
+            mSmokeRenderer.AddConfig("YScale", 0.3 * scale);																			/// Y轴缩放比例
+            mSmokeRenderer.AddConfig("TextureEnable", "true");																			/// 是否启用纹理
+            mSmokeRenderer.AddConfig("AtlasDimensionX", "2");																			/// 纹理切割x向切割数
+            mSmokeRenderer.AddConfig("AtlasDimensionY", "2");																			/// 纹理切割y向切割数
+
+            ////建立粒子模板
+            var mSmokeModel = map.CreateParticleModel();																				/// 创建粒子模板
+            mSmokeModel.AddConfig("RedParam", "1;0.3,0.2");																				/// 红色参数
+            mSmokeModel.AddConfig("GreenParam", "1;0.25,0.2");																			/// 绿色参数
+            mSmokeModel.AddConfig("BlueParam", "0;0.2");																				/// 蓝色参数
+            mSmokeModel.AddConfig("AlphaParam", "4;0.2,0.0;0.0,0.0|0.2,0.2|1.0,0.0");													/// 透明度参数
+            mSmokeModel.AddConfig("AngleParam", "3;0.0,6.28,0.0,6.28");																	/// 角度参数
+            mSmokeModel.AddConfig("TextureIndexParam", "2;0,4.0");																		/// 纹理参数
+            mSmokeModel.AddConfig("SizeParam", "1;5,10");																				/// 尺寸参数
+            mSmokeModel.AddConfig("MinLifeTime", 5);																					/// 最大生命周期
+            mSmokeModel.AddConfig("MaxLifeTime", 5);																					/// 最小生命周期
+
+            ////设置粒子区域对象
+            var smokeZone = map.CreateParticleZone();																					/// 创建粒子区域
+            smokeZone.AddConfig("ZoneType", "SphereZone");																				/// 区域类型
+            smokeZone.AddConfig("Position", "0,0,0");																					/// 区域位置
+            smokeZone.AddConfig("Radius", 1.2 * scale);																					/// 区域半径
+
+            ////设置粒子发射器
+            var mSmokeEmitter = map.CreateParticleEmitter();																			/// 创建粒子发射器
+            mSmokeEmitter.AddConfig("EmitterType", "SphericEmitter");																	/// 发射器类型
+            mSmokeEmitter.AddConfig("Name", "SmokeEmitter");																			/// 发射器名称
+            mSmokeEmitter.AddConfig("Direction", DirectVec.GetX() + "," + DirectVec.GetY() * scale + "," + DirectVec.GetZ());			/// 发射方向 (0,1,0)
+            mSmokeEmitter.AddConfig("MinAngle", "0");																					/// 最小角度
+            mSmokeEmitter.AddConfig("MaxAngle", "1.57");																				/// 最大角度
+            mSmokeEmitter.AddConfig("ParticleZone", smokeZone.GetConfig());																/// 发射器区域
+            mSmokeEmitter.AddConfig("Flow", 25);																						/// 发射器每秒发射粒子数
+            mSmokeEmitter.AddConfig("MinForce", 0.5*scale);																				/// 最小推力
+            mSmokeEmitter.AddConfig("MaxForce", 1.0*scale);																				/// 最大推力
+
+            ///设置粒子组
+            var mSmokeGroup = map.CreateParticleGroup();																				/// 创建粒子组
+            mSmokeGroup.AddConfig("Name", "Smoke");																						/// 粒子组名称
+            mSmokeGroup.AddConfig("Capacity", "1350");																					/// 容量
+            mSmokeGroup.AddConfig("ParticleRender", mSmokeRenderer.GetConfig());														/// 绘制参数配置
+            mSmokeGroup.AddConfig("ParticleModel", mSmokeModel.GetConfig());															/// 模板参数配置
+            mSmokeGroup.AddConfig("ParticleEmitters", mSmokeEmitter.GetConfig());														/// 粒子发射器配置
+            mSmokeGroup.AddConfig("Gravity", DirectVec.GetX() + "," + DirectVec.GetY() * scale + "," + DirectVec.GetZ()); 				/// 重力方向　(0.0,0.4*scale,0.0)
+            mSmokeGroup.AddConfig("ImageUrl", dataPath + "\\texture\\explosion.bmp.dds");												/// 粒子纹理配置
+            mSmokeGroup.AddConfig("BlendMode", "770,1,1");																				/// 混合模式
+            mSmokeGroup.AddConfig("AlphaTest", "516,0.5,0,1");																			/// alpha测试
+            mSmokeGroup.AddConfig("DepthBuffer", "0,1");																				/// 深度缓存
+			
+
+			////// 图层配置
+            var tlo = map.CreateLayerOptions("particle");																				/// 创建粒子图层
+            tlo.AddConfig("LayerOptionsName", "ParticleSystemLayerOptions");															/// 创建配置类型, ParticleSystemLayerOptions代表粒子图层数据配置
+			tlo.AddConfig("ParticlePosition", longlatPos.GetX() + "," + longlatPos.GetY() + "," + (longlatPos.GetZ()  ));			/// 粒子图层坐标(经纬度)
+            tlo.AddConfig("ParticleGroups", mFireGroup.GetConfig() + mSmokeGroup.GetConfig());											/// 粒子组配置
+            //tlo.AddConfig("BlendMode", "770, 1");
+
+            particleFireLayer = map.CreateLayer("ParticleSystemLayer", tlo);															/// 创建雨效粒子图层，第一项参数必须为ParticleSystemLayer
+            //layermap[particleFireLayer.GetLayerID()] = particleFireLayer;
+            //particleFireLayer.AddObserver();
+            map.AddLayer(particleFireLayer);																							/// 添加粒子图层
+        }
+
+        function ReSet() {
+            cpmLayer.Locate(); ////模型图层定位
+        }
+
+        function LoadXML() {
+            map.DeserializeLayer("D:\\Serialize.dep");
+        }
+
+        function UpdateLayer() {
+
+            var dropRender1 = map.CreateParticleRender();  ////建粒子渲染类型
+
+            var rainRender1 = map.CreateParticleRender();  ////建粒子渲染类型
+            rainRender1.AddConfig("Length", "-0.1"); //////线长
+
+            var splashRender1 = map.CreateParticleRender();  ////建粒子渲染类型
+
+            ////建立粒子模板
+            var rainParticleModel1 = map.CreateParticleModel();  ////创建粒子模板
+            rainParticleModel1.AddConfig("RedParam", "-1;1.0" );      ////红色参数 -1表示参数无生成方式，";"隔开，具体参数值+ param(1.0, 0.40)
+            rainParticleModel1.AddConfig("GreenParam", "-1;0.0" );    ////绿色参数+ param(1.0, 0.40)
+            rainParticleModel1.AddConfig("BlueParam", "-1;0.0");      ////蓝色参数// +param(1.0, 0.42)
+            rainParticleModel1.AddConfig("AlphaParam", "-1;1.0");                    ////透明度
+
+            var dropParticleModel1 = map.CreateParticleModel();
+
+            var splashParticleModel1 = map.CreateParticleModel();
+
+            ////设置粒子发射器
+            var rainEmitter1 = map.CreateParticleEmitter();  ////创建发射器
+            rainEmitter1.AddConfig("Name", "RainEmitter");   ////雨粒子发射器名字，可取任意，但唯一，后期修改 根据名字查找
+            rainEmitter1.AddConfig("Flow", param(0.0, 1600.0));   ////发射器每秒发射粒子数
+
+            var dropEmitter1 = map.CreateParticleEmitter();
+            dropEmitter1.AddConfig("Name", "DropEmitter");   ////
+
+
+            ///设置粒子组
+            var rainGroup1 = map.CreateParticleGroup();  ////创建粒子组
+            rainGroup1.AddConfig("Name", "Rain");        ////粒子组名字
+            rainGroup1.AddConfig("ParticleRender", rainRender1.GetConfig());      ////配置粒子渲染器
+            rainGroup1.AddConfig("ParticleModel", rainParticleModel1.GetConfig());    ////配置粒子模板
+            rainGroup1.AddConfig("ParticleEmitters", rainEmitter1.GetConfig());    ////配置粒子发射器  + dropEmitter1.GetConfig()
+
+          
+
+            var dropGroup1 = map.CreateParticleGroup();
+            dropGroup1.AddConfig("Name", "Drop");
+            dropGroup1.AddConfig("ParticleRender", dropRender1.GetConfig());
+            dropGroup1.AddConfig("ParticleModel", dropParticleModel1.GetConfig());
+            dropGroup1.AddConfig("ParticleEmitter", dropEmitter1.GetConfig());
+
+            var splashGroup1 = map.CreateParticleGroup();
+            splashGroup1.AddConfig("Name", "Splash");
+            splashGroup1.AddConfig("ParticleRender", splashRender1.GetConfig());
+            splashGroup1.AddConfig("ParticleModel", splashParticleModel1.GetConfig());
+
+            var tlo = map.CreateLayerOptions("particleUpdate"); 	// 创建粒子图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ParticleSystemLayerOptions"); // 创建配置类型, ParticleSystemLayerOptions代表粒子图层数据配置，必须是此键值对
+            tlo.AddConfig("ParticleGroups", rainGroup1.GetConfig() + dropGroup1.GetConfig() + splashGroup1.GetConfig() );   //配置粒子组   // 
+
+            particleRainLayer.UpdateLayerOptions(tlo);
+        }
+
+        function Serialize() {
+            particleFireLayer.SerializeLayer("D:\\Serialize.dep");
+        }
+
+		//////加载水枪
+		function HydraulicGun() 
+		{
+			//120.13710339，30.26978126，10
+			//120.13721327，30.26981212，25
+			var mStartLLHPoint = map.CreatePosition(120.168846669,30.1866932483,0.03);
+			var mStartWorldPoint = transformate.ConvertLongLatHeightToXYZ(mStartLLHPoint);
+			
+			var mEndLLHPoint = map.CreatePosition(120.168778035,30.1863611597,42);
+			var mEndWorldPoint = transformate.ConvertLongLatHeightToXYZ(mEndLLHPoint);
+			
+			var DirectPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(120.168846669,30.1866932483, 0));				/// 取投影坐标
+			var DirectVec = Normalize(DirectPos.GetX(), DirectPos.GetY(), DirectPos.GetZ());										/// 计算投影坐标单位向量
+			
+			var ModifierPos = transformate.ConvertLongLatHeightToXYZ(map.CreatePosition(120.168846669,30.1866932483, 0));			/// 取投影坐标
+			
+			var DirectVec2 = Normalize(mEndWorldPoint.GetX() - mStartWorldPoint.GetX(), mEndWorldPoint.GetY() - mStartWorldPoint.GetY(), mEndWorldPoint.GetZ() - mStartWorldPoint.GetZ());										/// 计算投影坐标单位向量
+
+
+			var fXSpeed = (mStartWorldPoint.GetX() - mEndWorldPoint.GetX()) / 4.0;
+			var fYSpeed = (mStartWorldPoint.GetY() - mEndWorldPoint.GetY()) * 5.0 / 12.0;
+			var fZSpeed = (mStartWorldPoint.GetZ() - mEndWorldPoint.GetZ()) / 4.0;
+
+			var mForce = Math.sqrt(Math.pow(fXSpeed, 2) + Math.pow(fYSpeed, 2) + Math.pow(fZSpeed, 2));
+			
+			var mDirection = Normalize(fXSpeed, fYSpeed, fZSpeed);
+			
+			var mGravity = Math.abs(fYSpeed / 5.0);
+			var mSize = mForce / 15;
+			
+			var particleRenderer = map.CreateParticleRender();																		/// 建粒子渲染类型
+			particleRenderer.AddConfig("RenderType", "ParticleQuadRender");															/// 创建四边形粒子渲染类型, ParticleQuadRenderer代表四边形粒子渲染类型
+			particleRenderer.AddConfig("XScale", "0.03");																			/// X轴缩放比例
+			particleRenderer.AddConfig("YScale", "0.03");																			/// Y轴缩放比例
+			//particleRenderer.AddConfig("AtlasDimensionX", "2");																		
+			//particleRenderer.AddConfig("AtlasDimensionY", "2");																		
+			particleRenderer.AddConfig("TextureEnable", "true");																	/// 是否启用纹理
+			
+			var particleModel = map.CreateParticleModel();																			/// 创建粒子模板
+            particleModel.AddConfig("RedParam", "0;1");																				/// 红色参数
+            particleModel.AddConfig("GreenParam", "0;1");																			/// 绿色参数
+            particleModel.AddConfig("BlueParam", "0;1");																			/// 蓝色参数
+            particleModel.AddConfig("AlphaParam", "0;0.8");																			/// 透明参数
+            particleModel.AddConfig("MinLifeTime", "10");																			/// 最小生命周期
+            particleModel.AddConfig("MaxLifeTime", "10");																			/// 最大生命周期
+			
+			//// 设置粒子区域对象
+            var zone = map.CreateParticleZone();																					/// 创建粒子区域
+            //zone.AddConfig("ZoneType", "PointZone");																				/// 创建区域类型
+			zone.AddConfig("ZoneType", "SphereZone");																				/// 创建区域类型
+            //zone.AddConfig("Position", (1 * mStartWorldPoint.GetX()) + "," + (1 * mStartWorldPoint.GetY()) + "," + (1 * mStartWorldPoint.GetZ()));		/// 区域坐标
+			zone.AddConfig("Position", "1, 1, 1");		/// 区域坐标
+            zone.AddConfig("Radius", 0.2);		
+			
+			var particleEmitter = map.CreateParticleEmitter();																		/// 创建区域发射器			
+            particleEmitter.AddConfig("EmitterType", "SphericEmitter");																/// 创建发射器类型
+            particleEmitter.AddConfig("Direction", DirectVec2.GetX() + "," + DirectVec2.GetY() + "," + DirectVec2.GetZ());			/// 发射方向(0,1,0)
+            particleEmitter.AddConfig("MinAngle", "0.0");																			/// 最小角度
+            particleEmitter.AddConfig("MaxAngle", 0.02 * 3.14 + "");																/// 最大角度
+			//particleEmitter.AddConfig("MaxAngle", "0.0");																			/// 最大角度
+            particleEmitter.AddConfig("ParticleZone", zone.GetConfig());															/// 设置发射区域
+            particleEmitter.AddConfig("Flow", "5000");																				/// 发射数量
+            particleEmitter.AddConfig("MinForce", mForce);																			/// 最小推力
+            particleEmitter.AddConfig("MaxForce", mForce);																			/// 最大推力
+			
+			
+			var planeZone = map.CreateParticleZone();																				/// 创建粒子区域对象
+            planeZone.AddConfig("ZoneType", "PlaneZone");																			/// 创建平面区域类型, PlaneZone代表平面区域类型
+			planeZone.AddConfig("Normal", DirectVec.GetX() + "," + DirectVec.GetY() + "," + DirectVec.GetZ());						/// 区域方向
+			//planeZone.AddConfig("Position", "" + ModifierPos.GetX() - mStartWorldPoint.GetX() + "," + ModifierPos.GetY() - mStartWorldPoint.GetY() 
+			//+ "," + ModifierPos.GetZ() - mStartWorldPoint.GetZ());																/// 区域位置 
+			planeZone.AddConfig("Position", "0,-2,0");
+			
+			//// 设置修改器
+            var particleModifier = map.CreateParticleModifier();																	/// 创建修改器
+            particleModifier.AddConfig("ModifierType", "ObstacleModifier");															/// 修改器类型
+            particleModifier.AddConfig("ParticleZone", planeZone.GetConfig());														/// 影响区域
+            particleModifier.AddConfig("Trigger", "8");																				/// 触发信号(INTERSECT_ZONE)
+            particleModifier.AddConfig("BouncingRatio", "0.1");																		/// 反弹系数
+            particleModifier.AddConfig("Friction", "0.1");																			/// 速度因子
+
+			
+			var particleGroup = map.CreateParticleGroup();																			/// 创建粒子组
+            particleGroup.AddConfig("Name", "Fountain");																			/// 粒子名称
+            particleGroup.AddConfig("Capacity", "80000");																			/// 粒子最大数量
+            particleGroup.AddConfig("ParticleRender", particleRenderer.GetConfig());												/// 配置粒子渲染类型
+            particleGroup.AddConfig("ParticleModel", particleModel.GetConfig());													/// 配置粒子模板
+            particleGroup.AddConfig("ParticleEmitters", particleEmitter.GetConfig());												/// 配置粒子发射器
+            particleGroup.AddConfig("ParticleModifiers", particleModifier.GetConfig());												/// 配置粒子修改器
+            particleGroup.AddConfig("Gravity", (-DirectVec.GetX()*3) + "," + (-DirectVec.GetY()*3) + "," + (-DirectVec.GetZ()*3));	/// 重力方向
+            particleGroup.AddConfig("ImageUrl", dataPath + "\\texture\\point.bmp.dds");												/// 资源路径
+			//particleGroup.AddConfig("ImageUrl", "C:\\Program Files (x86)\\CityMaker 7\\CityMaker SDK\\Samples\\Media\\png\\water.png");				/// 资源路径
+            particleGroup.AddConfig("BlendMode", "770,1,1");																		/// 混合模式
+            particleGroup.AddConfig("DepthBuffer", "0,1");																			/// 深度缓存
+            particleGroup.AddConfig("AlphaTest", "516,0.5,0,1");																	/// alpha测试
+			
+			var tlo = map.CreateLayerOptions("particle");																			/// 创建粒子图层
+            tlo.AddConfig("LayerOptionsName", "ParticleSystemLayerOptions");														/// 创建配置类型
+            tlo.AddConfig("ParticleGroups", particleGroup.GetConfig());																/// 设置粒子组配置
+			//tlo.AddConfig("ParticlePosition", longlatPos.GetX() + "," + longlatPos.GetY() + "," + (longlatPos.GetZ() + 2));		/// 粒子图层坐标(经纬度)
+			tlo.AddConfig("ParticlePosition", mStartLLHPoint.GetX() + "," + mStartLLHPoint.GetY() + "," + (mStartLLHPoint.GetZ()));	/// 粒子图层坐标(经纬度)
+            particleFountainLayer = map.CreateLayer("ParticleSystemLayer", tlo);													/// 创建喷泉粒子图层
+            map.AddLayer(particleFountainLayer);
+			
+			//particleFountainLayer.Locate();
+		}
+		
+		 
+
+    </SCRIPT>
+</HEAD>
+<BODY onload="InitScene()">
+    <INPUT type="button" value="全局雨效" onclick="RainCreate('960,540')" />
+    <INPUT type="button" value="删除雨效" onclick="RemoveRainLayer()" />
+	<INPUT type="button" value="全局雪效" onclick="SnowCreate('960,540')" />
+    <INPUT type="button" value="删除雪效" onclick="RemoveSnowLayer()" />
+    <INPUT type="button" value="喷泉" onclick="Fountain()" />
+    <INPUT type="button" value="烟火" onclick="Fire()" />
+	<INPUT type="button" value="水枪" onclick="HydraulicGun()" />
+    <INPUT type="button" value="删除雨效" onclick="RemoveRainLayer()" />
+    <INPUT type="button" value="XML导入" onclick="LoadXML()" />
+    <INPUT type="button" value="图层更新" onclick="UpdateLayer()" />
+    <INPUT type="button" value="序列化" onclick="Serialize()" />
+    <OBJECT id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 930px"> </OBJECT>
+	
+	<SCRIPT language="javascript" type="text/javascript">
+		function LoadDEMMTDS() 
+		{
+			var tlo = map.CreateLayerOptions("demlayer"); 																				/// 创建dem图层, 任意名称
+			tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); 																/// 创建配置类型, ElevationLayerOptions代表高程数据配置
+			tlo.AddConfig("DataSourceTypeName", "mtds");																				/// 数据源类型, 代表MTDS插件
+			tlo.AddConfig("Driver", "terrainquadtree");																					/// 代表地形驱动, 必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); 															/// 要加载的数据路径
+			tlo.AddConfig("Format", "tif");																								/// 切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326");																							/// 数据的坐标参考
+			tlo.AddConfig("MaxX", "120.71408849655");																					/// 数据的范围X向最大值
+			tlo.AddConfig("MinX", "118.33968849655");																					/// 数据的范围X向最小值
+			tlo.AddConfig("MaxY", "30.5651894750343");																					/// 数据的范围Y向最大值
+			tlo.AddConfig("MinY", "29.1885894750343");																					/// 数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "16");																							/// 切割数据的瓦片大小
+			tlo.AddConfig("MinLevel", "0");																								/// 数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16");																							/// 数据显示的最大层级
+
+			var mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); 																	/// 创建DEM图层，第一项参数必须为ElevationLayer
+			map.AddLayer(mtdsdemlayer);																									/// 添加DEM图层
+			mtdsdemlayer.Locate();																										/// DEM图层定位
+		}
+
+		function LoadDOMMTDS()
+		{
+			var tlo = map.CreateLayerOptions("domlayer");																				/// 创建dom图层配置项
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions");																		/// 创建配置类型, ImageLayerOptions代表影像数据配置
+			tlo.AddConfig("DataSourceTypeName", "mtds");																				/// 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree");																					/// 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/");																/// 要加载的数据路径
+			tlo.AddConfig("Format", "png");																								/// 切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326");																							/// 数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176");																					/// 数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686");																					/// 数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501");																					/// 数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612");																					/// 数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256");																							/// 切割数据的瓦片大小
+			tlo.AddConfig("MinLevel", "0");																								/// 数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16");																							/// 数据显示的最大层级
+
+			var mtdsdomlayer = map.CreateLayer("ImageLayer", tlo);																		/// 创建DEM图层，第一项参数必须为ImageLayer
+			map.AddLayer(mtdsdomlayer);																									/// 添加DOM图层
+			mtdsdomlayer.Locate();																										/// DOM图层定位
+		}
+		
+		function LoadCPM() 
+		{
+			var tlo = map.CreateLayerOptions("cpm"); 																					/// 创建cpm图层配置
+			tlo.AddConfig("LayerOptionsName", "ModelLayerOptions");																		/// 创建配置类型
+			tlo.AddConfig("DataSourceTypeName", "cpm");																					/// 数据源类型,代表CPM插件，必须是此键值对
+			tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl");								/// 要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+			var cpmLayer = map.CreateLayer("ModelLayer", tlo);																			/// 创建模型图层，第一项参数必须为ModelLayer
+			map.AddLayer(cpmLayer);																										/// 添加模型图层
+			cpmLayer.Locate();																											/// 模型图层定位
+        }
+	</SCRIPT>
+</BODY>
+</HTML>

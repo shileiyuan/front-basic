@@ -1,0 +1,126 @@
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" Content="Microsoft Visual Studio 8.0">
+<TITLE>5.0球面版本测试用例4 图层组</TITLE>
+<script language="javascript" type="text/javascript">
+
+	var obj;
+	var map;
+	var layerGroup;
+	var cpmlayer;
+	var state = false;
+
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+        map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+	}
+	
+    function ILayerGroup() {
+	
+	//										| -- cpmlayer
+	//				 |-- layerGroupChild -- |
+	//	LayerGroup --|						| -- HorizontalLayer
+	//				 |-- mtdsdomlayer
+	//
+	
+		// 创建图层组
+		layerGroup = map.CreateLayerGroup("Group1");
+		map.AddLayerGroup(layerGroup);
+		
+		// 创建图层
+		var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+        tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+        tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+        tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+        tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级		
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+        layerGroup.AddLayer(mtdsdomlayer);
+        //mtdsdomlayer.Locate(); ////DOM图层定位
+		
+		// 创建子图层组
+		var layerGroupChild = map.CreateLayerGroup("child");
+		layerGroup.AddLayerGroup(layerGroupChild);
+		
+	   // 创建图层
+        var tlom = map.CreateLayerOptions("球面模型");
+	    tlom.AddConfig("LayerOptionsName", "ModelLayerOptions");
+	    tlom.AddConfig("DataSourceTypeName", "cpm");
+	    tlom.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\car.wrl");
+		cpmlayer = map.CreateLayer("ModelLayer", tlom); ////创建图层
+        layerGroupChild.AddLayer(cpmlayer);
+        cpmlayer.Locate(); ////DOM图层定位
+        
+		// 创建水平测量图层
+        var mlo3 = map.CreateLayerOptions("horizontalMeasure");
+        var mlo3 = map.CreateLayerOptions("horizontalMeasure"); // 创建分析图层配置，给配置起个名称，任意名称
+            mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+            mlo3.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); //设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+            mlo3.AddConfig("PointSize", "5"); //设置点击点的大小
+            mlo3.AddConfig("TextVisible", "true"); ////文字是否被显示
+            mlo3.AddConfig("HorizontalMeasureLineColor", "1.0,0.0,0.0,1.0"); //设置线的颜色（RGBA）
+            mlo3.AddConfig("LineWidth", "3"); ////线宽
+            mlo3.AddConfig("TextLiftUp", "0"); /////文字显示的抬高高度
+            mlo3.AddConfig("DataSourceTypeName", "as_horizontal"); /////// 数据源类型,代表水平距离测量，必须是此键值对
+
+            /////创建文字符号
+            var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串，当上面设置TextVisible设置为 true才创建并进行相应配置 
+            pSymbol.AddConfig("FillingColor", "0.0, 1.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+            pSymbol.AddConfig("Font", "F:\\大华演示\\大华数据\\msyh.ttf"); //设置字体类型,字体文件一定要存在
+            pSymbol.AddConfig("Size", "10"); ///设置字体大小
+            pSymbol.AddConfig("CharacterMode", "1"); // 取值 1 -- 始终朝向相机
+            pSymbol.AddConfig("AlignmentMode", "5"); // 文字对齐方式
+            pSymbol.AddConfig("AxisAlignment", "6"); // 旋转轴 0 - 7 ， 6: 自动
+            pSymbol.AddConfig("RemoveDuplicateLabels", "false"); // 去重复			
+            pSymbol.AddConfig("IsEmbolden", "false"); //字体是否加粗
+            pSymbol.AddConfig("IsTransform", "true"); //字体是否为斜体
+            pSymbol.AddConfig("IsUnderline", "false"); //字体是否有下划线
+            pSymbol.AddConfig("IsBack", "false"); //是否设置背景色
+            pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+            pSymbol.AddConfig("FieldPrecision", "-20"); //字段精度
+
+            /////创建样式
+            var pStyle = map.CreateStyle("Text"); /////创建Style，名字可以任意
+            pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); ///添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+
+            //////////将样式添加到图层配置里
+            mlo3.AddConfig("Style", pStyle.GetConfig()); ////第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		
+		HorizontalLayer = map.CreateLayer("AnalysisLayer", mlo3); ////创建图层
+        layerGroupChild.AddLayer(HorizontalLayer);
+    }  
+
+    function SetGroupVisible() {
+        layerGroup.SetVisible(state);
+        state = !state;
+    }
+	
+    function RemoveLayer() {
+        var flag = layerGroup.RemoveLayer(cpmlayer);
+    }
+	
+	function RemoveLayerGroup() {
+        var flag = map.RemoveLayerGroup(layerGroup);
+    }
+    
+</script>
+</HEAD>
+<BODY onload="InitScene()">
+	<input id="Button2" type="button" value="图层组对象接口" onclick="ILayerGroup()" />
+	<input id="Button1" type="button" value="图层组显隐" onclick="SetGroupVisible()" />
+	<input id="Button5" type="button" value="移除图层" onclick="RemoveLayer()" />
+	<input id="Button5" type="button" value="移除图层组" onclick="RemoveLayerGroup()" />
+	<OBJECT id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 100%"></OBJECT>
+</BODY>
+</HTML>

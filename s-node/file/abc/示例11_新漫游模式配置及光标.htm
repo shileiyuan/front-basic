@@ -1,0 +1,358 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>5.0球面版本测试用例1 地形、影像(dem、dom)</title>
+    <script language="javascript" type="text/javascript" event="FireOnLButtonUp(tx,ty)"
+        for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+		if(flag)
+		{
+            var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+            if(fs)
+            {
+                var nav = map.CreateNavigation();
+                nav.LocateByEyeToCenter(posFf, pos);
+                ff = true;
+                fs = false;
+                flag = false;
+            }
+            if(ff)
+            {
+                posFf = pos;
+                fs = true;
+				ff = false;
+            }
+		}
+    </script> 
+    <script language="javascript" type="text/javascript">
+
+        var obj;
+        var map;
+        var transformate;
+        var flag = false;
+        var ff = true;
+        var posFf;
+        var fs = false;
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+            transformate = map.CreateTransformation();
+        }
+		
+		function LoadDOMDEM()
+		{
+		LoadDOMMTDS();
+        LoadDEMMTDS();
+		}
+
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("HaiKang2_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "205012"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/hangzhou/2/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+        function UnderGroundModeOn() {
+            var navagation = map.CreateRoam();
+            navagation.SetUnderGroundRoamMode(true); ///开启地下漫游模式
+        }
+        function UnderGroundModeOff() {
+            var navagation = map.CreateRoam();
+            navagation.SetUnderGroundRoamMode(false); ///关闭地下漫游模式
+        }
+		var gmsLayer1;
+		function LoadInDoorModel(){
+			var tlo = map.CreateLayerOptions("out_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "out_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/hik/室内/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            var gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            //gmsLayer.Locate(); ////模型图层定位
+			
+			var tlo1 = map.CreateLayerOptions("2_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo1.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo1.AddConfig("Name", "2_Compressed"); /////图层数据名称
+            tlo1.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo1.AddConfig("Url", "http://192.168.1.50:8088/files/hik/室内/in/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer1 = map.CreateLayer("ModelLayer", tlo1); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer1); ///添加模型图层
+            gmsLayer1.Locate(); ////模型图层定位
+		}
+        function InDoorModeOn() {
+            var navagation = map.CreateRoam();
+            navagation.SetInDoorRoamMode(true, gmsLayer1.GetLayerID()); ///开启室内漫游模式
+        }
+        function InDoorModeOff() {
+            var navagation = map.CreateRoam();
+            navagation.SetInDoorRoamMode(false, gmsLayer1.GetLayerID()); ///关闭室内漫游模式
+        }
+        function AutoRotateModeOn() {
+            var navagation = map.CreateRoam();
+            navagation.SetAutoRotateRoamMode(true);///开启自动旋转模式
+        }
+        function AutoRotateModeOff() {
+            var navagation = map.CreateRoam();
+            navagation.SetAutoRotateRoamMode(false); ///关闭自动旋转模式
+        }
+        function CustomGlideRoamModeOnWalk() {
+            var navagation = map.CreateRoam();
+            ///设置自定义漫游模式
+            ///参数1：开启状态
+            ///参数2：漫游高度，>=0 ,取0为默认设置为当前高度
+            ///参数3：漫游速度，基准值为1.0，类似步行速度。可根据实际情况增加或减小
+            ///参数4：漫游俯仰角度，范围-89到-1之间
+            navagation.SetCustomGlideRoamMode(true, 18, 1, -10);///步行范例
+        }
+        function CustomGlideRoamModeOnDrive() {
+            var navagation = map.CreateRoam();
+            navagation.SetCustomGlideRoamMode(true, 18, 50, 1); ///车行范例
+        }
+        function CustomGlideRoamModeOnFly() {
+            var navagation = map.CreateRoam();
+            navagation.SetCustomGlideRoamMode(true, 500, 1000, -30); ///飞行范例
+        }
+        function CustomGlideRoamModeOff() {
+            var navagation = map.CreateRoam();
+            navagation.SetCustomGlideRoamMode(false, 0, 0, 0);///关闭自定义漫游
+        }
+        function RotateUp() {
+            var navagation = map.CreateRoam();
+            ///设置视图旋转模式
+            ///参数1：是否绕视点旋转：true，按视点；false，按目标点
+            ///参数2：目的俯仰角设置（绝对值）；范围-89到89，单位角度。当为0时，为默认取当前俯仰角，不进行垂直转动
+            ///参数3：旋转角设置（相对值）：范围-180到180，单位角度，绕视点时，向左为负，向右为正；绕目标点时，向右为负，向左为正。为0时不进行水平转动
+            ///参数4：转动时间，单位毫秒，范围1-无穷大。不可取0
+            navagation.SetViewRotateRoamMode(true, -1, 0, 1000);///绕视点，进行俯仰角为-45度的垂直旋转
+        }
+        function RotateDown() {
+            var navagation = map.CreateRoam();
+            navagation.SetViewRotateRoamMode(true, -70, 0, 1000); ///绕视点，进行俯仰角为-70度的垂直旋转
+        }
+        function RotateLeft() {
+            var navagation = map.CreateRoam();
+            navagation.SetViewRotateRoamMode(true, 0, -90, 1); ///绕视点，进行水平90度左转
+        }
+        function RotateRight() {
+            var navagation = map.CreateRoam();
+            navagation.SetViewRotateRoamMode(true, 0, 90, 1000); ///绕视点，进行水平90度右转
+        }
+        function RotateUp1() {
+            var navagation = map.CreateRoam();
+            navagation.SetViewRotateRoamMode(false, -70, 0, 1000);///绕目标点进行俯仰角为-70度的垂直旋转
+        }
+        function RotateDown1() {
+            var navagation = map.CreateRoam();
+            navagation.SetViewRotateRoamMode(false, -45, 0, 1000); ///绕目标点进行俯仰角为-45度的垂直旋转
+        }
+        function RotateLeft1() {
+            var navagation = map.CreateRoam();
+            navagation.SetViewRotateRoamMode(false, 0, 90, 1000); ///绕目标点进行水平90度的左转
+        }
+        function RotateRight1() {
+            var navagation = map.CreateRoam();
+            navagation.SetViewRotateRoamMode(false, 0, -90, 1000); ///绕目标点进行水平90度的右转
+        }
+        function OneToOne() {
+			if(flag){
+				flag = false;
+			}
+			else
+			{
+				flag = true;
+			}
+		}
+		function CloseOneToOne() {
+			flag = false;
+			//AutoRotateModeOff();
+		}
+        function ConfigureHandP() {
+            var tlo = map.CreateOperationOptions("RoamConfigOptions"); //创建漫游按键配置类型
+            tlo.AddConfig("MinHeight", "100");          ///最小漫游高度，默认0.5米
+            tlo.AddConfig("MaxHeight", "35000000");     ///最大漫游高度，默认35000000米
+            tlo.AddConfig("MinPitch", "-89.0");         ///最小俯仰角度，默认-89.0度
+            tlo.AddConfig("MaxPitch", "-10.0");           ///最大俯仰角度，默认-10.0度
+			tlo.AddConfig("MoveSpeed", "1");				///移动速度 ，默认1
+			tlo.AddConfig("RotateSpeed", "0.1");			///旋转速度,默认5.7295779513082330
+            tlo.AddConfig("OptionsTypeName", "RoamConfigOptions"); ///更新操作类型名称，必须为RoamConfigOptions
+
+            var operationPtr = map.CreateOperation("RoamConfigOperation", tlo); //根据配置创建模型调整操作
+            operationPtr.AddObserver(); ///添加观察者
+
+            map.AddOperation(operationPtr);                                      //加入操作并执行
+        }
+        function Configure() {
+            var tlo = map.CreateOperationOptions("RoamConfigOptions"); //创建漫游配置类型
+
+            tlo.AddConfig("KeyDefaultState", "false");///是否生效键盘按键配置
+            tlo.AddConfig("KeyForward", "i");///前进键
+            tlo.AddConfig("KeyBackward", "k"); ///后退键
+            tlo.AddConfig("KeyLeft", "j"); ///向左移动键
+            tlo.AddConfig("KeyRight", "l"); ///向右移动键
+            tlo.AddConfig("KeyTurnLeft", "u"); ///向左旋转键
+            tlo.AddConfig("KeyTurnRight", "o"); ///向右旋转键
+            tlo.AddConfig("KeyRotateUp", "y"); ///向上抬头键
+            tlo.AddConfig("KeyRotateDown", "h"); ///向下低头键
+            tlo.AddConfig("KeyHeightUp", "t"); ///高度抬升键
+            tlo.AddConfig("KeyHeightDown", "g"); ///高度下降键
+            tlo.AddConfig("KeyInGround", "1"); ///进入贴地模式键
+            tlo.AddConfig("KeyOutGround", "2"); ///退出贴地模式键
+            tlo.AddConfig("KeyHome", "0"); ///主页键
+            tlo.AddConfig("KeyInDoor", "3"); ///进入室内用时键
+            tlo.AddConfig("KeyOutDoor", "4"); ///退出室内模式键
+            tlo.AddConfig("KeyInUnderGround", "5"); ///进入地下模式键
+            tlo.AddConfig("KeyOutUnderGround", "6"); ///退出地下模式键
+            tlo.AddConfig("KeyMoveSpeedUp", "+"); ///移动速度增加键
+            tlo.AddConfig("KeyMoveSpeedDown", "-"); ///移动速度减小键
+            tlo.AddConfig("KeyRotateSpeedUp", "z"); ///旋转速度增加键
+            tlo.AddConfig("KeyRotateSpeedDown", "x"); ///旋转速度减小键
+            tlo.AddConfig("OptionsTypeName", "RoamConfigOptions"); ///更新操作类型名称，必须为RoamConfigOptions
+
+            var operationPtr = map.CreateOperation("RoamConfigOperation", tlo); //根据配置创建模型调整操作
+            operationPtr.AddObserver(); ///添加观察者
+
+            map.AddOperation(operationPtr);                                      //加入操作并执行
+        }
+        function ChangeCursor() {
+            var navagation = map.CreateRoam();
+            ///根据cur文件设置对应鼠标光标
+            ///参数1：鼠标光标类型,如下示例，从0开始，到
+            ///CURSOR_ARROW = 0,	        /**< 箭头 */
+            ///CURSOR_DRAG_NORMAL = 1, 	    /**< 拖拽普通 */
+            ///CURSOR_DRAG_GRASP = 2, 	    /**< 拖拽中 */
+            ///CURSOR_ZOOM = 3, 		    /**< 放大缩小 */
+            ///CURSOR_FORWARD = 4, 		    /**< 前进\抬升 */
+            ///CURSOR_BACKWARD = 5, 	    /**< 后退\下降 */
+            ///CURSOR_LEFT = 6, 		    /**< 左转 */
+            ///CURSOR_RIGHT = 7, 		    /**< 右转 */
+            ///CURSOR_LEFT_FORWARD = 8,     /**< 左前转 */
+            ///CURSOR_LEFT_BACKWARD = 9,    /**< 左后转 */
+            ///CURSOR_RIGHT_FORWARD = 10,   /**< 右前转 */
+            ///CURSOR_RIGHT_BACKWARD = 11,  /**< 右后转 */
+            ///CURSOR_MEASURE = 12, 		/**< 测量 */
+            ///CURSOR_PICK = 13, 		    /**< 拾取 */
+            ///CURSOR_DRAW = 14, 		    /**< 绘制 */
+            ///CURSOR_STOP = 15, 		    /**< 停止 */
+            ///CURSOR_FLY = 16			    /**< 飞行 */
+            ///参数2：cur文件路径
+            navagation.SetCursorFromFile(0, "F:\\主版本库\\SDK_球面主干\\bin\\data\\CursorRes\\Indicate.cur");///设置箭头光标
+        }
+        function PickCursorOn() {
+            var navagation = map.CreateRoam();
+            ///设置鼠标光标模式
+            ///ROAMMODE_NORMAL = 0, 	    /**< 普通漫游模式 */
+            ///ROAMMODE_ONGROUND = 1, 	    /**< 贴地漫游模式 */
+            ///ROAMMODE_UNDERGROUND = 2,    /**< 地下漫游模式 */
+            ///ROAMMODE_INDOOR = 3, 	    /**< 室内漫游模式 */
+            ///ROAMMODE_AUTOROTATE = 4,     /**< 自动旋转漫游模式 */
+            ///ROAMMODE_CUSTOM = 5, 	    /**< 自定义漫游模式 */
+            ///ROAMMODE_MEASURE = 6, 	    /**< 测量模式 */
+            ///ROAMMODE_PICK = 7, 		    /**< 拾取模式 */
+            ///ROAMMODE_DRAW = 8			/**< 绘制模式 */
+            navagation.SetCursorMode(7);///设置拾取模式
+        }
+        function MeasureCursorOn() {
+            var navagation = map.CreateRoam();
+            navagation.SetCursorMode(6); ///设置测量模式
+        }
+        function DrawCursorOn() {
+            var navagation = map.CreateRoam();
+            navagation.SetCursorMode(8); ///设置绘制模式
+        }
+        function NormalCursorOn() {
+            var navagation = map.CreateRoam();
+            navagation.SetCursorMode(0); ///设置普通模式
+        }
+		
+		var mtdsdemlayer;
+		
+        var mtdsdomlayer;
+        //////加载DOM数据
+        function LoadDOMMTDS() {
+            var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+			//////以下部分可以通过图层信息获取获得相应的配置////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "png"); ///切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+			mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+			map.AddLayer(mtdsdomlayer); ///添加DOM图层
+			mtdsdomlayer.Locate(); //DOM图层定位
+			
+        }
+
+		//////加载DEM数据
+		function LoadDEMMTDS() {
+			var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+			tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+			tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+			tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+			tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+			mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+			map.AddLayer(mtdsdemlayer);///添加DEM图层
+			mtdsdemlayer.Locate();////DEM图层定位
+		}
+	</script>
+</head>
+<body onload="InitScene()">
+	<input id="Button1"  type="button" value="加载地形影像" 		onclick="LoadDOMDEM()" />
+    <input id="Button9" type="button" value="加载模型" onclick="LoadCPM()" />
+    <input id="Button10" type="button" value="进入地下模式" onclick="UnderGroundModeOn()" />
+    <input id="Button11" type="button" value="退出地下模式" onclick="UnderGroundModeOff()" />
+	<input id="Button12" type="button" value="加载室内漫游相关模型" onclick="LoadInDoorModel()" />
+    <input id="Button12" type="button" value="进入室内模式" onclick="InDoorModeOn()" />
+    <input id="Button13" type="button" value="退出室内模式" onclick="InDoorModeOff()" />
+    <input id="Button20" type="button" value="进入自动旋转模式" onclick="AutoRotateModeOn()" />
+    <input id="Button21" type="button" value="退出自动旋转模式" onclick="AutoRotateModeOff()" />
+    <input id="Button4" type="button" value="进入自定义模式步行" onclick="CustomGlideRoamModeOnWalk()" />
+    <input id="Button27" type="button" value="进入自定义模式车行" onclick="CustomGlideRoamModeOnDrive()" />
+    <input id="Button28" type="button" value="进入自定义模式飞行" onclick="CustomGlideRoamModeOnFly()" />
+    <input id="Button5" type="button" value="退出自定义模式" onclick="CustomGlideRoamModeOff()" />
+    <input id="Button6" type="button" value="旋转模式-视点-45" onclick="RotateUp()" />
+    <input id="Button7" type="button" value="旋转模式-视点-70" onclick="RotateDown()" />
+    <input id="Button14" type="button" value="旋转模式-视点-左转" onclick="RotateLeft()" />
+    <input id="Button15" type="button" value="旋转模式-视点-右转" onclick="RotateRight()" />
+     <input id="Button16" type="button" value="旋转模式-目标点-45" onclick="RotateUp1()" />
+    <input id="Button17" type="button" value="旋转模式-目标点-70" onclick="RotateDown1()" />
+    <input id="Button18" type="button" value="旋转模式-目标点-左转" onclick="RotateLeft1()" />
+    <input id="Button19" type="button" value="旋转模式-目标点-右转" onclick="RotateRight1()" />
+    <input id="Button30" type="button" value="定向观察" onclick="OneToOne()" />
+    <input id="Button30" type="button" value="关闭定向观察" onclick="CloseOneToOne()" />
+    <input id="Button29" type="button" value="高度俯仰角配置" onclick="ConfigureHandP()" />
+    <input id="Button8" type="button" value="键盘配置" onclick="Configure()" />
+    <input id="Button22" type="button" value="更换光标" onclick="ChangeCursor()" />
+    <input id="Button23" type="button" value="开启光标拾取模式" onclick="PickCursorOn()" />
+    <input id="Button25" type="button" value="开启光标测量模式" onclick="MeasureCursorOn()" />
+    <input id="Button26" type="button" value="开启光标绘制模式" onclick="DrawCursorOn()" />
+    <input id="Button24" type="button" value="开启光标普通模式" onclick="NormalCursorOn()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

@@ -1,0 +1,304 @@
+﻿<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=8">
+<title>6.0示例20_SDK工具类</title>
+<script language="javascript" type="text/javascript">
+
+	var obj;
+	var map;
+	var tools;
+
+	function InitScene() {
+		obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+		tools = obj.GetIToolsCOMPtr();
+		transformate = map.CreateTransformation();
+		LoadDOMMTDS();
+	}
+	
+	var gmsLayer;
+	//加载模型数据
+	function LoadGMS() {
+		var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+		tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+		//调度优先级 = priority * PriorityScale + PriorityOffset;
+		//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+		//调度优先级越大，优先调度并显示
+		tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+		tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+		gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+		map.AddLayer(gmsLayer); ///添加模型图层
+		gmsLayer.Locate(); ////模型图层定位
+	}
+	
+	var mtdsdomlayer;
+	//加载DOM数据
+	function LoadDOMMTDS() {
+		var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+		//////以下部分可以通过图层信息获取获得相应的配置////
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "png"); ///切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+		tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+		tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+		tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+		tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdsdomlayer); ///添加DOM图层
+		mtdsdomlayer.Locate(); //DOM图层定位
+	}
+
+	//点-点相交
+	var PointToPiont;
+	function CreatePointToPiont() {
+		var Geometry1 = map.CreateGeometry();						//创建几何对象
+		var Geometry2 = map.CreateGeometry();						//创建几何对象
+		Geometry1.SetType(1);										//设置几何类型
+		Geometry1.AddPoints("120.205420708,30.2416892474,15.07;"); 	//设置几何点集
+		Geometry2.SetType(1);										//设置几何类型
+		Geometry2.AddPoints("120.205420708,30.2416892474,15.07;"); 	//设置几何点集
+		var opt = tools.CreateToolsOptions("Geometry");				//创建配置对象
+		opt.AddConfig("FirstGeometry", Geometry1.GetConfig());		//设置第一个几何对象配置
+		opt.AddConfig("SecondGeometry", Geometry2.GetConfig());		//设置第二个几何对象配置
+		PointToPiont = tools.CreateToolsObject("GeometryIntersecter" , opt);//创建工具对象
+		PointToPiont.Active();										//激活工具
+		
+		var IsIntersecter = "";
+		var toolResult = PointToPiont.GetToolsResult();				//获取工具处理结果
+		if( null != toolResult )
+		{
+			IsIntersecter = toolResult.GetConfigValueByKey("IsIntersecter"); //此处为获取结果
+			alert("IsIntersecter: " + IsIntersecter);
+		}
+	}
+
+	//移除点点相交
+	function RemovePointToPiont() {
+		if(PointToPiont)
+		{
+			tools.DestoryTools(PointToPiont); 						//销毁工具对象
+			PointToPiont = null;
+		}
+	}
+	
+	//点-线相交
+	var PointToLine;
+	function CreatePointToLine() {
+		var Geometry1 = map.CreateGeometry();						//创建几何对象
+		var Geometry2 = map.CreateGeometry();						//创建几何对象
+		Geometry1.SetType(1);										//设置几何类型
+		Geometry1.AddPoints("120.205420708,30.2416892474,15.07;"); 	//设置几何点集
+		Geometry2.SetType(2);										//设置几何类型
+		Geometry2.AddPoints("120.205420708,30.2416892474,15.07;120.205440708,30.2417892474,15.07;"); 	//设置几何点集
+		var opt = tools.CreateToolsOptions("Geometry");				//创建配置对象
+		opt.AddConfig("FirstGeometry", Geometry1.GetConfig());		//设置第一个几何对象配置
+		opt.AddConfig("SecondGeometry", Geometry2.GetConfig());		//设置第二个几何对象配置
+		PointToLine = tools.CreateToolsObject("GeometryIntersecter" , opt);//创建工具对象
+		PointToLine.Active();										//激活工具
+		
+		var IsIntersecter = "";
+		var toolResult = PointToLine.GetToolsResult();				//获取工具处理结果
+		if( null != toolResult )
+		{
+			IsIntersecter = toolResult.GetConfigValueByKey("IsIntersecter"); //此处为获取结果
+			alert("IsIntersecter: " + IsIntersecter);
+		}
+	}
+
+	//移除点线相交
+	function RemovePointToLine() {
+		if(PointToLine)
+		{
+			tools.DestoryTools(PointToLine);  						//销毁工具对象
+			PointToLine = null;
+		}
+	}
+
+	//线-面相交
+	var LineToPolygon;
+	function CreateLineToPolygon() {
+		var Geometry1 = map.CreateGeometry();						//创建几何对象
+		var Geometry2 = map.CreateGeometry();						//创建几何对象
+		Geometry1.SetType(2);										//设置几何类型
+		Geometry1.AddPoints("120.215671414,30.2118668542,103.697818956;120.213087371,30.2100175448,4.90036258567;"); //线1
+		Geometry2.SetType(3);										//设置几何类型
+		Geometry2.AddPoints("120.215669893,30.2118594265,64.5599346263;120.213519517,30.2110130182,43.664591847;120.213810985,30.210234628,46.1164514227;"); //面
+		
+		var opt = tools.CreateToolsOptions("Geometry");				//创建配置对象
+		opt.AddConfig("FirstGeometry", Geometry1.GetConfig());		//设置第一个几何对象配置
+		opt.AddConfig("SecondGeometry", Geometry2.GetConfig());		//设置第二个几何对象配置
+		LineToPolygon = tools.CreateToolsObject("GeometryIntersecter" , opt);//创建工具对象
+		LineToPolygon.Active();										//激活工具
+		
+		var IsIntersecter = "";
+		var toolResult = LineToPolygon.GetToolsResult();				//获取工具处理结果
+		if( null != toolResult )
+		{
+			IsIntersecter = toolResult.GetConfigValueByKey("IsIntersecter"); //此处为获取结果
+			alert("IsIntersecter: " + IsIntersecter);
+		}
+	}
+
+	//移除线面相交
+	function RemoveLineToPolygon() {
+		if(LineToPolygon)
+		{
+			tools.DestoryTools(LineToPolygon);  						//销毁工具对象
+			LineToPolygon = null;
+		}
+	}
+
+	//线-体相交
+	var LineToPolytope;
+	function CreateLineToPolytope() {
+		var Geometry1 = map.CreateGeometry();						//创建几何对象
+		var Geometry2 = map.CreateGeometry();						//创建几何对象
+		Geometry1.SetType(2);										//设置几何类型
+		Geometry1.AddPoints("120.215316609,30.2103372446,4.54618394747;120.215719244,30.2104910273,4.546184876;"); //线1
+		//120.214018483,30.2100376894,4.54742315691;120.214535526,30.2101473102,4.54664435145;120.214894781,30.2102127835,4.54637675732;120.215316609,30.2103372446,4.54618394747;120.215719244,30.2104910273,4.546184876;
+		Geometry2.SetType(4);										//设置几何类型
+		Geometry2.AddPoints("120.21545145314411,30.20962406388501,0.0;120.21533353402768,30.211161839573723,88.887749;120.2140655727442,30.210587943093795,88.7022396354;|"); //面1
+		Geometry2.AddPoints("120.21545145314411,30.20962406388501,0.0;120.2140655727442,30.210587943093795,88.7022396354;120.2139857827703,30.2107244868618,-47.9132013967;|"); //面2
+		Geometry2.AddPoints("120.21545145314411,30.20962406388501,0.0;120.2139857827703,30.2107244868618,-47.9132013967;120.2152537725322,30.2112983986558,-47.7276893342;|"); //面3
+		Geometry2.AddPoints("120.21545145314411,30.20962406388501,0.0;120.2152537725322,30.2112983986558,-47.7276893342;120.21533353402768,30.211161839573723,88.887749;"); //面4
+		Geometry2.AddPoints("120.21533353402768,30.211161839573723,88.887749;120.2140655727442,30.210587943093795,88.7022396354;120.2139857827703,30.2107244868618,-47.9132013967;120.2152537725322,30.2112983986558,-47.7276893342;|"); //面5
+		
+		//120.21545145314411,30.20962406388501,0.0;   //观察点
+		//120.21533353402768,30.211161839573723,88.887749;  //右上
+		//120.2140655727442,30.210587943093795,88.7022396354; //左上
+		//120.2139857827703,30.2107244868618,-47.9132013967;  //左下
+		//120.2152537725322,30.2112983986558,-47.7276893342;  //右下
+		//面1：120.21545145314411,30.20962406388501,0.0;120.21533353402768,30.211161839573723,88.887749;120.2140655727442,30.210587943093795,88.7022396354;	//面2：120.21545145314411,30.20962406388501,0.0;120.2140655727442,30.210587943093795,88.7022396354;120.2139857827703,30.2107244868618,-47.9132013967;		//面3：120.21545145314411,30.20962406388501,0.0;120.2139857827703,30.2107244868618,-47.9132013967;120.2152537725322,30.2112983986558,-47.7276893342;	//面4：120.21545145314411,30.20962406388501,0.0;120.2152537725322,30.2112983986558,-47.7276893342;120.21533353402768,30.211161839573723,88.887749;	//面5：120.21533353402768,30.211161839573723,88.887749;120.2140655727442,30.210587943093795,88.7022396354;120.2139857827703,30.2107244868618,-47.9132013967;120.2152537725322,30.2112983986558,-47.7276893342;
+		
+		var opt = tools.CreateToolsOptions("Geometry");				//创建配置对象
+		opt.AddConfig("FirstGeometry", Geometry1.GetConfig());		//设置第一个几何对象配置
+		opt.AddConfig("SecondGeometry", Geometry2.GetConfig());		//设置第二个几何对象配置
+		LineToPolytope = tools.CreateToolsObject("GeometryIntersecter" , opt);//创建工具对象
+		LineToPolytope.Active();										//激活工具
+		
+		var IsIntersecter = "";
+		var toolResult = LineToPolytope.GetToolsResult();				//获取工具处理结果
+		if( null != toolResult )
+		{
+			IsIntersecter = toolResult.GetConfigValueByKey("IsIntersecter"); //此处为获取结果
+			alert("IsIntersecter: " + IsIntersecter);
+		}
+	}
+
+	//移除线体相交
+	function RemoveLineToPolygon() {
+		if(LineToPolytope)
+		{
+			tools.DestoryTools(LineToPolytope);  						//销毁工具对象
+			LineToPolytope = null;
+		}
+	}
+
+	//点-面相交
+	var PointToPolygon;
+	function CreatePointToPolygon() {
+		var Geometry1 = map.CreateGeometry();						//创建几何对象
+		var Geometry2 = map.CreateGeometry();						//创建几何对象
+		Geometry1.SetType(1);										//设置几何类型
+		Geometry1.AddPoints("120.213087371,30.2100175448,4.90036258567;"); //点1
+		Geometry2.SetType(3);										//设置几何类型
+		Geometry2.AddPoints("120.215669893,30.2118594265,64.5599346263;120.213519517,30.2110130182,43.664591847;120.213810985,30.210234628,46.1164514227;"); //面
+		
+		var opt = tools.CreateToolsOptions("Geometry");				//创建配置对象
+		opt.AddConfig("FirstGeometry", Geometry1.GetConfig());		//设置第一个几何对象配置
+		opt.AddConfig("SecondGeometry", Geometry2.GetConfig());		//设置第二个几何对象配置
+		PointToPolygon = tools.CreateToolsObject("GeometryIntersecter" , opt);//创建工具对象
+		PointToPolygon.Active();										//激活工具
+		
+		var IsIntersecter = "";
+		var toolResult = PointToPolygon.GetToolsResult();				//获取工具处理结果
+		if( null != toolResult )
+		{
+			IsIntersecter = toolResult.GetConfigValueByKey("IsIntersecter"); //此处为获取结果
+			alert("IsIntersecter: " + IsIntersecter);
+		}
+	}
+
+	//移除点面相交
+	function RemovePointToPolygon() {
+		if(PointToPolygon)
+		{
+			tools.DestoryTools(PointToPolygon);  						//销毁工具对象
+			PointToPolygon = null;
+		}
+	}
+
+	
+	//面-面相交
+	var PolygonToPolygon;
+	function CreatePolygonToPolygon() {
+		var Geometry1 = map.CreateGeometry();						//创建几何对象
+		var Geometry2 = map.CreateGeometry();						//创建几何对象
+		Geometry1.SetType(3);										//设置几何类型
+		Geometry1.AddPoints("120.215672334,30.2118609324,26.1896453043;120.213549394,30.2110299753,57.4297902416;120.213827847,30.2103933309,55.8253345387;"); //线1
+		Geometry2.SetType(3);										//设置几何类型
+		Geometry2.AddPoints("120.215669893,30.2118594265,64.5599346263;120.213519517,30.2110130182,43.664591847;120.213810985,30.210234628,46.1164514227;"); //面
+		
+		var opt = tools.CreateToolsOptions("Geometry");				//创建配置对象
+		opt.AddConfig("FirstGeometry", Geometry1.GetConfig());		//设置第一个几何对象配置
+		opt.AddConfig("SecondGeometry", Geometry2.GetConfig());		//设置第二个几何对象配置
+		PolygonToPolygon = tools.CreateToolsObject("GeometryIntersecter" , opt);//创建工具对象
+		PolygonToPolygon.Active();										//激活工具
+		
+		var IsIntersecter = "";
+		var toolResult = PolygonToPolygon.GetToolsResult();				//获取工具处理结果
+		if( null != toolResult )
+		{
+			IsIntersecter = toolResult.GetConfigValueByKey("IsIntersecter"); //此处为获取结果
+			alert("IsIntersecter: " + IsIntersecter);
+		}
+	}
+
+	//移除面面相交
+	function RemovePolygonToPolygon() {
+		if(PolygonToPolygon)
+		{
+			tools.DestoryTools(PolygonToPolygon);  						//销毁工具对象
+			PolygonToPolygon = null;
+		}
+	}
+
+</script>
+</head>
+<body onload="InitScene()">
+	<input type="button" value="加载模型数据" onclick="LoadGMS()" />
+	
+	<input type="button" value="点-点相交" onclick="CreatePointToPiont()" />
+	<input type="button" value="移除点-点相交" onclick="RemovePointToPiont()" />
+	&nbsp;
+	<input type="button" value="点-线相交" onclick="CreatePointToLine()" />
+	<input type="button" value="移除点-线相交" onclick="RemovePointToLine()" />
+	&nbsp;
+	<input type="button" value="线-面相交" onclick="CreateLineToPolygon()" />
+	<input type="button" value="移除线-面相交" onclick="RemoveLineToPolygon()" />
+	&nbsp;
+	<input type="button" value="线-体相交" onclick="CreateLineToPolytope()" />
+	<input type="button" value="移除线-体相交" onclick="RemoveLineToPolytope()" />
+	&nbsp;
+	<input type="button" value="点-面相交" onclick="CreatePointToPolygon()" />
+	<input type="button" value="移除点-面相交" onclick="RemovePointToPolygon()" />
+	&nbsp;
+	<input type="button" value="面-面相交" onclick="CreatePolygonToPolygon()" />
+	<input type="button" value="移除面-面相交" onclick="RemovePolygonToPolygon()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 940px"> </object>
+</body>
+</html>

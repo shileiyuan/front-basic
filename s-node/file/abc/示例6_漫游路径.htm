@@ -1,0 +1,412 @@
+<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<title>5.0球面版本测试用例6 漫游路径</title>
+
+<script language="javascript" type="text/javascript" event="FireOnLayerNotify(layerid , type)"
+    for="VPSDKCtrl">
+	
+	var layer = layermap[layerid];
+	var opt=layer.GetLayerResult();
+	if(addPoints == true) 
+	{   
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_draw2dobject")
+		{
+			var val = opt.GetConfigValueByKey("Points");
+			alert("漫游路径点获取:" + val);
+			s = val;
+			addPoints = false;
+		}
+	}
+          
+	if((opt.GetConfigValueByKey("DataSourceTypeName") == "dynamicpath") && (type == 2))
+    {
+		//var val = opt.GetConfigValueByKey("RealTimePositionGeo");
+		var val = opt.GetConfigValueByKey("RealTimePosition");
+		if(CalcBuffer(val, KeyPositionArray[index]) && index < PositionArray.length)
+		{
+			index ++ ;
+			//Pause();
+			if(index >= PositionArray.length - 1)
+			{
+				index = 0;
+			}
+			alert("index=" + index);
+		}
+    }
+    
+</script>
+
+<script language="javascript" type="text/javascript">
+ var opt;
+    var i = 0;
+	var obj;
+	var map;
+	var trans;
+	var layermap = new Array();
+	var KeyPositionArray = new Array();
+	var PositionArray = new Array();
+	var buffer = 0.5;
+	var index = 0;
+	//var s;
+	var addPoints = false;
+	var s="120.215522475,30.2108558335,25.0946463626;120.215202523,30.2107136476,25.0938017908;120.21537284,30.2110130871,25.0940024946;120.215002536,30.2111010471,25.0928537585;120.215134925,30.2114230578,25.0931203756;120.214756804,30.211502514,25.0921494663;";
+	
+	var polyline;
+	
+	function InitScene() {
+	    obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		trans = map.CreateTransformation();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+		//LoadDOMMTDS();
+		//LoadDEMMTDS();
+		//LoadGMS();
+	}
+	
+	var resCompass;
+	//添加罗盘响应器
+	function AddResCompass() {
+		var resp = map.CreateResponserOptions("UICompassResponser");
+		resp.AddConfig("Visible", "true");/////设置罗盘响应器显隐状态。特别注意，罗盘响应器因为内部的关系，已经默认创建，外部需要通过更新配置接口设置显隐状态，而不是通过添加的方式
+		resp.AddConfig("TransX", "0");/////当前罗盘位置偏移X坐标,右为正
+		resp.AddConfig("TransY", "0"); /////当前罗盘位置偏移y坐标,上为正
+		resCompass = map.CreateResponser("UICompassResponser", resp); /////创建罗盘响应器，必须为UICompassResponser
+		map.AddResponser(resCompass); /////更新罗盘响应器配置，这里必须这么处理
+	}
+	var gmsLayer;
+	function LoadGMS() {
+	    var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+		tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+		//调度优先级 = priority * PriorityScale + PriorityOffset;
+		//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+		//调度优先级越大，优先调度并显示
+		tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+		tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+		gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+		map.AddLayer(gmsLayer); ///添加模型图层
+		gmsLayer.Locate(); ////模型图层定位
+	}
+
+	var mtdsdemlayer;
+	function LoadDEMMTDS() {
+	    var tlo = map.CreateLayerOptions("demlayer"); 					// 创建dem图层
+	    tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); 	// 创建配置类型
+	    tlo.AddConfig("DataSourceTypeName", "mtds"); 					// 数据源类型
+	    tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/");
+	    tlo.AddConfig("Format", "tif"); 								// 切片格式
+	    tlo.AddConfig("Interpolation", "INTERP_NEAREST"); 				// 差值方式	固定配置
+	    tlo.AddConfig("InterpolateImagery", "false"); 					// 差值方式 固定配置
+	    tlo.AddConfig("Srs", "EPSG:4326"); 								// 坐标系
+	    tlo.AddConfig("Driver", "terrainquadtree"); 					// 驱动配置	固定配置
+	    tlo.AddConfig("MaxX", "120.71408849655"); 						// 图层范围最大x
+	    tlo.AddConfig("MinX", "118.33968849655"); 						// 图层范围最小x
+	    tlo.AddConfig("MaxY", "30.5651894750343"); 						// 图层范围最大y
+	    tlo.AddConfig("MinY", "29.1885894750343"); 						// 图层范围最小y
+	    tlo.AddConfig("TileSize", "16"); 								// 瓦片大小
+	    tlo.AddConfig("Visible", "true"); 								// 显隐状态
+	    tlo.AddConfig("MinLevel", "0"); 								// 瓦片最小层级
+	    tlo.AddConfig("MaxLevel", "16"); 								// 瓦片最大层级
+	    mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo);
+	}
+
+	var mtdsdomlayer;
+	function LoadDOMMTDS() {
+	    var tlo = map.CreateLayerOptions("domlayer"); 	//创建dom图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); 	//数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); 	//代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "png"); 				//切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); 				//数据的坐标参考
+        tlo.AddConfig("MaxX", " 120.714010586176"); 	//数据的范围X向最大值
+        tlo.AddConfig("MinX", " 118.339686018686"); 	//数据的范围X向最小值
+        tlo.AddConfig("MaxY", " 30.5651224875501"); 	//数据的范围Y向最大值
+        tlo.AddConfig("MinY", " 29.188584444612"); 		//数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "256"); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); 				//数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "16"); 				//数据显示的最大层级
+
+        mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+        map.AddLayer(mtdsdomlayer); 					//添加DOM图层
+        mtdsdomlayer.Locate(); 							//DOM图层定位
+	}
+
+	//加载路径动画图层，当模型Url不存在或没设置时则为路径漫游
+	var dynamicPathLayer;
+	function LoadDynamicPathLayer(flag) {
+	    //map.RemoveLayer(polyline);
+
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer"); // 创建路径动画图层配置，给配置起个名称，任意名称
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions"); // 创建配置类型, DynamicPathLayerOptions代表路径图层数据配置，必须是此键值对
+	    if (flag) {
+	        tlo.AddConfig("Url", "F:\\演示测试数据\\警车.wrl"); //配置的动画的模型
+	        tlo.AddConfig("NodeXScale", "1");	//模型x轴缩放大小
+	        tlo.AddConfig("NodeYScale", "1");	//模型Y轴缩放大小
+	        tlo.AddConfig("NodeZScale", "1");	//模型Z轴缩放大小
+	    }
+
+		
+		tlo.AddConfig("PlayerMode", "PLAYER_ROUND_LOOP");//播放模式 有一次性播放"PLAYER_ONEWAY" 循环一次播放"PLAYER_ONEWAY_LOOP" 往返播放"PLAYER_ROUND_LOOP"
+	    tlo.AddConfig("PlayerState", "PLAYER_PLAY"); //播放状态 有播放"PLAYER_PLAY"、暂停"PLAYER_PAUSE"、停止"PLAYER_STOP"
+	    tlo.AddConfig("ViewObjectMode", "0.0,-0.708,100.0"); //视角对象;视角对象的格式为"1.57,-0.708,100",第一个为视角方位角,第二个为视角俯仰角，第三个为视点到关键点距离
+	    tlo.AddConfig("Velocity", "15.0"); ///速度 单位m/s
+		tlo.AddConfig("CornerSpeedScale", "5"); ///转角速度比例(0-1之间)
+	    tlo.AddConfig("LineWidth", "3.0"); ///线宽
+	    tlo.AddConfig("LineStipple", "65535"); ///线样式
+	    tlo.AddConfig("LineColor", "1.0,1.0,0.0,1"); //路径线颜色
+	    tlo.AddConfig("Radius", "15.0");              //拐弯处平滑半径(圆角)
+
+	    tlo.AddConfig("InterpLineWidth", "2.0");     ///差值线 线宽
+	    tlo.AddConfig("InterpLineStipple", "65535"); ///差值线线样式
+	    tlo.AddConfig("InterpLineColor", "0.0,0.0,1.0,1.0"); //差值线颜色,不需要差值线去掉颜色
+	    tlo.AddConfig("LiftUp", "50");  //抬高
+	    //tlo.AddConfig("PathActive", "true"); //路径激活状态，与节点激活状态互斥
+	    tlo.AddConfig("NodeActive", "true"); //节点激活状态,当为true时可以跟随模型或路径移动，当前漫游不可用
+	    tlo.AddConfig("KeyPoints", s);
+
+	    PositionArray = s.split(';');
+	    for (i = 0; i < PositionArray.length - 1; ++i) {
+	        transform(PositionArray[i]);
+	    }
+
+	    dynamicPathLayer = map.CreateLayer("DynamicPathLayer", tlo);
+	    map.AddLayer(dynamicPathLayer);
+
+	    layermap[dynamicPathLayer.GetLayerID()] = dynamicPathLayer;
+	    dynamicPathLayer.AddObserver();
+	}
+
+    //设置路径显示
+	function SetVisibleRoamPathTrue() {
+	    dynamicPathLayer.SetVisible(true);
+	}
+
+    //设置路径隐藏
+	function SetVisibleRoamPathFalse() {
+		dynamicPathLayer.SetVisible(false);
+	}
+	
+	//播放
+	function Play() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("PlayerState", "PLAYER_PLAY");
+	    tlo.AddConfig("Velocity", "30.0");
+
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+		
+		if(index > PositionArray.length - 1)
+		{
+			index = 0;
+		}
+	}
+
+    //暂停
+	function Pause() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("PlayerState", "PLAYER_PAUSE");
+	    tlo.AddConfig("Velocity", "20.0");
+	    tlo.AddConfig("LineColor", "1.0,0.0,0.0,1"); //路径线颜色 
+		tlo.AddConfig("InterpLineColor", "1.0,1.0,0,1"); 
+	    tlo.AddConfig("Url", "F:\\演示测试数据\\杆球.wrl"); //配置的动画的模型
+
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+    //停止
+	function Stop() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("PlayerState", "PLAYER_STOP");
+	    tlo.AddConfig("LineColor", "0.0,1.0,0.0,1"); //路径线颜色 
+		tlo.AddConfig("InterpLineColor", "0.0,1.0,1.1,0"); 
+
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+	function transform(pp)
+	{
+		var keyPoint = pp.split(',');
+		var pos = map.CreatePosition(keyPoint[0], keyPoint[1], keyPoint[2]);
+		var llh = trans.ConvertLongLatHeightToXYZ(pos);
+		var ss = "" + llh.GetX() + "," + llh.GetY() + "," + llh.GetZ() + ";";
+		KeyPositionArray.push(ss);
+		return ss;
+	}
+	
+	function CalcBuffer(pos , keyPos)
+	{
+		var mPos = pos.split(',');
+		var tmp = keyPos.substring(0, keyPos.length - 1);
+		var mKeyPos = tmp.split(',');
+		
+		var dis = (mPos[0] * 1 - mKeyPos[0] * 1) * (mPos[0] * 1 - mKeyPos[0] * 1)
+				+ (mPos[1] * 1 - mKeyPos[1]) * (mPos[1] * 1 - mKeyPos[1])
+				+ (mPos[2] * 1 - mKeyPos[2]) * (mPos[2] * 1 - mKeyPos[2]);
+		//var dis = (mPos[0] * 1 - mKeyPos[0] * 1) + (mPos[1] * 1 - mKeyPos[1] * 1) + (mPos[2] * 1 - mKeyPos[2] * 1);
+		//console.info(dis);
+		if(dis < buffer * buffer)
+			return true;
+		return false;
+		
+	}
+
+
+    //跟随模型或路径移动，漫游不可用
+    //当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateNodeActive() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");/////////创建更新的配置参数
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("NodeActive", "true");
+
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+    //停止跟随模型或路径移动，漫游可用
+	function CancelUpdateNodeActive() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("NodeActive", "false");
+
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+
+    //加速
+	function Accelerate() {
+	    
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("Velocity", "50.0");
+		
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+    //减速
+	function SlowDown() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("Velocity", "1.0");
+
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+    ///重置速度
+	function Restore() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions");
+	    tlo.AddConfig("Velocity", "15.0");
+
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+            
+    //删除路径动画或漫游
+	function RemoveDynamicPathLayer() {
+	    map.RemoveLayer(dynamicPathLayer);
+	}
+
+    //左视 
+	function LeftView() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions"); //动态路径配置信息 必须为DynamicPathLayerOptions
+
+	    tlo.AddConfig("ViewObjectMode", "1.57,-0.708,100.0"); //1.57为(PI/2) 为方位角 指路径方向与视点看的方向的夹角
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+
+    //右视 
+	function RightView() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions"); //动态路径配置信息 必须为DynamicPathLayerOptions
+
+	    tlo.AddConfig("ViewObjectMode", "4.71,-0.708,100.0");
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+	
+	//上视 
+	function UpView() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions"); //动态路径配置信息 必须为DynamicPathLayerOptions
+
+	    tlo.AddConfig("ViewObjectMode", "0,-1.5,100.0");
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+	
+	//前视 
+	function FrontView() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions"); /////动态路径配置信息 必须为DynamicPathLayerOptions
+
+	    tlo.AddConfig("ViewObjectMode", "3.14,-0.708,100.0");
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+	
+	//后视 
+	function BackView() {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer");
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions"); /////动态路径配置信息 必须为DynamicPathLayerOptions
+
+	    tlo.AddConfig("ViewObjectMode", "0,-0.708,100.0");
+	    dynamicPathLayer.UpdateLayerOptions(tlo);
+	}
+	
+	//绘制线
+	function Draw2DPolyline() {
+	    //////创建图层配置信息
+	        var tlo = map.CreateLayerOptions("polygon ");  				//创建分析图层配置，给配置起个名称，任意名称
+	        tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+	        tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 			//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+	        tlo.AddConfig("PointSize", "5"); 							//设置点击点的大小
+	        tlo.AddConfig("DrawLineColor", "1.0,1.0,0.0,0.0"); 			//设置线的颜色（RGBA）
+	        tlo.AddConfig("VisiableLine", "true"); 						//是否绘制线框（顶点和线框是同时显示/隐藏的）
+	        tlo.AddConfig("DrawType", "3");  							//0 是矩形  1是圆   2是多边形   3是线 
+	        tlo.AddConfig("LiftUp", "0"); 								//抬高高度
+	        tlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); 	//数据源类型,代表2D对象，必须是此键值对
+
+	        polyline = map.CreateLayer("AnalysisLayer", tlo); 			//创建分析图层，第一项参数必须为AnalysisLayer
+	        polyline.addObserver();		//添加监听接口
+	        map.AddLayer(polyline); 	//添加分析图层
+			addPoints = true;
+			layermap[polyline.getlayerid()] = polyline;
+	}
+	
+</script>
+</head>
+<body onload="InitScene()">
+	<input type="button" value="加载模型" onclick="LoadGMS()" />
+    <input id="Button1" type="button" value="创建路径动画" onclick="LoadDynamicPathLayer(true)" />
+    <input id="Button2" type="button" value="创建路径漫游" onclick="LoadDynamicPathLayer(false)" />
+    <input id="Button3" type="button" value="删除路径动画或漫游" onclick="RemoveDynamicPathLayer()" />
+
+    <input id="Button4" type="button" value="跟随移动" onclick="UpdateNodeActive()" />
+    <input id="Button5" type="button" value="取消跟随移动" onclick="CancelUpdateNodeActive()" />
+   
+    <input id="Button6" type="button" value="显示绘制路径" onclick="SetVisibleRoamPathTrue()" />
+    <input id="Button7" type="button" value="隐藏绘制路径" onclick="SetVisibleRoamPathFalse()" />
+
+	<input id="Button8" type="button" value="播放" onclick="Play()" />
+    <input id="Button9" type="button" value="暂停" onclick="Pause()" />
+    <input id="Button10" type="button" value="停止" onclick="Stop()" />
+
+    <input id="Button11" type="button" value="加速" onclick="Accelerate()" />
+    <input id="Button12" type="button" value="减速" onclick="SlowDown()" />
+    <input id="Button13" type="button" value="恢复速度" onclick="Restore()" />
+
+    <input id="Button14" type="button" value="左视" onclick="LeftView()" />
+    <input id="Button15" type="button" value="右视" onclick="RightView()" />
+    <input id="Button16" type="button" value="上视" onclick="UpView()" />
+    <input id="Button17" type="button" value="前视" onclick="FrontView()" />
+    <input id="Button18" type="button" value="后视" onclick="BackView()" />
+	<input id="Button19" type="button" value="画线" onclick="Draw2DPolyline()" />
+	<input id="Button19" type="button" value="添加罗盘" onclick="AddResCompass()" />
+    <object id="VPSDKCtrl" classid="CLSID:E6F71384-437A-48ED-8E01-CD280CADF44F" style="width: 100%; height: 100%"></object>
+</body>
+</html>

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>flex</title>
+  <style>
+    html,
+    body,
+    ul {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+
+    .layout-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+
+    header,
+    footer {
+      background-color: #666666;
+      flex-basis: 3em;
+    }
+
+    .layout-body {
+      display: flex;
+      flex-grow: 1;
+      min-height: 0;
+    }
+
+    .left,
+    .right {
+      background-color: #eee;
+      flex-basis: 12em;
+    }
+
+    .left {
+      /* 放到最左边 */
+      order: -1;
+    }
+
+    .right {
+      background-color: #ccc;
+      overflow: auto;
+    }
+
+    .main {
+      flex-grow: 1;
+      background-color: #999;
+      overflow: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div class='layout-container'>
+    <header>header</header>
+    <div class="layout-body">
+      <div class='main'>main</div>
+      <!-- <div class='left'>left</div> -->
+      <ul class='right'>right</ul>
+    </div>
+    <footer>footer</footer>
+  </div>
+
+  <script>
+    
+    var right = document.querySelector('.right')
+    // var left = document.querySelector('.left')
+    var main = document.querySelector('.main')
+    var list = [...Array(100)].map((_, index) => {
+      return `<li>${index}</li>`
+    })
+    right.innerHTML = list.join('')
+    // left.innerHTML = list.join('')
+    // main.innerHTML = list.join('')
+  </script>
+</body>
+
+</html>

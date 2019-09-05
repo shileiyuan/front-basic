@@ -1,0 +1,1237 @@
+<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<title>5.0球面版本测试用例5 分析、测量</title>
+<script language="javascript" type="text/javascript" event="FireOnLayerNotify(layerid , type)"
+	for="VPSDKCtrl">
+   //layerid 是指图层的id，本地方只是作为一个实例，直接用的圆的图层
+	var layer = layermap[layerid];
+	var opt = layer.GetLayerResult();
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_draw2dobject")
+		{
+		var val = opt.GetConfigValueByKey("Points");
+		alert(val);
+	}
+</script>
+
+<script language="javascript" type="text/javascript">
+
+	var layermap = new Array();
+	var obj;
+	var map;
+
+	function InitScene() {
+		obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+		//LoadGMS();
+		LoadDOMMTDS();
+        //LoadDEMMTDS();
+	}
+
+	var gmsLayer;
+	//加载模型数据
+	function LoadGMS() {
+		var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+		tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+		//调度优先级 = priority * PriorityScale + PriorityOffset;
+		//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+		//调度优先级越大，优先调度并显示
+		gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+		map.AddLayer(gmsLayer); ///添加模型图层
+		gmsLayer.Locate(); ////模型图层定位
+		AddResState();
+	}
+	var resState;
+	//添加状态栏响应器
+	function AddResState() {
+		var resp = map.CreateResponserOptions("UIStateResponser");
+		resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\msyh.TTF"); /////字体格式文件路径
+		//resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\ebrima.ttf");
+		resp.AddConfig("StateCurrent", "true");/////当前视点信息开关
+		resp.AddConfig("StateMouse", "true");/////当前鼠标信息开关
+		resp.AddConfig("StateHeight", "true");/////当前高度信息开关
+		//resp.AddConfig("CurrentShow", "中心视点： ");/////中心视点文字
+		//resp.AddConfig("MouseShow", " 鼠标位置：");/////鼠标位置文字
+		//resp.AddConfig("LonShow", " 经度： ");/////经度文字
+		//resp.AddConfig("LatShow", " 纬度： ");/////纬度文字
+		//resp.AddConfig("HeightShow", " 高程：");/////高程文字
+		resState = map.CreateResponser("UIStateResponser", resp); /////创建状态栏响应器，必须为UIStateResponser
+		map.AddResponser(resState);
+	}
+	//*************************************************************************
+    // 点测量
+    //*************************************************************************
+	//创建点测量
+	var pointMesure;
+	function CreatePointMeasure() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("pointMeasure"); //创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_point"); 	//数据源类型,代表点测量，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 		//设置点击点的大小
+		tlo.AddConfig("TextVisible", "true"); 	//文字是否被显示
+		tlo.AddConfig("TextLiftUp", "0"); 		//文字显示的抬高高度
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串，当上面设置TextVisible设置为true才创建并进行相应配置 
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); 	//设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF");//设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 					//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 			//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 			//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 			//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 			//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false");//去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 			//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 			//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 			//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "true"); 				//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); 		//背景颜色，是否设置背景色为true有效
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); 				//创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+
+		//将样式添加到图层配置里
+		tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		pointMesure = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(pointMesure); //添加分析图层
+	}
+
+	//更新点测量
+	function UpdatePointMeasure() {
+	   if( null != pointMesure )
+	   {
+			//创建图层配置信息
+			var tlo = map.CreateLayerOptions("pointMeasure"); //创建分析图层配置，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "as_point"); 	//数据源类型,代表点测量，必须是此键值对
+			tlo.AddConfig("PointColor", "1.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+			tlo.AddConfig("PointSize", "10"); 					//设置点击点的大小
+			tlo.AddConfig("TextVisible", "true"); 				//文字是否被显示
+			tlo.AddConfig("TextLiftUp", "10"); 					//文字显示的抬高高度
+			//tlo.AddConfig("IsLoad","true" );					//是否加载坐标点
+			//tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;"); //更新坐标点位置
+
+			//创建文字符号
+			var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串，当上面设置TextVisible设置为 true才创建并进行相应配置 
+			pSymbol.AddConfig("FillingColor", "0.0, 0.0, 1.0, 1.0"); //设置文字颜色（RGBA）
+			pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+			pSymbol.AddConfig("Size", "20"); 				//字体精度大小
+			pSymbol.AddConfig("CharacterSize", "20"); 		//文字大小
+			pSymbol.AddConfig("CharacterMode", "1"); 		//取值 1 -- 始终朝向相机
+			pSymbol.AddConfig("AlignmentMode", "12"); 		//文字对齐方式 0~14
+			pSymbol.AddConfig("AxisAlignment", "6"); 		//旋转轴 0 - 7 ， 6: 自动
+			pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+			pSymbol.AddConfig("IsEmbolden", "false"); 		//字体是否加粗
+			pSymbol.AddConfig("IsTransform", "true"); 		//字体是否为斜体
+			pSymbol.AddConfig("IsUnderline", "false"); 		//字体是否有下划线
+			pSymbol.AddConfig("IsBack", "true"); 			//是否设置背景色
+			pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); 	//背景颜色，是否设置背景色为true有效
+
+			//创建样式
+			var pStyle = map.CreateStyle("Text"); //创建Style，名字可以任意
+			pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+
+			//将样式添加到图层配置里
+			tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+			pointMesure.UpdateLayerOptions(tlo);
+		}
+	}
+
+	//获取点测量结果
+	function GetPointMeasure() {
+		var opt = pointMesure.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_point")
+		{
+			var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+			alert("ClickPoints:" + points);
+		}
+	}
+	
+	//删除点测量
+	function RemovePointMeasure() {
+		map.RemoveLayer(pointMesure); //删除点测量
+	}
+	
+	//*************************************************************************
+    // 三维距离测量
+    //*************************************************************************
+	//创建三维距离测量
+	var distanceMesure;
+	function CreateDistanceMeasure() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("distanceMesure"); //创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_distance");	//数据源类型,代表距离测量，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 					//设置点击点的大小
+		tlo.AddConfig("DistanceMeasureLineColor", "1.0,0.0,0.0,1.0"); //设置线的颜色（RGBA）
+		tlo.AddConfig("LineWidth", "5"); 					//线宽
+		tlo.AddConfig("MeasureUnit","0"); 					//0-米； 1-公里；2-海里
+		tlo.AddConfig("MeasureUnitLanguage","1"); 			//0-英文； 1-中文
+		tlo.AddConfig("IsDepthTest","false"); 				//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol");//创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1");	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5");	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6");	//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+		pSymbol.AddConfig("IsEmbolden", "false");	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false");	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false");		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+
+		//tlo.AddConfig("IsLoad","true" );					//是否加载点坐标
+		//tlo.AddConfig("Points","120.215667656,30.2136383941,-1.10956306104;120.215749997,30.2133926474,-1.11031961534;120.214122717,30.2124231319,-1.11372030433;120.213973507,30.2126992441,-1.11202969588;"); //点坐标
+		//tlo.AddConfig("IsActive","false" );				//是否激活测量
+		
+		//创建样式
+		var pStyle = map.CreateStyle("Text");		//创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+		//将样式添加到图层配置里
+		tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过pStyle.GetConfig()获取
+		
+		distanceMesure = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(distanceMesure); //添加分析图层
+	}
+
+	//更新三维距离测量
+	function UpdateDistanceMeasure() {
+		if( null != distanceMesure )
+		{
+			var tlo = map.CreateLayerOptions("distanceMesure"); //创建分析图层配置，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "as_distance");	//数据源类型,代表距离测量，必须是此键值对
+			tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+			tlo.AddConfig("PointSize", "10"); 					//设置点击点的大小
+			tlo.AddConfig("DistanceMeasureLineColor", "0.0,1.0,0.0,1.0"); //设置线的颜色（RGBA）
+			tlo.AddConfig("LineWidth", "10"); 					//线宽
+			tlo.AddConfig("MeasureUnit","0"); 					//0-米； 1-公里；2-海里
+			tlo.AddConfig("MeasureUnitLanguage","1"); 			//0-英文； 1-中文
+			tlo.AddConfig("IsDepthTest","false"); 				//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+			//下列三个配置可选
+			//tlo.AddConfig("IsLoad","true" );					//是否加载点坐标
+			//tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;"); //点坐标
+			//tlo.AddConfig("IsActive","false" );				//是否激活测量
+
+			//创建文字符号
+			var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+			pSymbol.AddConfig("FillingColor", "1.0, 1.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+			pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+			pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+			pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+			pSymbol.AddConfig("CharacterMode", "1");	//取值 1 -- 始终朝向相机
+			pSymbol.AddConfig("AlignmentMode", "5");	//文字对齐方式
+			pSymbol.AddConfig("AxisAlignment", "6");	//旋转轴 0 - 7 ， 6: 自动
+			pSymbol.AddConfig("RemoveDuplicateLabels", "false"); // 去重复			
+			pSymbol.AddConfig("IsEmbolden", "false");	//字体是否加粗
+			pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+			pSymbol.AddConfig("IsUnderline", "false");	//字体是否有下划线
+			pSymbol.AddConfig("IsBack", "ture");		//是否设置背景色
+			pSymbol.AddConfig("BackColor", "1.0,0,1.0,1"); //背景颜色，是否设置背景色为true有效
+
+			//创建样式
+			var pStyle = map.CreateStyle("Text");//创建Style，名字可以任意
+			pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+			//将样式添加到图层配置里
+			tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过pStyle.GetConfig()获取
+			
+			distanceMesure.UpdateLayerOptions(tlo); 	//更新参数设置项
+		}
+	}
+
+	//获取三维距离测量结果
+	function GetDistanceMeasure() {
+		var opt = distanceMesure.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_distance")
+		{
+			var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+			alert("ClickPoints:" + points);
+			var DistanceResult = opt.GetConfigValueByKey("DistanceResult"); //获取测量结果
+			alert("DistanceResult:" + DistanceResult);
+		}
+	}
+	
+	//删除三维距离测量
+	function RemoveDistanceMeasure() {
+		map.RemoveLayer(distanceMesure);//删除三维距离测量
+	}
+
+	//*************************************************************************
+    // 水平距离测量
+    //*************************************************************************
+	var horizontalMesure;
+	//创建水平距离测量
+	function CreateHorizontalMeasure() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("horizontalMeasure"); 		//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_horizontal");		//数据源类型,代表水平距离测量，必须是此键值对
+		tlo.AddConfig("PointColor", "1.0,0.0,1.0,1.0"); 			//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 							//设置点击点的大小
+		tlo.AddConfig("HorizontalMeasureLineColor", "1.0,0.0,0.0,1.0"); //设置线的颜色（RGBA）
+		tlo.AddConfig("LineWidth", "5"); 							//线宽
+		tlo.AddConfig("MeasureUnit","2");							//0-米； 1-公里；2-海里
+		tlo.AddConfig("MeasureUnitLanguage", "1");					//0-英文； 1-中文
+		tlo.AddConfig("IsDepthTest","false");						//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1");	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5");	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6");	//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+		pSymbol.AddConfig("IsEmbolden", "false");	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "false"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false");	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false");		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+		//tlo.AddConfig("IsLoad","true" );					//是否加载点坐标
+		//tlo.AddConfig("Points","120.215963372,30.2110767806,19.8360231258;120.21464969,30.2103733616,5.92769078538;120.213833682,30.2103657831,45.4036047561;120.213892158,30.2100430336,5.9571594242;"); //点坐标
+		//tlo.AddConfig("IsActive","false" );				//是否激活测量
+		//创建样式
+		var pStyle = map.CreateStyle("Text");		//创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+		//将样式添加到图层配置里
+		tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		
+		horizontalMesure = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(horizontalMesure); 			//添加分析图层
+	}
+
+	//更新水平距离测量
+	function UpdateHorizontalMeasure() {
+		if( null != horizontalMesure )
+		{
+			//创建图层配置信息
+			var tlo = map.CreateLayerOptions("horizontalMeasure"); 	//创建分析图层配置，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "as_horizontal");	//数据源类型,代表水平距离测量，必须是此键值对
+			tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 		//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+			tlo.AddConfig("PointSize", "5"); 						//设置点击点的大小
+			tlo.AddConfig("HorizontalMeasureLineColor", "1.0,0.0,0.0,1.0"); //设置线的颜色（RGBA）
+			tlo.AddConfig("LineWidth", "5"); 						//线宽
+			tlo.AddConfig("MeasureUnit","2");						//0-米； 1-公里；2-海里
+			tlo.AddConfig("IsDepthTest","false");					//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+			//下列三个配置可选
+			//tlo.AddConfig("IsLoad","true" );					//是否加载点坐标
+			//tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;"); //点坐标
+			//tlo.AddConfig("IsActive","false" );				//是否激活测量
+			
+			//创建文字符号
+			var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+			pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+			pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+			pSymbol.AddConfig("Size", "20"); 			//字体精度大小
+			pSymbol.AddConfig("CharacterSize", "10"); 	//文字大小
+			pSymbol.AddConfig("CharacterMode", "1");	//取值 1 -- 始终朝向相机
+			pSymbol.AddConfig("AlignmentMode", "5");	//文字对齐方式
+			pSymbol.AddConfig("AxisAlignment", "6");	//旋转轴 0 - 7 ， 6: 自动
+			pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+			pSymbol.AddConfig("IsEmbolden", "false");	//字体是否加粗
+			pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+			pSymbol.AddConfig("IsUnderline", "false");	//字体是否有下划线
+			pSymbol.AddConfig("IsBack", "true");		//是否设置背景色
+			pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+
+			//创建样式
+			var pStyle = map.CreateStyle("Text");/////创建Style，名字可以任意
+			pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+
+			//将样式添加到图层配置里
+			tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过pStyle.GetConfig()获取
+
+			horizontalMesure.UpdateLayerOptions(tlo);  //更新参数配置项 
+		}	   
+	}
+
+	//获取水平距离测量结果
+	function GetHorizontalMeasure() {
+		var opt = horizontalMesure.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_horizontal")
+		{
+			var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+			alert("ClickPoints:" + points);
+			var HorizontalResult = opt.GetConfigValueByKey("HorizontalResult"); //获取测量结果
+			alert("HorizontalResult:" + HorizontalResult);
+		}
+	}
+	
+	//删除水平距离测量
+	function RemoveHorizontalMeasure() {
+		map.RemoveLayer(horizontalMesure);	//删除水平距离测量
+	}
+
+	//*************************************************************************
+    // 垂直距离测量
+    //*************************************************************************
+	var verticalMeasure;
+	//创建垂直距离测量
+	function CreateVerticalMeasure() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("verticalMeasure"); 	//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_vertical"); 	//数据源类型,代表垂直距离测量，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); //设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 				//设置点击点的大小
+		tlo.AddConfig("VerticalMeasureLineColor", "1.0,0.0,0.0,1.0"); //设置线的颜色（RGBA）
+		tlo.AddConfig("LineWidth", "5"); 				//线宽
+		tlo.AddConfig("MeasureUnit","0");				//0-米； 1-公里；2-海里
+		tlo.AddConfig("MeasureUnitLanguage", "1");		//0-英文； 1-中文
+		tlo.AddConfig("IsDepthTest","true");			//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 	//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); // 去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false"); 		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); 		//创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+		//将样式添加到图层配置里
+		tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		
+		verticalMeasure = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(verticalMeasure); //添加分析图层
+	}
+
+	//更新垂直距离测量
+	function  UpdateVerticalMeasure()
+	{  
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("verticalMeasure"); 	//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_vertical"); 	//数据源类型,代表垂直距离测量，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); //设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "10"); 				//设置点击点的大小
+		tlo.AddConfig("VerticalMeasureLineColor", "1.0,1.0,0.0,1.0"); //设置线的颜色（RGBA）
+		tlo.AddConfig("LineWidth", "5"); 				//线宽
+		tlo.AddConfig("MeasureUnit","0");				//0-米； 1-公里；2-海里
+		tlo.AddConfig("IsDepthTest","true");			//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+		//下列三个配置可选
+		//tlo.AddConfig("IsLoad","true" );					//是否加载点坐标
+		//tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;"); //点坐标
+		//tlo.AddConfig("IsActive","false" );				//是否激活测量
+		
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 	//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); // 去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "true"); 		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); //创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+		//将样式添加到图层配置里
+		tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		
+		//更新垂直距离测量配置
+		verticalMeasure.UpdateLayerOptions(tlo);
+	} 
+
+	//获取垂直距离测量结果
+	function GetVerticalMeasure() {
+		var opt = verticalMeasure.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_vertical")
+		{
+			var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+			alert("ClickPoints:" + points);
+			var VerticalResult = opt.GetConfigValueByKey("VerticalResult"); //获取测量结果
+			alert("VerticalResult:" + VerticalResult);
+		}
+	}
+	
+	//删除垂直距离测量
+	function RemoveVerticalMeasure() 
+    {
+		map.RemoveLayer(verticalMeasure); //删除水平距离测量
+	}
+	
+	
+	
+	/**
+	 * @brief 创建地表距离测量,
+	 */
+	 
+	var surfaceDistanceMeasure = null;
+	function CreateSurfaceDistanceMeasure()
+	{
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("surfaceDistanceMeasure"); 	//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions");      //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_surfacedistance");      //数据源类型,代表垂直距离测量，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0");                 //设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 				                //设置点击点的大小
+	    tlo.AddConfig("LineColor","0,1,0,1.0");                         //线颜色
+		tlo.AddConfig("LineWidth", "2"); 				                //线宽
+		tlo.AddConfig("MeasureUnit","0");				                //0-米； 1-公里；2-海里
+		tlo.AddConfig("MeasureUnitLanguage", "1");		                //0-英文； 1-中文
+
+        tlo.AddConfig("SamplingInterval","1" );
+	    tlo.AddConfig("MeasureUnit","0");		                        //测量单位： 0-米； 1-公里； 2-海里
+        tlo.AddConfig("IsActive","true");                               //是否激活
+
+        tlo.AddConfig("IsLoad","false" );                              //是否重新加载 Points 配置项所对应的点
+	    tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;");   //线段点集
+
+		tlo.AddConfig("IsDepthTest","false");			                //是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol");                   //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 0.0");        //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF");   //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "20"); 			                    //字体精度大小
+		pSymbol.AddConfig("CharacterSize", "10.0"); 	                //文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 	                    //取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 	                    //文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 	                    //旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false");            //去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 	                    //字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 	                    //字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 	                    //字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false"); 		                    //是否设置背景色
+        pSymbol.AddConfig("HorizonSpaceSize", "5");                     //字符水平间隔距离
+	
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); 		                    //创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig());            //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+		//将样式添加到图层配置里
+		tlo.AddConfig("TextStyle", pStyle.GetConfig());                     //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		
+		surfaceDistanceMeasure = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(surfaceDistanceMeasure);                           //添加分析图层
+	}
+	
+	
+	
+	/**
+	 * @brief 更新地表地表距离测量
+	 */
+	function  UpdateSurfaceDistanceMeasure()
+	{ 
+		if( null != surfaceDistanceMeasure )
+		{
+			//创建图层配置信息
+			var tlo = map.CreateLayerOptions("surfaceDistanceMeasure"); 	//创建分析图层配置，给配置起个名称，任意名称
+	
+           	tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions");      //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		    tlo.AddConfig("DataSourceTypeName", "as_surfacedistance");      //数据源类型,代表垂直距离测量，必须是此键值对
+		    tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0");                 //设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		    tlo.AddConfig("PointSize", "5"); 				                //设置点击点的大小
+	        tlo.AddConfig("LineColor","1.0,1.0,0,1.0");                         //线颜色
+		    tlo.AddConfig("LineWidth", "10"); 				                //线宽
+		    tlo.AddConfig("MeasureUnit","0");				                //0-米； 1-公里；2-海里
+		    tlo.AddConfig("MeasureUnitLanguage", "1");		                //0-英文； 1-中文
+
+            tlo.AddConfig("SamplingInterval","1" );
+	        tlo.AddConfig("MeasureUnit","0");		                        //测量单位： 0-米； 1-公里； 2-海里
+
+			//下列三个配置可选
+			//tlo.AddConfig("IsLoad","true" );					//是否加载点坐标
+			//tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;"); //点坐标
+			//tlo.AddConfig("IsActive","false" );				//是否激活测量
+			
+			//创建文字符号
+			var pSymbol = map.CreateSymbol("TextSymbol");                 //创建文字符号，必须为TextSymbol字符串
+			pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 0.0");        //设置文字颜色（RGBA）
+		    pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF");   //设置字体类型,字体文件一定要存在
+		    pSymbol.AddConfig("Size", "20"); 			                    //字体精度大小
+		    pSymbol.AddConfig("CharacterSize", "10.0"); 	                //文字大小
+		    pSymbol.AddConfig("CharacterMode", "1"); 	                    //取值 1 -- 始终朝向相机
+		    pSymbol.AddConfig("AlignmentMode", "5"); 	                    //文字对齐方式
+		    pSymbol.AddConfig("AxisAlignment", "6"); 	                    //旋转轴 0 - 7 ， 6: 自动
+		    pSymbol.AddConfig("RemoveDuplicateLabels", "false");            //去重复			
+		    pSymbol.AddConfig("IsEmbolden", "false"); 	                    //字体是否加粗
+		    pSymbol.AddConfig("IsTransform", "true"); 	                    //字体是否为斜体
+		    pSymbol.AddConfig("IsUnderline", "false"); 	                    //字体是否有下划线
+		    pSymbol.AddConfig("IsBack", "false"); 		                    //是否设置背景色
+            pSymbol.AddConfig("HorizonSpaceSize", "5");                     //字符水平间隔距离
+	
+			//创建样式
+			var pStyle = map.CreateStyle("Text");                          //创建Style，名字可以任意
+			pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig());           //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+			//将样式添加到图层配置里
+			tlo.AddConfig("TextStyle", pStyle.GetConfig());                //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+			surfaceDistanceMeasure.UpdateLayerOptions(tlo);                //更新图层配置项
+		}
+		
+	} 
+	
+	
+	
+	/**
+	 * @brief 获取地表地表距离测量结果
+	 */
+	function GetSurfaceDistanceMeasure() 
+	{
+	    if( null != surfaceDistanceMeasure )
+		{
+			var opt = surfaceDistanceMeasure.GetLayerResult();		         //获取图层结果
+		    var points = opt.GetConfigValueByKey("ClickPoints");             //获取点击点坐标
+		    alert("ClickPoints:" + points);                                  //获取的地理坐标点集
+		    var distanceResult = opt.GetConfigValueByKey("DistanceResult");  //获取测量结果
+		    alert("VerticalResult:" + distanceResult);
+		}
+	}
+	
+	
+	/**
+	 * @brief 移除地表地表距离测量
+	 */
+	function RemoveSurfaceDistanceMeasure() 
+	{
+	    if( null != surfaceDistanceMeasure )
+		{
+			map.RemoveLayer(surfaceDistanceMeasure); //删除地表距离测量
+		}
+	}
+	
+	
+	//*************************************************************************
+    //面积测量
+    //*************************************************************************
+	var areaMeasure;
+	//创建面积测量
+	function CreateAreaMeasure() {
+		//创建图层配置信息
+		var mlo = map.CreateLayerOptions("areaMeasure ");      //创建分析图层配置，给配置起个名称，任意名称
+		mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo.AddConfig("DataSourceTypeName","as_area");			//数据源类型,代表垂直距离测量，必须是此键值对
+		mlo.AddConfig("PointColor","0,0.3,0.8,1.0"); 			//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		mlo.AddConfig("PointSize","7"); 						//设置点击点的大小
+		mlo.AddConfig("AreaMeasureLineColor","0,0.9,0.2,1.0");  //设置线的颜色（RGBA）
+		mlo.AddConfig("PolygonColor","0,0.7,0.4,0.5"); 			//设置面的颜色（RGBA）
+		mlo.AddConfig("MeasureUnit","10"); 						//10-平方米； 11-公顷； 12-平方公里； 13-平方海里
+		mlo.AddConfig("MeasureUnitLanguage", "1"); 				//0-英文； 1-中文
+		mlo.AddConfig("AreaMeasureType", "0"); 					//0-空间面积测量； 1-水平面积测量； 2-地形面积测量
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol");                  //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0");       	//设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF");  	//设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 								//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 						//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 						//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5");						//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6");						//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false");			//去重复			
+		pSymbol.AddConfig("IsEmbolden", "false");						//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true");						//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false");						//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false");							//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1");					//背景颜色，是否设置背景色为true有效
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text");                         //创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig());          //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+		//将样式添加到图层配置里
+		mlo.AddConfig("Style", pStyle.GetConfig());                   //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		
+		areaMeasure = map.CreateLayer("AnalysisLayer", mlo);          //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(areaMeasure);                                    //添加分析图层
+	}
+
+	//更新面积测量
+	function UpdateAreaMeasure() { 
+		if( areaMeasure != null )
+		{
+			var mlo = map.CreateLayerOptions("areaMeasure "); 	//创建分析图层配置，给配置起个名称，任意名称
+			mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			mlo.AddConfig("DataSourceTypeName", "as_area"); 	//数据源类型,代表垂直距离测量，必须是此键值对
+			mlo.AddConfig("PointColor", "0,1,0,1.0");			//设置点击点的颜色透明度（RGBA）
+			mlo.AddConfig("PointSize", "7"); 					//设置点击点的大小
+			mlo.AddConfig("AreaMeasureLineColor", "1,0,0,1.0"); //设置线的颜色（RGBA）
+			mlo.AddConfig("PolygonColor", "0.5,0.6,0,0.4"); 	//设置面的颜色（RGBA）
+			mlo.AddConfig("MeasureUnit", "10");					//10-平方米； 11-公顷； 12-平方公里； 13-平方海里
+			mlo.AddConfig("MeasureUnitLanguage", "0"); 			//0-英文； 1-中文
+			//mlo.AddConfig("AreaMeasureType", "0");				//0-空间面积测量； 1-水平面积测量； 2-地形面积测量
+            mlo.AddConfig("PolygonMode", "1" );                 //封闭区域显示方式选择 1,以多边形区域显示 2,以网格显示
+		
+			//mlo.AddConfig("IsLoad", "true");
+			//mlo.AddConfig("Points", "120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;120.16190,30.261564,18.598429;");
+			
+			/////创建文字符号
+			var pSymbol = map.CreateSymbol("TextSymbol");                  //创建文字符号，必须为TextSymbol字符串，当上面设置TextVisible设置为 true才创建并进行相应配置 
+			pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0");       //设置文字颜色（RGBA）
+			pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF");  //设置字体类型,字体文件一定要存在
+			pSymbol.AddConfig("Size", "40"); ///字体精度大小
+			pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+			pSymbol.AddConfig("CharacterMode", "1");                       //取值 1 -- 始终朝向相机
+			pSymbol.AddConfig("AlignmentMode", "5");                       //文字对齐方式
+			pSymbol.AddConfig("AxisAlignment", "6");                       //旋转轴 0 - 7 ， 6: 自动
+			pSymbol.AddConfig("RemoveDuplicateLabels", "false");           //去重复			
+			pSymbol.AddConfig("IsEmbolden", "false");                      //字体是否加粗
+			pSymbol.AddConfig("IsTransform", "true");                      //字体是否为斜体
+			pSymbol.AddConfig("IsUnderline", "false");                     //字体是否有下划线
+			pSymbol.AddConfig("IsBack", "false");                          //是否设置背景色
+			pSymbol.AddConfig("BackColor", "0,1.0,1.0,1");                 //背景颜色，是否设置背景色为true有效
+
+			//创建样式
+			var pStyle = map.CreateStyle("Text");                         //创建Style，名字可以任意
+			pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig());          //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+			//将样式添加到图层配置里
+			mlo.AddConfig("Style", pStyle.GetConfig());                   //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+			
+			areaMeasure.UpdateLayerOptions(mlo);
+		}
+	}
+
+	//获取面积测量结果
+	function GetAreaMeasure() {
+		var opt = areaMeasure.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_area")
+		{
+			var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+			alert("ClickPoints:" + points);
+			var AreaResult = opt.GetConfigValueByKey("AreaResult"); //获取测量结果
+			alert("AreaResult:" + AreaResult);
+		}
+	}
+	
+	//删除面积测量
+	function RemoveAreaMeasure() {
+		map.RemoveLayer(areaMeasure); //删除面积测量
+	}
+
+	
+	//*************************************************************************
+    //地表面积测量 作地表面积测量时记得加载DEM与DOM
+    //*************************************************************************
+	var SurfaceAreaMeasure;
+	//创建面积测量
+	function CreateSurfaceAreaMeasure() {
+		//创建图层配置信息
+		var mlo = map.CreateLayerOptions("areaMeasure");      //创建分析图层配置，给配置起个名称，任意名称
+		mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo.AddConfig("DataSourceTypeName","as_area");			//数据源类型,代表垂直距离测量，必须是此键值对
+		mlo.AddConfig("PointColor","0,0.3,0.8,1.0"); 			//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		mlo.AddConfig("PointSize","7"); 						//设置点击点的大小
+		mlo.AddConfig("AreaMeasureLineColor","0,0.9,0.2,1.0");  //设置线的颜色（RGBA）
+		mlo.AddConfig("PolygonColor","0,0.7,0.4,0.5"); 			//设置面的颜色（RGBA）
+		mlo.AddConfig("MeasureUnit","10"); 						//10-平方米； 11-公顷； 12-平方公里； 13-平方海里
+		mlo.AddConfig("MeasureUnitLanguage", "1"); 				//0-英文； 1-中文
+		mlo.AddConfig("AreaMeasureType", "2"); 					//0-空间面积测量； 1-水平面积测量； 2-地表面积测量
+		
+		mlo.AddConfig("PolygonMode", "2" );                   //地表面积测量专有配置项 封闭区域显示方式选择 1,以多边形区域显示 2,以网格显示
+	    mlo.AddConfig("PageLevel", "5" );                     //地表面积测量专有配置项 0~16 当前层级累加该数值并调度相应层级瓦片
+        mlo.AddConfig("GridLineColor", "1.0,1.0,0.0,1.0");    //地表面积测量专有配置项 格网线设置 当PolygonMode为2时选择
+
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol");                  //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0");       	//设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF");  	//设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 								//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 						//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 						//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5");						//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6");						//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false");			//去重复			
+		pSymbol.AddConfig("IsEmbolden", "false");						//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true");						//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false");						//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false");							//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1");					//背景颜色，是否设置背景色为true有效
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text");                         //创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig());          //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+		//将样式添加到图层配置里
+		mlo.AddConfig("Style", pStyle.GetConfig());                   //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+		
+		SurfaceAreaMeasure = map.CreateLayer("AnalysisLayer", mlo);          //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(SurfaceAreaMeasure);                                    //添加分析图层
+	}
+
+	//更新地表面积测量
+	function UpdateSurfaceAreaMeasure() { 
+		if( SurfaceAreaMeasure != null )
+		{
+			var mlo = map.CreateLayerOptions("areaMeasure"); 	//创建分析图层配置，给配置起个名称，任意名称
+			mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			mlo.AddConfig("DataSourceTypeName", "as_area"); 	//数据源类型,代表垂直距离测量，必须是此键值对
+			mlo.AddConfig("PointColor", "0,1,0,1.0");			//设置点击点的颜色透明度（RGBA）
+			mlo.AddConfig("PointSize", "7"); 					//设置点击点的大小
+			mlo.AddConfig("AreaMeasureLineColor", "1,0,0,1.0"); //设置线的颜色（RGBA）
+			mlo.AddConfig("PolygonColor", "0.5,0.6,0,0.4"); 	//设置面的颜色（RGBA）
+			mlo.AddConfig("MeasureUnit", "10");					//10-平方米； 11-公顷； 12-平方公里； 13-平方海里
+			mlo.AddConfig("MeasureUnitLanguage", "0"); 			//0-英文； 1-中文
+            mlo.AddConfig("PolygonMode", "1" );                 //封闭区域显示方式选择 1,以多边形区域显示 2,以网格显示
+		
+			//mlo.AddConfig("IsLoad", "true");
+			//mlo.AddConfig("Points", "120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;120.16190,30.261564,18.598429;");
+			
+			//创建文字符号
+			var pSymbol = map.CreateSymbol("TextSymbol");                  //创建文字符号，必须为TextSymbol字符串，当上面设置TextVisible设置为 true才创建并进行相应配置 
+			pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0");       //设置文字颜色（RGBA）
+			pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF");  //设置字体类型,字体文件一定要存在
+			pSymbol.AddConfig("Size", "40"); ///字体精度大小
+			pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+			pSymbol.AddConfig("CharacterMode", "1");                       //取值 1 -- 始终朝向相机
+			pSymbol.AddConfig("AlignmentMode", "5");                       //文字对齐方式
+			pSymbol.AddConfig("AxisAlignment", "6");                       //旋转轴 0 - 7 ， 6: 自动
+			pSymbol.AddConfig("RemoveDuplicateLabels", "false");           //去重复			
+			pSymbol.AddConfig("IsEmbolden", "false");                      //字体是否加粗
+			pSymbol.AddConfig("IsTransform", "true");                      //字体是否为斜体
+			pSymbol.AddConfig("IsUnderline", "false");                     //字体是否有下划线
+			pSymbol.AddConfig("IsBack", "false");                          //是否设置背景色
+			pSymbol.AddConfig("BackColor", "0,1.0,1.0,1");                 //背景颜色，是否设置背景色为true有效
+
+			//创建样式
+			var pStyle = map.CreateStyle("Text");                         //创建Style，名字可以任意
+			pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig());          //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息，通过 pSymbol.GetConfig()获取
+			//将样式添加到图层配置里
+			mlo.AddConfig("Style", pStyle.GetConfig());                   //第一参必须为Style字符串，第二参为上面创建的Style的配置信息，通过 pStyle.GetConfig()获取
+			
+			SurfaceAreaMeasure.UpdateLayerOptions(mlo);
+		}
+	}
+
+	//获取地表面积测量结果
+	function GetSurfaceAreaMeasure() {
+		var opt = SurfaceAreaMeasure.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_area")
+		{
+			var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+			alert("ClickPoints:" + points);
+			var AreaResult = opt.GetConfigValueByKey("AreaResult"); //获取测量结果
+			alert("AreaResult:" + AreaResult);
+		}
+	}
+	
+	//删除地表面积测量
+	function RemoveSurfaceAreaMeasure() {
+		map.RemoveLayer(SurfaceAreaMeasure); //删除面积测量
+	}
+
+	//*************************************************************************
+    //绘制圆
+    //*************************************************************************
+	var circle;
+	//绘制圆
+	function Draw2DCircle() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("draw2dcircle"); 		//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); //数据源类型,代表2D对象，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 					//设置点击点的大小
+		tlo.AddConfig("DrawLineColor", "1.0,1.0,0.0,1.0"); 	//设置线的颜色（RGBA）
+		tlo.AddConfig("DrawFaceColor", "1,0,0,0.3"); 		//设置面的颜色（RGBA）
+		tlo.AddConfig("VisiableLine", "true"); 				//是否绘制线框（顶点和线框是同时显示/隐藏的）
+		tlo.AddConfig("VisiableFace", "true"); 				//是否绘制面
+		tlo.AddConfig("SplitPointNum", "10"); 				//圆分割数量
+		tlo.AddConfig("DrawType", "1");  					//绘制类型。0:矩形，1：圆，2：多边形，3：线 
+		tlo.AddConfig("LiftUp", "0"); 						//抬高高度
+		
+			//下列三个配置可选
+		//tlo.AddConfig("IsLoad","true" );					//是否加载点坐标
+		//tlo.AddConfig("IsActive","false" );				//是否激活测量
+		//tlo.AddConfig("Points","120.205420708,30.2416892474,15.07;120.20489575,30.2417527978,0;"); //点坐标
+
+		circle = map.CreateLayer("AnalysisLayer", tlo); 	//创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(circle); 								//添加分析图层
+		layermap[circle.getlayerid()] = circle;
+		circle.addObserver();
+	}
+
+	//更新圆
+	//当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateDraw2DCircle() {
+		var mlo = map.CreateLayerOptions("draw2dcircle"); 			//创建更新的配置参数
+		mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions");	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo.AddConfig("DataSourceTypeName", "as_draw2dobject");		//数据源类型,代表2D对象，必须是此键值对
+		tlo.AddConfig("IsActive", "false");
+		mlo.AddConfig("IsLoad", "true");
+		mlo.AddConfig("Points", "120.205420708,30.2416892474,15.07;120.20489575,30.2417527978,0;"); //更新绘制圆需要的两点坐标，第一点为圆心，第二点和第一点的距离为半径，当更新点时必须设置IsLoad配置项为true
+		circle.UpdateLayerOptions(mlo);
+	}
+
+	//获取圆结果
+	function GetDraw2DCircle() {
+		var opt = circle.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_draw2dobject")
+		{
+			var DrawType = opt.GetConfigValueByKey("DrawType"); //获取绘制类型
+			alert("DrawType:" + DrawType);
+			var Points = opt.GetConfigValueByKey("Points"); //获取关键点集
+			alert("Points:" + Points);
+		}
+	}
+	
+	//删除圆
+	function RemoveDraw2DCircle() {
+		map.RemoveLayer(circle); //删除圆
+	}
+
+	//*************************************************************************
+    //绘制矩形
+    //*************************************************************************	
+	var rectangle;
+	//绘制矩形
+	function Draw2DRectangle() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("rectangle "); 	//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); //数据源类型,代表2D对象，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 					//设置点击点的大小
+		tlo.AddConfig("DrawLineColor", "1.0,1.0,0.0,1.0"); 	//设置线的颜色（RGBA）
+		tlo.AddConfig("DrawFaceColor", "1,0,0,0.3"); 		//设置面的颜色（RGBA）
+		tlo.AddConfig("VisiableLine", "true"); 				//是否绘制线框（顶点和线框是同时显示/隐藏的）
+		tlo.AddConfig("VisiableFace", "true"); 				//是否绘制面
+		tlo.AddConfig("DrawType", "0");  					//0:矩形; 1:圆; 2:多边形; 3:线 
+		tlo.AddConfig("LiftUp", "0"); 						//抬高高度
+
+		rectangle = map.CreateLayer("AnalysisLayer", tlo); 	//创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(rectangle); 							//添加分析图层
+	}
+
+	//更新矩形
+	//当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateDraw2DRectangle() {
+		var mlo = map.CreateLayerOptions("rectangle "); //创建更新的配置参数
+		mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); //数据源类型,代表2D对象，必须是此键值对
+		mlo.AddConfig("IsLoad", "true");
+		mlo.AddConfig("Points", "120.205420708,30.2416892474,15.07;120.20489575,30.2417527978,0;"); //更新绘制矩形需要的两点坐标，第一点为矩形左上角，第二点为左下角，当更新点时必须设置IsLoad配置项为true
+		rectangle.UpdateLayerOptions(mlo);
+	}
+
+	//获取矩形结果
+	function GetDraw2DRectangle() {
+		var opt = rectangle.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_draw2dobject")
+		{
+			var DrawType = opt.GetConfigValueByKey("DrawType"); //获取绘制类型
+			alert("DrawType:" + DrawType);
+			var Points = opt.GetConfigValueByKey("Points"); //获取关键点集
+			alert("Points:" + Points);
+		}
+	}
+	
+	//删除矩形
+	function RemoveDraw2DRectangle() {
+		map.RemoveLayer(rectangle); //删除矩形
+	}
+
+	//*************************************************************************
+    //绘制多边形
+    //*************************************************************************	
+	var polygon;
+	//绘制多边形
+	function Draw2DPolygon() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("polygon "); 		//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); //数据源类型,代表2D对象，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 					//设置点击点的大小
+		tlo.AddConfig("DrawLineColor", "1.0,1.0,0.0,1.0"); 	//设置线的颜色（RGBA）
+		tlo.AddConfig("DrawFaceColor", "1,0,0,0.3"); 		//设置面的颜色（RGBA）
+		tlo.AddConfig("VisiableLine", "true"); 				//是否绘制线框（顶点和线框是同时显示/隐藏的）
+		tlo.AddConfig("VisiableFace", "true"); 				//是否绘制面
+		tlo.AddConfig("DrawType", "2"); 					//0 是矩形  1是圆   2是多边形   3是线 
+		tlo.AddConfig("LiftUp", "0"); 						//抬高高度
+		polygon = map.CreateLayer("AnalysisLayer", tlo); 	//创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(polygon);                          	//添加分析图层
+	}
+
+	//更新多边形
+	//当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateDraw2DPolygon() {
+		var mlo = map.CreateLayerOptions("draw2dpolygon"); //创建更新的配置参数
+		mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); //数据源类型,代表2D对象，必须是此键值对
+		mlo.AddConfig("IsLoad", "true");
+		mlo.AddConfig("Points", "120.205420708,30.2416892474,15.0748782353;120.20489575,30.2417527978,10;120.203420708,30.2416892474,15.0748782353;120.20289575,30.2417527978,20;"); 							//更新绘制多边形点坐标，当更新点时必须设置IsLoad配置项为true
+		polygon.UpdateLayerOptions(mlo);
+	}
+
+	//获取多边形结果
+	function GetDraw2DPolygon() {
+		var opt = polygon.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_draw2dobject")
+		{
+			var DrawType = opt.GetConfigValueByKey("DrawType"); //获取绘制类型
+			alert("DrawType:" + DrawType);
+			var Points = opt.GetConfigValueByKey("Points"); //获取关键点集
+			alert("Points:" + Points);
+		}
+	}
+	
+	//删除多边形
+	function RemoveDraw2DPolygon() {
+		map.RemoveLayer(polygon); //删除多边形
+	}
+
+	//*************************************************************************
+    //绘制线
+    //*************************************************************************		
+	var polyline;
+	//绘制线
+	function Draw2DPolyline() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("polygon "); 		//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); //数据源类型,代表2D对象，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); 	//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 					//设置点击点的大小
+		tlo.AddConfig("DrawLineColor", "1.0,1.0,0.0,1.0"); 	//设置线的颜色（RGBA）
+		tlo.AddConfig("VisiableLine", "true"); 				//是否绘制线框（顶点和线框是同时显示/隐藏的）
+		tlo.AddConfig("LineWidth", "3");  					//线宽
+		tlo.AddConfig("DrawType", "3");  					//0 是矩形  1是圆   2是多边形   3是线 
+		tlo.AddConfig("LiftUp", "0"); 						//抬高高度
+		//tlo.AddConfig("IsLoad", "true");
+		//tlo.AddConfig("IsActive", "false");
+		//tlo.AddConfig("Points", "120.205420708,30.2416892474,15.0748782353;120.20489575,30.2417527978,10;120.203420708,30.2416892474,15.0748782353;120.20289575//,30.2417527978,20;"); //更新绘制线的坐标，当更新点时必须设置IsLoad配置项为true
+
+		polyline = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(polyline); //添加分析图层
+	}
+
+	//更新线
+	//当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateDraw2DPolyline() {
+		var mlo = map.CreateLayerOptions("draw2dpolygon"); //创建更新的配置参数
+		mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo.AddConfig("DataSourceTypeName", "as_draw2dobject"); //数据源类型,代表2D对象，必须是此键值对
+		//mlo.AddConfig("IsLoad", "true");
+		//mlo.AddConfig("IsActive", "false");
+		//mlo.AddConfig("Points", "120.205420708,30.2416892474,15.0748782353;120.20489575,30.2417527978,10;120.203420708,30.2416892474,15.0748782353;120.20289575,30.2417527978,20;"); //更新绘制线的坐标，当更新点时必须设置IsLoad配置项为true
+		polyline.UpdateLayerOptions(mlo);
+	}
+	
+	//获取线结果
+	function GetDraw2DPolyline() {
+		var opt = polyline.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_draw2dobject")
+		{
+			var DrawType = opt.GetConfigValueByKey("DrawType"); //获取绘制类型
+			alert("DrawType:" + DrawType);
+			var Points = opt.GetConfigValueByKey("Points"); //获取关键点集
+			alert("Points:" + Points);
+		}
+	}
+	
+	//删除线
+	function RemoveDraw2DPolyline() {
+		map.RemoveLayer(polyline); //删除线
+	}
+
+	//序列化线图层
+	function SerializeLayerline()
+	{
+		var opt = polyline.GetLayerResult();
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_draw2dobject")
+		{
+			var val = opt.GetConfigValueByKey("Points");
+			alert(val);
+		}
+		polyline.SerializeLayer("F:\\Zhumh\\SerializeLayerline.txt");
+	}
+
+	//*************************************************************************
+    //KdTree操作
+    //*************************************************************************		
+	//开启KdTree操作
+	var KdTreeOperation;
+	function OpenKdTree() {
+		var tlo = map.CreateOperationOptions("KdTree");                //创建配置类型,操作类型的配置
+		tlo.AddConfig("OptionsTypeName", "KdTreeOption");              //添加配置项类名  
+		tlo.AddConfig("IsUsed", "true");                               //是否使用   
+
+		KdTreeOperation = map.CreateOperation("KdTreeOperation", tlo); //创建更新图层，第一项必须为KdTreeOperation
+		map.AddOperation(KdTreeOperation);                             //加入操作并执行
+	}
+	
+	//更新KdTree操作
+	var bState = false;
+	function UpdateKdTree(){
+		 var tlo = map.CreateOperationOptions("KdTree"); 				//创建配置类型,操作类型的配置
+		tlo.AddConfig("OptionsTypeName", "KdTreeOption"); 				//添加配置项类名  
+		if (bState) {
+			tlo.AddConfig("IsUsed", "true"); 							//是否使用
+			bState = false;
+		} else {
+			tlo.AddConfig("IsUsed", "false"); 							//是否使用
+			bState = true;
+		}
+		KdTreeOperation.UpdateOperationOptions(tlo); 					//更新操作    
+	}
+	
+	var mtdsdomlayer;
+	//加载DOM数据
+	function LoadDOMMTDS() {
+		var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+		//////以下部分可以通过图层信息获取获得相应的配置////
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "png"); ///切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+		tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+		tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+		tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+		tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdsdomlayer); ///添加DOM图层
+		mtdsdomlayer.Locate(); //DOM图层定位
+	}
+
+
+     var mtdsdemlayer;
+    //////加载DEM数据
+    function LoadDEMMTDS()
+    {
+        var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+        tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+        tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+        tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+        tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+        mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+        map.AddLayer(mtdsdemlayer);///添加DEM图层
+        mtdsdemlayer.Locate();////DEM图层定位
+    }
+
+    //////删除DEM数据
+    function RemoveDEMMTDS() 
+    {
+        map.RemoveLayer(mtdsdemlayer);////删除DEM数据
+    }
+
+
+</script>
+</head>   
+<body onload="InitScene()">
+    测量:
+    <input id="Button1" type="button" value="加载模型" 			onclick="LoadGMS()" />
+    <input id="Button2" type="button" value="开启KdTree" 		onclick="OpenKdTree()" />
+    <input id="Button3" type="button" value="更新KdTree" 		onclick="UpdateKdTree()" />
+	&nbsp;
+    <input id="Button4" type="button" value="创建点测量" 		onclick="CreatePointMeasure()" />
+    <input id="Button5" type="button" value="更新点测量" 		onclick="UpdatePointMeasure()" />
+    <input id="Button6" type="button" value="获取点测量结果"	onclick="GetPointMeasure()" />
+    <input id="Button7" type="button" value="删除点测量" 		onclick="RemovePointMeasure()" />
+	</br>
+    <input id="Button8" type="button" value="创建三维距离测量" onclick="CreateDistanceMeasure()" />
+    <input id="Button9" type="button" value="更新三维距离测量" onclick="UpdateDistanceMeasure()" />
+    <input id="Button10" type="button" value="获取三维距离测量结果" onclick="GetDistanceMeasure()" />
+    <input id="Button11" type="button" value="删除三维距离测量" onclick="RemoveDistanceMeasure()" />
+	&nbsp;
+    <input id="Button12" type="button" value="创建水平距离测量" onclick="CreateHorizontalMeasure()" />
+    <input id="Button13" type="button" value="更新水平距离测量" onclick="UpdateHorizontalMeasure()" />
+    <input id="Button14" type="button" value="获取水平距离测量结果" onclick="GetHorizontalMeasure()" />
+    <input id="Button15" type="button" value="删除水平距离测量" onclick="RemoveHorizontalMeasure()" />
+	</br>
+    <input id="Button16" type="button" value="创建垂直距离测量" onclick="CreateVerticalMeasure()" />
+    <input id="Button17" type="button" value="更新垂直距离测量" onclick="UpdateVerticalMeasure()" />
+    <input id="Button18" type="button" value="获取垂直距离测量结果" onclick="GetVerticalMeasure()" />
+    <input id="Button19" type="button" value="删除垂直距离测量" onclick="RemoveVerticalMeasure()" />
+	&nbsp;
+	<input id="Button50" type="button" value="创建地表距离测量"     onclick="CreateSurfaceDistanceMeasure()" />
+    <input id="Button51" type="button" value="更新地表距离测量"     onclick="UpdateSurfaceDistanceMeasure()" />
+    <input id="Button52" type="button" value="获取地表距离测量结果" onclick="GetSurfaceDistanceMeasure()" />
+    <input id="Button53" type="button" value="删除地表距离测量"     onclick="RemoveSurfaceDistanceMeasure()" />
+	</br>
+    <input id="Button20" type="button" value="创建三维面积测量"     onclick="CreateAreaMeasure()" />
+    <input id="Button21" type="button" value="更新三维面积测量"     onclick="UpdateAreaMeasure()" />
+    <input id="Button22" type="button" value="获取三维面积测量结果" onclick="GetAreaMeasure()" />
+    <input id="Button23" type="button" value="删除三维面积测量"     onclick="RemoveAreaMeasure()" />
+	
+    <input id="Button20" type="button" value="创建地表面积测量"     onclick="CreateSurfaceAreaMeasure()" />
+    <input id="Button21" type="button" value="更新地表面积测量"     onclick="UpdateSurfaceAreaMeasure()" />
+    <input id="Button22" type="button" value="获取地表面积测量结果" onclick="GetSurfaceAreaMeasure()" />
+    <input id="Button23" type="button" value="删除地表面积测量"     onclick="RemoveSurfaceAreaMeasure()" />
+	
+    </br>二维对象绘制:
+    <input id="Button25" type="button" value="画圆"              onclick="Draw2DCircle()" />
+    <input id="Button26" type="button" value="更新圆"            onclick="UpdateDraw2DCircle()" />
+    <input id="Button27" type="button" value="获取圆结果"        onclick="GetDraw2DCircle()" />
+    <input id="Button28" type="button" value="删除圆"            onclick="RemoveDraw2DCircle()" />
+	&nbsp;
+    <input id="Button29" type="button" value="画矩形"            onclick="Draw2DRectangle()" />
+    <input id="Button30" type="button" value="更新矩形"          onclick="UpdateDraw2DRectangle()" />
+    <input id="Button31" type="button" value="获取矩形结果"      onclick="GetDraw2DRectangle()" />
+    <input id="Button32" type="button" value="删除矩形"          onclick="RemoveDraw2DRectangle()" />
+	&nbsp;
+    <input id="Button33" type="button" value="画多边形"          onclick="Draw2DPolygon()" />
+    <input id="Button34" type="button" value="更新多边形"        onclick="UpdateDraw2DPolygon()" />
+    <input id="Button35" type="button" value="获取多边形结果"    onclick="GetDraw2DPolygon()" />
+    <input id="Button36" type="button" value="删除多边形"        onclick="RemoveDraw2DPolygon()" />
+	&nbsp;
+    <input id="Button37" type="button" value="画线"              onclick="Draw2DPolyline()" />
+    <input id="Button38" type="button" value="更新线"            onclick="UpdateDraw2DPolyline()" />
+    <input id="Button39" type="button" value="获取线结果"        onclick="GetDraw2DPolyline()" />
+    <input id="Button40" type="button" value="删除线"            onclick="RemoveDraw2DPolyline()" />
+    <input id="Button41" type="button" value="序列化线"          onclick="SerializeLayerline()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

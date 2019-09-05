@@ -1,0 +1,260 @@
+
+<html>
+<head>
+<title>6.0球面版本测试用例10_响应器</title>
+<script language="javascript" type="text/javascript" event="FireOnResponserNotify(str, id)"
+	for="VPSDKCtrl">
+	alert("str:" + str + "id:" + id);
+</script>
+<script language="javascript" type="text/javascript">
+	function InitScene() {
+		obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+		LoadCPM();
+	}
+        var cpmLayer;
+        //加载模型数据
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");//结点调度优先级的缩放值PriorityScale,默认为1
+			tlo.AddConfig("PriorityOffset","1.0");//结点调度优先级的偏移值PriorityOffset,
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+        }
+		
+	//*************************************************************************
+    //Logo响应器
+    //*************************************************************************
+	var resLogo;
+	//添加Logo响应器
+	function AddResLogo() {
+		var resp = map.CreateResponserOptions("UILogoResponser");/////创建Logo响应器配置项，参数里可任意字符串
+		resLogo = map.CreateResponser("UILogoResponser", resp); /////创建Logo响应器响应器，必须为UILogoResponser
+		map.AddResponser(resLogo);
+	}
+	//修改Logo响应器
+	function ModifyResLogo() {
+		var resp = map.CreateResponserOptions("UILogoResponser");
+		resp.AddConfig("TransX", "-200");/////当前Logo位置偏移X坐标
+		resp.AddConfig("TransY", "200"); /////当前Logo位置偏移y坐标
+		resLogo.UpdateResponserOptions(resp);/////更新响应器配置项
+	}
+	//移除Logo响应器
+	function RemoveResLogo() {
+		map.RemoveResponser("UILogoResponser"); /////移除Logo响应器，必须为UILogoResponser
+	}
+	
+	//*************************************************************************
+    //中心十字标响应器
+    //*************************************************************************
+	var resCross;
+	//添加中心十字标响应器
+	function AddResCross() {
+		var resp = map.CreateResponserOptions("UICrossResponser");
+		resCross = map.CreateResponser("UICrossResponser", resp); /////创建中心十字标响应器，必须为UICrossResponser
+		map.AddResponser(resCross);
+	}
+	//移除中心十字标响应器
+	function RemoveResCross() {
+		map.RemoveResponser("UICrossResponser"); /////移除中心十字标响应器，必须为UICrossResponser
+	}
+	
+	//*************************************************************************
+    //罗盘响应器
+    //*************************************************************************
+	var resCompass;
+	//添加罗盘响应器
+	function AddResCompass() {
+		var resp = map.CreateResponserOptions("UICompassResponser");
+		resp.AddConfig("Visible", "true");/////设置罗盘响应器显隐状态。特别注意，罗盘响应器因为内部的关系，已经默认创建，外部需要通过更新配置接口设置显隐状态，而不是通过添加的方式
+		resp.AddConfig("TransX", "0");/////当前罗盘位置偏移X坐标,右为正
+		resp.AddConfig("TransY", "0"); /////当前罗盘位置偏移y坐标,上为正
+		resCompass = map.CreateResponser("UICompassResponser", resp); /////创建罗盘响应器，必须为UICompassResponser
+		map.AddResponser(resCompass); /////更新罗盘响应器配置，这里必须这么处理
+	}
+	//移除罗盘响应器
+	function RemoveResCompass() {
+		var resp = map.CreateResponserOptions("UICompassResponser");
+		resp.AddConfig("Visible", "false"); /////设置罗盘响应器显隐状态。特别注意，罗盘响应器因为内部的关系，已经默认创建，外部需要通过更新配置接口设置显隐状态，而不是通过添加的方式
+		resCompass.UpdateResponserOptions(resp); /////更新罗盘响应器配置，这里必须这么处理，当作对响应器的移除，实际上只是隐藏了
+	}
+	
+	//*************************************************************************
+    //提示文字响应器
+    //*************************************************************************
+	var resTips;
+	//添加提示文字响应器
+	function AddResTips() {
+		var resp = map.CreateResponserOptions("UITipsResponser");
+		resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\simhei.ttf");
+		resp.AddConfig("TextSize", "6");
+		resp.AddConfig("TextColor", "1.0, 0.0, 0.0");
+		resTips = map.CreateResponser("UITipsResponser", resp); /////创建提示文字响应器，必须为UITipsResponser
+		map.AddResponser(resTips);
+	}
+	//移除提示文字响应器
+	function RemoveResTips() {
+		map.RemoveResponser("UITipsResponser"); /////移除提示文字响应器，必须为UITipsResponser
+	}
+	
+	//*************************************************************************
+    //状态栏响应器
+    //*************************************************************************
+	var resState;
+	//添加状态栏响应器
+	function AddResState() {
+		var resp = map.CreateResponserOptions("UIStateResponser");
+		resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\msyh.TTF"); /////字体格式文件路径
+		resp.AddConfig("TextSize", "8");
+		resp.AddConfig("TextColor", "0.7, 0.7, 0.0");
+		resp.AddConfig("StateCurrent", "true");/////当前视点信息开关
+		resp.AddConfig("StateMouse", "true");/////当前鼠标信息开关
+		resp.AddConfig("StateHeight", "true");/////当前高度信息开关
+		//resp.AddConfig("CurrentShow", "中心视点： ");/////中心视点文字
+		//resp.AddConfig("MouseShow", " 鼠标位置：");/////鼠标位置文字
+		//resp.AddConfig("LonShow", " 经度： ");/////经度文字
+		//resp.AddConfig("LatShow", " 纬度： ");/////纬度文字
+		//resp.AddConfig("HeightShow", " 高程：");/////高程文字
+		resState = map.CreateResponser("UIStateResponser", resp); /////创建状态栏响应器，必须为UIStateResponser
+		map.AddResponser(resState);
+	}
+	//修改状态栏响应器
+	function ModifyResState() {
+		var resp = map.CreateResponserOptions("UIStateResponser");
+		resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\msyh.TTF");
+		resp.AddConfig("StateCurrent", "false");
+		resp.AddConfig("StateMouse", "true");
+		resp.AddConfig("StateHeight", "false");
+		resState.UpdateResponserOptions(resp); /////更新响应器配置项
+	}
+	//移除状态栏响应器
+	function RemoveResState() {
+		map.RemoveResponser("UIStateResponser"); /////移除状态栏响应器，必须为UIStateResponser
+	}
+	
+	//*************************************************************************
+    //字幕响应器
+    //*************************************************************************
+	var resCaption;
+	//添加字幕响应器
+	function AddResCaption() {
+		var resp = map.CreateResponserOptions("UICaptionResponser");
+		resp.AddConfig("Deriction", "up");/////字幕运动方向：left,right,up,down
+		resp.AddConfig("Content", "字幕字幕字幕字幕字幕字幕字幕字幕字幕字幕字幕字幕"); /////字幕内容
+		resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\msyh.TTF"); /////字体路径
+		resp.AddConfig("TextSize", "10"); /////字体大小
+		resp.AddConfig("PlaySpeed", "2"); /////字幕播放速度 像素/帧
+		resp.AddConfig("PlayTimes", "2"); /////字幕播放次数 次
+		resp.AddConfig("PlayLength", "400"); /////字幕播放长度 像素
+		resp.AddConfig("StartPosition", "500,300,0"); /////字幕播放起始位置 屏幕坐标
+		resp.AddConfig("TextColor", "1,0,0"); /////文字颜色
+		resp.AddConfig("PlayState", "true"); /////播放状态
+		resCaption = map.CreateResponser("UICaptionResponser", resp); /////创建字幕响应器，必须为UICaptionResponser
+		map.AddResponser(resCaption);
+	}
+	//修改字幕响应器
+	function ModifyResCaption() {
+		var resp = map.CreateResponserOptions("UICaptionResponser");
+		resp.AddConfig("Deriction", "right");
+		resp.AddConfig("Content", "测试测试测试测试测试测试");
+		resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\msyh.TTF");
+		resp.AddConfig("TextSize", "20");
+		resp.AddConfig("PlaySpeed", "4");
+		resp.AddConfig("PlayTimes", "2");
+		resp.AddConfig("PlayLength", "400");
+		resp.AddConfig("StartPosition", "500,300,0");
+		resp.AddConfig("TextColor", "1,1,0");
+		resp.AddConfig("PlayState", "true");
+		resCaption.UpdateResponserOptions(resp);
+	}
+	//移除字幕响应器
+	function RemoveResCaption() {
+		map.RemoveResponser("UICaptionResponser"); /////移除字幕响应器，必须为UICaptionResponser
+	}
+	
+	//*************************************************************************
+    //截图响应器
+    //*************************************************************************
+	var resSceneShot;
+	//添加截图响应器
+	function AddResImagecut() {
+		var resp = map.CreateResponserOptions("SceneshotResponser");
+		resp.AddConfig("FilePath", "C:\\");/////截图保存目录
+		resp.AddConfig("FileName", "shot4.jpg"); /////截图保存名称
+		resp.AddConfig("bIsOrtho", "false"); /////是否正交投影
+		resp.AddConfig("bUseCache", "false"); /////是否保存缓存
+		resp.AddConfig("ImageMultiple", "2"); /////截图倍数
+		resp.AddConfig("JoinMultiple", "2"); /////拼接倍数
+		//resp.AddConfig("ImageWidth", "1024");/////图片宽度，不设及默认自动获取屏幕大小
+		//resp.AddConfig("ImageHeight", "768");/////图片高度，不设及默认自动获取屏幕大小
+		resp.AddConfig("LodScale", "1.0"); /////模型加载衰减
+		resSceneShot = map.CreateResponser("SceneshotResponser", resp);
+		resSceneShot.AddObserver();
+		map.AddResponser(resSceneShot);
+	}
+	
+	function AddResImagecut1() {
+		var resp = map.CreateResponserOptions("SceneshotResponser");
+		resp.AddConfig("FilePath", "C:\\");/////截图保存目录
+		resp.AddConfig("FileName", "shot4.jpg"); /////截图保存名称
+		resp.AddConfig("bIsOrtho", "false"); /////是否正交投影
+		resp.AddConfig("bUseCache", "false"); /////是否保存缓存
+		resp.AddConfig("ImageMultiple", "2"); /////截图倍数
+		resp.AddConfig("JoinMultiple", "2"); /////拼接倍数
+		//resp.AddConfig("ImageWidth", "1024");/////图片宽度，不设及默认自动获取屏幕大小
+		//resp.AddConfig("ImageHeight", "768");/////图片高度，不设及默认自动获取屏幕大小
+		resp.AddConfig("Range", "1000"); /////分任务起始行
+		resp.AddConfig("LodScale", "0.0"); /////模型加载衰减
+		//resp.AddConfig("StartRow", "1"); /////分任务起始行
+		//resp.AddConfig("StartCol", "1"); /////分任务起始列
+		resp.AddConfig("IsArea", "1"); /////是否开启分任务
+		resSceneShot = map.CreateResponser("SceneshotResponser", resp);
+		resSceneShot.AddObserver();
+		map.AddResponser(resSceneShot);
+	}
+	//移除截图响应器
+	function RemoveResImagecut() {
+		map.RemoveResponser("SceneshotResponser"); /////移除截图响应器，必须为SceneshotResponser
+	}
+	
+	//*************************************************************************
+    //全屏
+    //*************************************************************************
+	var bFullScreen = false;
+	function FullScreen() {
+		obj.SetFullScreenState(true);
+	}
+</script>
+</head>
+<body onload="InitScene()">
+    <input id="Button5" type="button" value="全屏" onclick="FullScreen()" />
+    <input id="Button1" type="button" value="添加Logo响应器" onclick="AddResLogo()" />
+    <input id="Button16" type="button" value="修改Logo响应器" onclick="ModifyResLogo()" />
+    <input id="Button2" type="button" value="卸载Logo响应器" onclick="RemoveResLogo()" />
+    <input id="Button3" type="button" value="添加十字标响应器" onclick="AddResCross()" />
+    <input id="Button4" type="button" value="卸载十字标响应器" onclick="RemoveResCross()" />
+    <input id="Button5" type="button" value="添加罗盘响应器" onclick="AddResCompass()" />
+    <input id="Button6" type="button" value="卸载罗盘响应器" onclick="RemoveResCompass()" />
+    <input id="Button7" type="button" value="添加提示文字响应器" onclick="AddResTips()" />
+    <input id="Button8" type="button" value="卸载提示文字响应器" onclick="RemoveResTips()" />
+    <input id="Button9" type="button" value="添加状态栏响应器" onclick="AddResState()" />
+    <input id="Button17" type="button" value="修改状态栏响应器" onclick="ModifyResState()" />
+    <input id="Button10" type="button" value="卸载状态栏响应器" onclick="RemoveResState()" />
+    <input id="Button13" type="button" value="添加字幕响应器" onclick="AddResCaption()" />
+    <input id="Button15" type="button" value="修改字幕响应器" onclick="ModifyResCaption()" />
+    <input id="Button14" type="button" value="卸载字幕响应器" onclick="RemoveResCaption()" />
+    <input id="Button18" type="button" value="添加截图响应器" onclick="AddResImagecut()" />
+    <input id="Button19" type="button" value="卸载截图响应器" onclick="RemoveResImagecut()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width:100%;
+        height:100%">
+    </object>
+</body>
+</html>

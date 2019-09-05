@@ -1,0 +1,118 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>更新操作</title>
+	<script language="javascript" type="text/javascript" event="FireOnLayerNotify(layerid , type)"
+	for="VPSDKCtrl">
+		var layer = layermap[layerid];
+		var opt = layer.GetLayerResult();
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_viewshed")
+		{
+			var val = opt.GetConfigValueByKey("EyePoint");
+			var val1 = opt.GetConfigValueByKey("AimPoint");
+			alert(val + "||" + val1);
+		}
+	</script>
+	<script language="javascript" type="text/javascript" event="FireOnOperationNotify(type, result)"
+	for="VPSDKCtrl">
+		if (null != operationPtr) {
+			var value = operationPtr.GetOperationResult().GetConfigValueByKey("GeoPos");//返回三维点
+			var value1 = operationPtr.GetOperationResult().GetConfigValueByKey("IntersectPos");//返回相交点
+			alert(value + "||" + value1);
+        }
+	</script>
+    <script language="javascript" type="text/javascript">
+		var layermap = new Array();
+        var obj;
+        var map;
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+
+            var tlo = map.CreateLayerOptions("HaiKang2_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+
+        var viewShed;
+	//创建单视域分析
+		function LoadViewShed() {
+			var mlo3 = map.CreateLayerOptions("as_viewshed")           //创建分析图层配置，给配置起个名称，任意名称
+			mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			mlo3.AddConfig("DataSourceTypeName", "as_viewshed");        //数据源类型,代表视域分析，必须是此键值对
+			mlo3.AddConfig("DrawLineColor", "1,1,0,1"); //设置画线颜色（RGBA）
+			mlo3.AddConfig("VAngle", "60"); 			//垂直方向张角
+			mlo3.AddConfig("HAngle", "60"); 			//水平方向张角        
+			mlo3.AddConfig("TextVisible", "true");  	//是否显示文字
+			mlo3.AddConfig("TextLiftUp", "0");       	//文字抬高高度
+			mlo3.AddConfig("EyePos", "120.214542205,30.2112749382,74.9330953304");
+			mlo3.AddConfig("ArmPos", "120.214765699,30.2110459058,4.90402229782");
+			mlo3.AddConfig("IsLoad", "true");
+			//创建文字符号
+			var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+			pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+			pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\simhei.ttf"); //设置字体类型,字体文件一定要存在
+			pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+			pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+			pSymbol.AddConfig("CharacterMode", "1"); 	//取值 1 -- 始终朝向相机
+			pSymbol.AddConfig("AlignmentMode", "5"); 	//文字对齐方式
+			pSymbol.AddConfig("AxisAlignment", "6"); 	//旋转轴 0 - 7，6: 自动
+			pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+			pSymbol.AddConfig("IsEmbolden", "false"); 	//字体是否加粗
+			pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+			pSymbol.AddConfig("IsUnderline", "false"); 	//字体是否有下划线
+			pSymbol.AddConfig("IsBack", "false"); 		//是否设置背景色
+			pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+
+			//创建样式
+			var pStyle = map.CreateStyle("Text"); //创建Style，名字可以任意
+			pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息
+			//将样式添加到图层配置里
+			mlo3.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息
+
+			viewShed = map.CreateLayer("AnalysisLayer", mlo3); //创建分析图层，第一项参数必须为AnalysisLayer
+			map.AddLayer(viewShed); //添加分析图层
+			layermap[viewShed.GetLayerID()] = viewShed;
+			viewShed.AddObserver();
+		}
+
+        var operationPtr;
+        var isRemove = false;
+        function CreateOperation(){
+            var tlo = map.CreateOperationOptions("VideoPosToWorldOptions"); //创建配置类型,操作类型的配置
+            tlo.AddConfig("OptionsTypeName", "VideoPosToWorldOptions");
+			tlo.AddConfig("LayerIds", gmsLayer.GetLayerID());//待相交图层
+			tlo.AddConfig("EyePos", "120.214542205,30.2112749382,74.9330953304");//视点起始点
+			tlo.AddConfig("ArmPos", "120.214765699,30.2110459058,4.90402229782");//视点目标点
+			tlo.AddConfig("VAngle", "60");//垂直张角
+			tlo.AddConfig("HAngle", "60");//水平张角
+			tlo.AddConfig("VideoPosX", "10");//视频目标相对位置x
+			tlo.AddConfig("VideoPosY", "10");//视频目标相对位置y
+            operationPtr = map.CreateOperation("VideoPosToWorldOperation", tlo); //根据配置创建模型调整操作
+			operationPtr.AddObserver();
+		    map.AddOperation(operationPtr);                                      //加入操作并执行
+			
+	    }
+    </script>
+</head>
+<body onload="InitScene()">
+  <input id="Button17" type="button" value="InitScene" onclick="InitScene()" />
+    <input id="Button17" type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input id="Button18" type="button" value="创建视域分析" onclick="LoadViewShed()" />
+    <input id ="Button20" type="button" value="创建更新操作"  onclick="CreateOperation()" />
+	
+  <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+  </object>
+</body>
+</html>

@@ -1,0 +1,950 @@
+<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<title>5.0球面版本测试用例5 分析、测量</title>
+<script language="javascript" type="text/javascript" event="FireOnLayerNotify(layerid , type)"
+	for="VPSDKCtrl">
+	var layer = layermap[layerid];
+	var opt = layer.GetLayerResult();
+	if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_buffer")
+	{
+		var ClickPoints =  opt.GetConfigValueByKey("ClickPoints");
+		var DrawableType =  opt.GetConfigValueByKey("DrawableType");
+		var val = opt.GetConfigValueByKey("BufferOutlinePoints");
+		var val1 = opt.GetConfigValueByKey("BufferOutlinePointsIndexs");
+		alert(val + "||" + val1);
+	}
+	if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_linesight")
+		{
+		var val = opt.GetConfigValueByKey("StartPoint");
+		var val1 = opt.GetConfigValueByKey("EndPoints");
+		alert(val + "||" + val1);
+	}
+</script>
+<script language="javascript" type="text/javascript">
+
+	var layermap = new Array();
+	var obj;
+	var map;
+	var Datapath="F:\\演示测试数据";
+
+	function InitScene() {
+		obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+	}
+	
+	function LoadDOMDEM() {
+		LoadDOMMTDS();
+		LoadDEMMTDS();
+	}
+
+	
+	var gmsLayer;
+	//加载模型数据
+	function LoadGMS() {
+		var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+		tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+		//调度优先级 = priority * PriorityScale + PriorityOffset;
+		//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+		//调度优先级越大，优先调度并显示
+		tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+		tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+		gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+		map.AddLayer(gmsLayer); ///添加模型图层
+		gmsLayer.Locate(); ////模型图层定位
+	}
+
+        //删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+        //显隐模型数据
+        var gmsVisble = true;
+        function VisibleGMS() {
+            if (gmsVisble) {
+                gmsVisble = false;
+            } else {
+                gmsVisble = true;
+            }
+            gmsLayer.SetVisible(gmsVisble); /////显隐模型数据
+        }
+	//*************************************************************************
+	//通视分析
+	//*************************************************************************		
+	var lineOfSight;
+	//创建通视分析
+	function CreateLineOfSight() {
+		var mlo3 = map.CreateLayerOptions("lineOfSight ");//创建分析图层配置，给配置起个名称，任意名称
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_linesight"); //数据源类型,代表通视分析，必须是此键值对
+		mlo3.AddConfig("StartColor", "0,0,1,1"); 		//设置起始点颜色（RGBA）
+		mlo3.AddConfig("EndColor", "0,0,1,1"); 			//设置目标点颜色（RGBA）
+		mlo3.AddConfig("HitColor", "1,1,0,1"); 			//设置视线碰撞点颜色（RGBA）
+		mlo3.AddConfig("StartPointSize", "7"); 			//设置起始点的大小
+		mlo3.AddConfig("EndPointSize", "7"); 			//设置目标点的大小
+		mlo3.AddConfig("HitPointSize", "10"); 			//设置视线碰撞点的大小
+		mlo3.AddConfig("LineWidth", "2.0"); 			//线宽
+		mlo3.AddConfig("LineOfSightColor", "0,1,0,1"); 	//设置通视线颜色
+		mlo3.AddConfig("InvisiblePartColor", "1,0,0,1");//设置视线不可视部分颜色（RGBA）
+		mlo3.AddConfig("VisiblePartColor", "1,1,0,1"); 	//设置视线可视部分颜色（RGBA）
+		mlo3.AddConfig("TextVisible", "true");       	//是否显示文字
+		mlo3.AddConfig("TextLiftUp", "10");       		//文字抬高高度
+		mlo3.AddConfig("CoordinateSystemType","2"); 		//显示参考系。 0-地理经纬度；1-投影坐标；2-世界坐标系；3-地心空间直角坐标系XYZ
+		mlo3.AddConfig("IsDepthTest","true"); 			//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置	
+
+		//mlo.AddConfig("IsLoad","true" );          	//true表示从外部加载点列数据，false为不加载                               
+		//mlo3.AddConfig("StartPoint","120.16119,30.261164,17.042929" ); //起始视点配置项
+		//mlo3.AddConfig("EndPoints","120.16151,30.261482,28.522919;120.16190,30.261564,18.598429;"); //终止点配置项
+		
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串，当上面设置TextVisible设置为 true才创建并进行相应配置
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\simhei.ttf"); //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "20"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "10"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 	//旋转轴 0 - 7，6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false"); 		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+		pSymbol.AddConfig("FieldPrecision","2"); 			//显示精度
+		pSymbol.AddConfig("IsDepthTest","false"); 			//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); //创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息
+		//将样式添加到图层配置里
+		mlo3.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息
+
+		lineOfSight = map.CreateLayer("AnalysisLayer", mlo3); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(lineOfSight); //添加分析图层
+		
+		layermap[lineOfSight.GetLayerID()] = lineOfSight;
+		lineOfSight.AddObserver();
+	}
+
+	//更新通视分析
+	//当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateLineOfSight() {
+		var mlo3 = map.CreateLayerOptions(""); 		//创建更新的配置参数
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_linesight");//数据源类型,代表通视分析，必须是此键值对
+		mlo3.AddConfig("StartColor", "1,0,0,0.8"); 			//设置起始点颜色（RGBA）
+		mlo3.AddConfig("EndColor", "0,1,0,0.8"); 			//设置目标点颜色（RGBA）
+		mlo3.AddConfig("HitColor", "0,1,1,0.8"); 			//设置视线碰撞点颜色（RGBA）
+		mlo3.AddConfig("LineOfSightColor", "0,1,0,1"); 		//设置通视线颜色
+		mlo3.AddConfig("InvisiblePartColor", "1,0,0,1");	//设置视线不可视部分颜色（RGBA）
+		mlo3.AddConfig("VisiblePartColor", "1,1,0,1"); 		//设置视线可视部分颜色（RGBA）
+		mlo3.AddConfig("TextLiftUp", "30");       			//文字抬高高度
+		//mlo3.AddConfig("IsLoad", "true");//更新通视分析点坐标，当更新点时必须设置IsLoad配置项为true
+		//mlo3.AddConfig("StartPoint", "120.16119,30.261164,17.042929");
+		//mlo3.AddConfig("EndPoints", "120.16151,30.261482,28.522919;120.16190,30.261564,18.598429;");
+	
+		lineOfSight.UpdateLayerOptions(mlo3); //更新通视分析
+	}
+
+	//获取通视分析结果
+	function GetLineOfSight() {
+		var opt = lineOfSight.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_linesight")
+		{
+			var StartPoint = opt.GetConfigValueByKey("StartPoint"); //获取起始点坐标
+			alert("StartPoint:" + StartPoint);
+			var EndPoints = opt.GetConfigValueByKey("EndPoints"); 	//获取结束点坐标
+			alert("EndPoints:" + EndPoints);
+			var HitPoints = opt.GetConfigValueByKey("HitPoints"); 	//获取碰撞点坐标
+			alert("HitPoints:" + HitPoints);
+			var LineSightResult = opt.GetConfigValueByKey("LineSightResult");//获取通视结果:(-1,0,1,-1,2)-1代表通视，其他代表第n个碰撞点
+			alert("LineSightResult:" + LineSightResult);
+		}
+	}
+
+	//删除通视分析
+	function RemoveLineOfSight() {
+		map.RemoveLayer(lineOfSight); //删除通视分析
+	}
+
+	//*************************************************************************
+	//单视域分析
+	//*************************************************************************	
+	var viewShed;
+	//创建单视域分析
+	function CreateViewShed() {
+		var mlo3 = map.CreateLayerOptions("lineOfSight ")           //创建分析图层配置，给配置起个名称，任意名称
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_viewshed");        //数据源类型,代表视域分析，必须是此键值对
+		mlo3.AddConfig("DrawLineColor", "1,1,0,1"); //设置画线颜色（RGBA）
+		mlo3.AddConfig("VAngle", "60"); 			//垂直方向张角
+		mlo3.AddConfig("HAngle", "60"); 			//水平方向张角        
+		mlo3.AddConfig("TextVisible", "true");  	//是否显示文字
+		mlo3.AddConfig("TextLiftUp", "0");       	//文字抬高高度
+		mlo3.AddConfig("CoordinateSystemType","2"); 	//显示参考系。 0-地理经纬度；1-投影坐标；2-世界坐标系；3-地心空间直角坐标系XYZ
+		mlo3.AddConfig("IsDepthTest","true"); 		//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置	
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\simhei.ttf"); //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 	//旋转轴 0 - 7，6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false"); 		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+		pSymbol.AddConfig("FieldPrecision","3"); 			//显示精度
+		pSymbol.AddConfig("IsDepthTest","false"); 			//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); //创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息
+		//将样式添加到图层配置里
+		mlo3.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息
+
+		viewShed = map.CreateLayer("AnalysisLayer", mlo3); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(viewShed); //添加分析图层
+	}
+
+	//更新单视域分析
+	//当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateViewShed() {
+		var mlo3 = map.CreateLayerOptions(""); //创建更新的配置参数
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_viewshed");        //数据源类型,代表视域分析，必须是此键值对
+
+		mlo3.AddConfig("IsLoad", "true");
+		///更新视域分析点坐标，当更新点时必须设置IsLoad配置项为true
+		mlo3.AddConfig("VAngle", "45"); //视域垂直方向夹角
+		mlo3.AddConfig("HAngle", "60"); //视域水平方向夹角
+		mlo3.AddConfig("EyePos", "120.16119,30.261164,2.042929"); //起始点
+		mlo3.AddConfig("ArmPos", "120.16151,30.261682,2.522919"); //目标点
+		///更新视域分析点坐标，当更新点时必须设置IsLoad配置项为true
+		viewShed.UpdateLayerOptions(mlo3); //更新视域分析
+	}
+
+	//获取单视域分析结果
+	function GetViewShed() {
+		var opt = viewShed.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_viewshed")
+		{
+			var EyePoint = opt.GetConfigValueByKey("EyePoint"); 	//获取起始点坐标
+			alert("EyePoint:" + EyePoint);
+			var AimPoint = opt.GetConfigValueByKey("AimPoint"); 	//获取结束点坐标
+			alert("AimPoint:" + AimPoint);
+			var FrustumPos = opt.GetConfigValueByKey("FrustumPos"); //获取视景体的5个点
+			alert("FrustumPos:" + FrustumPos);
+		}
+	}
+
+	//删除单视域分析
+	function RemoveViewShed() {
+		map.RemoveLayer(viewShed); //删除视域分析
+	}
+
+    var viewShedVisble = true;
+	function VisibleViewShed() {
+		if (viewShedVisble) {
+			viewShedVisble = false;
+		} else {
+			viewShedVisble = true;
+		}
+		viewShed.SetVisible(viewShedVisble); /////显隐模型数据
+	}
+	//*************************************************************************
+	//控高分析
+	//*************************************************************************		
+	var heightControl;
+	//创建控高分析
+	function CreateHeightControl() {
+		var tlo = map.CreateLayerOptions("heightControl")          //创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_heightcontrol");   //数据源类型,代表控高分析，必须是此键值对
+		tlo.AddConfig("PointColor", "0.0,0.0,1.0,1");              //设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5");                           //设置点击点的大小
+
+		tlo.AddConfig("AreaNum", "1"); 				//绘制的区域个数
+		tlo.AddConfig("LayersID", "-1"); 			//要取消范围内模型现状的id集合，以逗号分隔，末尾不能有逗号如：3,4,5
+		tlo.AddConfig("Height", "10"); 				//控高的高差
+		tlo.AddConfig("HeightControlLineColor", "1.0,0.0,0.0,1");  //设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("TopColor", "0,1,0,0.5"); 	//设置控高顶面的颜色（RGBA）
+		tlo.AddConfig("SideColor", "1,1,1,0.5"); 	//设置控高侧面的颜色（RGBA）
+		tlo.AddConfig("RangeLineVisible", "false"); //范围线是否显示
+		tlo.AddConfig("TextLiftUp", "0"); 			//文字显示的抬高高度
+		tlo.AddConfig("TextVisible", "true");       //文字是否被显示
+		tlo.AddConfig("MeasureUnit","1"); 						//显示单位。0-米；1-公里；2-海里
+		tlo.AddConfig("MeasureUnitLanguage","0"); 				//显示语言。0-英文；1-中文
+		tlo.AddConfig("CoordinateSystemType","2"); 				//显示参考系。 0-地理经纬度；1-投影坐标；2-世界坐标系；3-地心空间直角坐标系XYZ
+		tlo.AddConfig("IsDepthTest","true"); 					//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置	
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\simhei.ttf"); //设置字体类型,字体文件一定要存在
+		pSymbol.AddConfig("Size", "20"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "10"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 	//旋转轴 0 - 7， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "false"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false"); 		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+		pSymbol.AddConfig("FieldPrecision","4"); 		//显示精度
+		pSymbol.AddConfig("IsDepthTest","false"); 		//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); ///创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息
+		//将样式添加到图层配置里
+		tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息
+
+		heightControl = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(heightControl); //添加分析图层
+	}
+
+	//更新控高分析
+	//当做更新操作时，只需把需要更新的参数构建更新配置参数就可以，不需要更新的参数不需要在设置
+	function UpdateHeightControl() {
+		var mlo3 = map.CreateLayerOptions(""); ///创建更新的配置参数
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_heightcontrol");   //数据源类型,代表控高分析，必须是此键值对
+
+		mlo3.AddConfig("Height", "20"); //高差
+		heightControl.UpdateLayerOptions(mlo3); //更新视域分析
+	}
+
+	//获取控高分析结果
+	function GetHeightControl() {
+		var opt = heightControl.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_heightcontrol")
+		{
+			var ClickPoints = opt.GetConfigValueByKey("ClickPoints"); 	//获取起始点坐标
+			alert("ClickPoints:" + ClickPoints);
+			var PointsIndex = opt.GetConfigValueByKey("PointsIndex"); 	//选取区域点的个数
+			alert("PointsIndex:" + PointsIndex);
+			var Height = opt.GetConfigValueByKey("Height"); //控高的高度
+			alert("Height:" + Height);
+		}
+	}
+	
+	//删除控高分析
+	function RemoveHeightControl() {
+		map.RemoveLayer(heightControl); ///删除控高分析
+	}
+	
+	var heightControlVisble = true;
+	function VisibleheightControl() {
+		if (heightControlVisble) {
+			heightControlVisble = false;
+		} else {
+			heightControlVisble = true;
+		}
+		heightControl.SetVisible(heightControlVisble); /////显隐模型数据
+	}
+	//*************************************************************************
+	//区域隐藏
+	//*************************************************************************	
+	//创建区域隐藏
+	var areaHid;
+	function CreateAreaHidding() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("areaHid "); 				//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_areahidding"); 		//数据源类型,代表区域隐藏，必须是此键值对
+		tlo.AddConfig("PointColor", "0,0,1,1.0"); 					//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 							//设置点击点的大小
+		tlo.AddConfig("AreaHiddingLineColor", "0.1,0.5,0.8,0.9"); 	//区域隐藏画线颜色
+		tlo.AddConfig("AreaNum","1");								//区域隐藏区域个数
+		tlo.AddConfig("LayersID", -1);			//区域隐藏区域图层ID
+		tlo.AddConfig("RangeLineVisible", "true");					//区域隐藏区域线显隐
+		tlo.AddConfig("IsDepthTest", "true"); 						//深度测试
+		//tlo.AddConfig("IsImmediateMode", "true");					//立即模式 固定值
+		
+		areaHid = map.CreateLayer("AnalysisLayer", tlo); 			//创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(areaHid); 										//添加分析图层
+	}
+
+	//更新区域隐藏
+	function UpdateAreaHidding() {
+		////创建图层配置信息
+		var tlo = map.CreateLayerOptions("areaHid "); 				//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_areahidding");      //数据源类型,代表区域隐藏，必须是此键值对
+		tlo.AddConfig("PointColor", "1,0,1,1.0"); 					//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "7"); 							//设置点击点的大小
+		tlo.AddConfig("AreaHiddingLineColor", "1.0,0,0.0,1.0"); 	//区域隐藏画线颜色
+		tlo.AddConfig("AreaNum","1");								//区域隐藏区域个数
+		tlo.AddConfig("RangeLineVisible", "true");					//区域隐藏区域线显隐
+		tlo.AddConfig("IsDepthTest", "true"); 						//深度测试
+		tlo.AddConfig("IsImmediateMode", "true");					//立即模式 固定值
+		tlo.AddConfig("IsActive", "false");							//是否激活分析
+		tlo.AddConfig("IsLoad", "true");							//是否加载点
+		tlo.AddConfig("PointsIndex", "5");							//点数
+		tlo.AddConfig("Points", "120.16941412498649,30.186808221130547,0.02951945923268795;120.16947476204032,30.18518474196721,0.02916697133332491;120.1662927917455,30.185070956833804,0.029233024455606937;120.16627538205107,30.18608466068407,0.028738857246935367;120.16941056062291,30.186827326731134,0.029545475728809833;")								  //点列
+
+		areaHid.UpdateLayerOptions(tlo);							//更新图层
+	}
+
+	//获取区域隐藏结果
+	function GetAreaHidding() {
+		var opt = areaHid.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_areahidding")
+		{
+			var ClickPoints = opt.GetConfigValueByKey("ClickPoints"); 	//获取起始点坐标
+			alert("ClickPoints:" + ClickPoints);
+		}
+	}
+	
+	//删除区域隐藏
+	function RemoveAreaHidding() {
+		map.RemoveLayer(areaHid); //删除区域隐藏
+	}
+
+	//显隐区域隐藏
+	var AreaHiddingVisble = true;
+	function VisibleAreaHidding() {
+		if (AreaHiddingVisble) {
+			AreaHiddingVisble = false;
+		} else {
+			AreaHiddingVisble = true;
+		}
+		areaHid.SetVisible(AreaHiddingVisble); /////显隐
+	}
+	//*************************************************************************
+	//区域压平
+	//*************************************************************************	
+	//创建区域压平
+	var areaFlatten;
+	function CreateAreaFlattening() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("areaFlatten"); 			//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_areaflattening"); 	//数据源类型,代表区域压平，必须是此键值对
+		tlo.AddConfig("PointColor", "0,0,1,1.0"); 					//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 							//设置点击点的大小
+		tlo.AddConfig("AreaFlatteningLineColor", "0.1,0.5,0.8,0.9"); //区域压平画线颜色
+		tlo.AddConfig("AreaNum","1");								//区域压平区域个数
+		tlo.AddConfig("FlattenElevation", "-10"); 					//压平高度（相对于地面的高度）
+		tlo.AddConfig("TiltAngle", "0"); 							//压平为倾斜面的倾斜角度（相对于水平面的角度）
+		tlo.AddConfig("ModelLayersID", gmsLayer.GetLayerID());						//区域压平区域图层ID,"-1"
+		tlo.AddConfig("RangeLineVisible", "true");					//区域压平区域线显隐
+		tlo.AddConfig("IsModelLayerFlatten", "true"); 				//模型图层压平是否起效
+		tlo.AddConfig("IsTerrainLayerFlatten", "false"); 			//地形图层压平是否起效
+		tlo.AddConfig("IsDepthTest", "true"); 						//深度测试
+		
+		areaFlatten = map.CreateLayer("AnalysisLayer", tlo); 			//创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(areaFlatten); 										//添加分析图层
+	}
+
+	//更新区域压平
+	function UpdateAreaFlattening() {
+		////创建图层配置信息
+		var tlo = map.CreateLayerOptions("areaFlatten"); 			//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_areaflattening");   //数据源类型,代表区域压平，必须是此键值对
+		tlo.AddConfig("PointColor", "1,0,1,1.0"); 					//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "7"); 							//设置点击点的大小
+		tlo.AddConfig("AreaFlatteningLineColor", "1.0,0,0.0,1.0"); 	//区域压平画线颜色
+		tlo.AddConfig("RangeLineVisible", "true");					//区域压平区域线显隐
+		tlo.AddConfig("IsDepthTest", "true"); 						//深度测试
+		tlo.AddConfig("FlattenElevation", "20"); 					//压平高度（相对于地面的高度）
+		tlo.AddConfig("TiltAngle", "0"); 							//压平为倾斜面的倾斜角度（相对于水平面的角度）
+		tlo.AddConfig("IsModelLayerFlatten", "true"); 				//模型图层压平是否起效
+		tlo.AddConfig("IsTerrainLayerFlatten", "true"); 			//地形图层压平是否起效
+		//tlo.AddConfig("IsActive", "false");							//是否激活分析
+		//tlo.AddConfig("IsLoad", "true");							//是否加载点
+		//tlo.AddConfig("PointsIndex", "5");							//点数
+		tlo.AddConfig("Points", "120.16941412498649,30.186808221130547,0.02951945923268795;120.16947476204032,30.18518474196721,0.02916697133332491;120.1662927917455,30.185070956833804,0.029233024455606937;120.16627538205107,30.18608466068407,0.028738857246935367;120.16941056062291,30.186827326731134,0.029545475728809833;")								  //点列
+
+		areaFlatten.UpdateLayerOptions(tlo);							//更新图层
+	}
+
+	//获取区域压平结果
+	function GetAreaFlattening() {
+		var opt = areaFlatten.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_areaflattening")
+		{
+			var ClickPoints = opt.GetConfigValueByKey("ClickPoints"); 	//获取起始点坐标
+			alert("ClickPoints:" + ClickPoints);
+		}
+	}
+	
+	//删除区域压平
+	function RemoveAreaFlattening() {
+		map.RemoveLayer(areaFlatten); //删除区域压平
+	}
+
+	//显隐区域压平
+	var AreaFlatteningVisble = true;
+	function VisibleAreaFlattening() {
+		if (AreaFlatteningVisble) {
+			AreaFlatteningVisble = false;
+		} else {
+			AreaFlatteningVisble = true;
+		}
+		areaFlatten.SetVisible(AreaFlatteningVisble); /////显隐
+	}
+	
+	//*************************************************************************
+	//挖洞分析
+	//*************************************************************************	
+	var holeOnTerrain;
+	//创建挖洞分析
+	function CreateHoleOnTerrain() {
+		var mlo3 = map.CreateLayerOptions("")
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型,AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_holeonterrain");	//数据源类型,代表挖洞分析，必须是此键值对
+		mlo3.AddConfig("PointColor", "0,0,1,1.0");					//设置点击点的颜色透明度（RGBA）
+		mlo3.AddConfig("PointSize", "7");							//设置点击点的大小
+		mlo3.AddConfig("HoleOnTerrainLineColor", "0,1,0,1.0");		//画线颜色
+		//mlo3.AddConfig("IsDepthTest", "true"); 					//深度测试 固定值
+
+		holeOnTerrain = map.CreateLayer("AnalysisLayer", mlo3);
+		map.AddLayer(holeOnTerrain);
+	}
+	
+	//更新挖洞分析
+	function UpdateHoleOnTerrain() {
+
+		var mlo3 = map.CreateLayerOptions("")
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_holeonterrain");	//数据源类型,代表挖洞分析，必须是此键值对
+		mlo3.AddConfig("HoleOnTerrainLineColor", "1.0,0.8,0.3,1.0");//画线颜色
+		//更新Points的时候需添加 mlo3.AddConfig( "IsLoad","true" );
+		mlo3.AddConfig("IsLoad", "true");
+		mlo3.AddConfig("Points", "120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;120.16190,30.261564,18.598429;");
+
+		holeOnTerrain.UpdateLayerOptions(mlo3);
+	}
+
+	//获取挖洞分析结果
+	function GetHoleOnTerrain() {
+		var opt = holeOnTerrain.GetLayerResult();		//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_holeonterrain")
+		{
+			var ClickPoints = opt.GetConfigValueByKey("ClickPoints"); 	//获取点击点坐标
+			alert("ClickPoints:" + ClickPoints);
+		}
+	}
+	
+	//移除挖洞分析
+	function RemoveHoleOnTerrain() {
+		map.RemoveLayer(holeOnTerrain);
+	}
+
+	//*************************************************************************
+	//水域分析
+	//*************************************************************************	
+	//绘制水域分析
+	var waterFlood;
+	function AddWaterFlood() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("waterflood "); 			//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_waterflood"); 		//数据源类型,代表面积测量，必须是此键值对
+		tlo.AddConfig("PointColor", "0,0,1,1.0"); 					//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "5"); 							//设置点击点的大小
+		tlo.AddConfig("WaterColor", "0.1,0.5,0.8,0.9"); 			//水颜色
+		tlo.AddConfig("DrawLineColor","0,1,0,0.5");					//线颜色
+		tlo.AddConfig("BumpDirection","0");							//水流角度（以东西方向为0°）
+		tlo.AddConfig("BumpSpeed","2");								//水流速度
+		tlo.AddConfig("BumpScale","2");								//水浪比例
+		tlo.AddConfig("BumpTextureUrl",Datapath+"\\water_bump.jpg"); //水浪纹理
+		tlo.AddConfig("LightDir","1,1,1");							//光照方向
+		tlo.AddConfig("RaiseLevel","5.0");							//水域高度
+		tlo.AddConfig("TextLiftUp","0.0");							//文字抬升高度
+		tlo.AddConfig("TextVisible", "true");						//文字显示控制
+		tlo.AddConfig("IsFlood", "true");							//水域计算（true表示计算水域体积，false仅模拟水效）
+
+		//创建文字符号
+		var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为TextSymbol字符串
+		pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+		pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在           
+		pSymbol.AddConfig("Size", "40"); 			//字体精度大小
+		pSymbol.AddConfig("CharacterSize", "20"); 	//文字大小
+		pSymbol.AddConfig("CharacterMode", "1"); 	//取值 1 -- 始终朝向相机
+		pSymbol.AddConfig("AlignmentMode", "5"); 	//文字对齐方式
+		pSymbol.AddConfig("AxisAlignment", "6"); 	//旋转轴 0 - 7 ， 6: 自动
+		pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复			
+		pSymbol.AddConfig("IsEmbolden", "false"); 	//字体是否加粗
+		pSymbol.AddConfig("IsTransform", "true"); 	//字体是否为斜体
+		pSymbol.AddConfig("IsUnderline", "false"); 	//字体是否有下划线
+		pSymbol.AddConfig("IsBack", "false"); 		//是否设置背景色
+		pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为true有效
+		pSymbol.AddConfig("MeasureUnitType","20"); 			//显示单位。20-立方米
+		pSymbol.AddConfig("MeasureUnitLanguage","1"); 	//显示语言。0-英文；1-中文
+		pSymbol.AddConfig("FieldPrecision","4"); 			//显示精度
+		pSymbol.AddConfig("IsDepthTest","false"); 			//是否开启深度测试。false不开启，结果会浮在场景上，true实际显示位置
+		pSymbol.AddConfig("CoordinateSystemType","0"); 		//显示参考系。 0-地理经纬度；1-投影坐标；2-世界坐标系；3-地心空间直角坐标系XYZ
+
+		//创建样式
+		var pStyle = map.CreateStyle("Text"); //创建Style，名字可以任意
+		pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到Style里，第一参必须为TextSymbol字符串，第二参为上面创建的文字符号的配置信息
+
+		//将样式添加到图层配置里
+		tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为Style字符串，第二参为上面创建的Style的配置信息
+		waterFlood = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为AnalysisLayer
+		map.AddLayer(waterFlood); //添加分析图层
+	}
+
+	//更新水域分析
+	function UpdateWaterFlood() {
+		//创建图层配置信息
+		var tlo = map.CreateLayerOptions("waterflood "); 			//创建分析图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); 	//创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "as_waterflood"); 		//数据源类型,代表面积测量，必须是此键值对
+		tlo.AddConfig("PointColor", "0,1,0,1.0"); 					//设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		tlo.AddConfig("PointSize", "7"); 							//设置点击点的大小
+		tlo.AddConfig("WaterColor", "0,0.7,1.0,1.0");	 			//水颜色
+		tlo.AddConfig("DrawLineColor","0,1,0,0.5");					//线颜色
+		tlo.AddConfig("BumpDirection","180");						//水流角度（以东西方向为0°）
+		tlo.AddConfig("BumpSpeed","5");								//水流速度
+		tlo.AddConfig("BumpScale","5");								//水浪比例
+		tlo.AddConfig("LightDir","1,1,0");							//光照方向
+		tlo.AddConfig("RaiseLevel","10.0");							//水域高度
+		tlo.AddConfig("TextVisible", "true");						//文字显示控制
+		tlo.AddConfig("TextLiftUp","10.0");							//文字抬升高度
+		tlo.AddConfig("IsFlood", "true");							//水域计算（true表示计算水域体积，false仅模拟水效）
+
+		waterFlood.UpdateLayerOptions(tlo);							//更新图层
+	}
+
+	//获取水域分析结果
+	function GetWaterFlood() {
+		var opt = waterFlood.GetLayerResult();						//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_waterflood")
+		{
+			var Points = opt.GetConfigValueByKey("Points"); 		//获取点击点坐标
+			alert("Points:" + Points);
+			var RaiseLevel = opt.GetConfigValueByKey("RaiseLevel"); //水面抬高高度
+			var Volume = opt.GetConfigValueByKey("Volume"); 		//水量
+			alert("RaiseLevel:" + RaiseLevel + "; Volume:" + Volume);
+		}
+	}
+	
+	//删除水域分析
+	function RemoveWaterFlood() {
+		map.RemoveLayer(waterFlood); //删除水域分析
+	}	
+	
+	
+	var sunLightTest = null;
+	function SunLight() {
+
+      if( sunLightTest == null )
+      {
+		var mlo3 = map.CreateLayerOptions("sunlight");
+										  
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //日照分析必须设置为SunLightOptions
+		mlo3.AddConfig( "DataSourceTypeName","as_sunlight" ); //数据源名称
+		mlo3.AddConfig( "PointColor", "0,0,1,1.0" );          //点颜色配置项
+		
+		mlo3.AddConfig( "PointSize", "7" );                   //点大小配置项
+		mlo3.AddConfig( "SunLightLineColor", "0,1,0,1.0" );   //画线颜色配置项
+
+	
+		sunLightTest = map.CreateLayer("AnalysisLayer", mlo3);
+	  
+		map.AddLayer(sunLightTest);
+     }
+	}
+
+
+    function SunLightPlayStatus( playStatus )
+    {
+       if( null != operationPtr )
+       {           
+    	    var mlo3 = map.CreateOperationOptions("SunLight");            //创建配置类型,操作类型的配置
+		    mlo3.AddConfig("OptionsTypeName", "SunLightOptions");         //日照配置项 
+            mlo3.AddConfig("IsPlay", "" + playStatus );                   //1,播放 2,暂停 3,重新播放
+           // mlo3.AddConfig("SecPerMinute", "5");                        //每隔5帧分针走一次
+		    operationPtr.UpdateOperationOptions(mlo3);                    //更新日照分析配置项
+       }
+    }
+
+
+
+	//播放日照分析
+	var operationPtr = null;
+	function PlaySunLight()
+	{
+       if( null ==  operationPtr )
+       {
+		    var mlo3 = map.CreateOperationOptions("SunLight");             //创建配置类型,操作类型的配置
+		    mlo3.AddConfig("OptionsTypeName", "SunLightOptions");
+		    mlo3.AddConfig("LayerID", sunLightTest.GetLayerId().toString() );
+		
+            mlo3.AddConfig( "Year", "2017" );    //年配置项，用于确定太阳方位
+		    mlo3.AddConfig( "Month", "6" );      //月配置项，用于确定太阳方位
+		    mlo3.AddConfig( "Day", "21" );       //日配置项，用于确定太阳方位
+		    mlo3.AddConfig( "Hour", "10" );      //时配置项，用于确定太阳方位
+		    mlo3.AddConfig( "Minute", "32" );    //分配置项，用于确定太阳方位
+            mlo3.AddConfig("IsPlay", "1");       //1,播放 2,暂停 3,重新播放
+            mlo3.AddConfig("FramePerMinute", "5"); //每隔5帧分针走一次
+
+		    operationPtr = map.CreateOperation("SunLightOperation", mlo3); //根据配置创建模型调整操作
+		    map.AddOperation(operationPtr);                               //加入操作并执行
+      }
+      else
+      {
+          SunLightPlayStatus(1);
+      }
+  }
+
+	function UpdateSunLight() {
+        if( null != sunLightTest )
+        {
+		    var mlo3 = map.CreateLayerOptions("")
+		    mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); ///日照分析必须设置为SunLightOptions
+		    mlo3.AddConfig("DataSourceTypeName", "as_sunlight");
+		    mlo3.AddConfig( "PointColor", "1,0,0,1.0" );                //点颜色配置项
+		    mlo3.AddConfig( "PointSize", "15" );                        //点大小配置项
+		    mlo3.AddConfig( "SunLightLineColor", "1,0,0,0.8" );         //画线颜色配置项
+
+    
+		    //mlo3.AddConfig( "IsLoad","true" );                        //加载方式配置项，true表示从外部加载点列数据，false为不加载 
+		    //mlo3.AddConfig("Points", "120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;120.16190,30.261564,18.598429;");   // 点列配置项 
+		
+		    sunLightTest.UpdateLayerOptions(mlo3);
+        }
+	}
+
+	function RemoveSunLight() {
+		if(null != sunLightTest )
+		{
+			if( null != operationPtr )
+			{
+				map.RemoveOperation(operationPtr);  //移除日照更新操作
+                operationPtr = null;  
+			}
+			map.RemoveLayer(sunLightTest);          //移除分析图层
+            sunLightTest = null;
+		}	
+	}
+	
+	var bufferLayer；
+	function Buffer(){
+		var mlo3 = map.CreateLayerOptions("buffer")           // 创建分析图层配置，给配置起个名称，任意名称
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_buffer");        /////// 数据源类型,代表缓冲区分析，必须是此键值对
+		mlo3.AddConfig("PointColor", "0,0.3,0.8,1.0"); //点颜色
+		mlo3.AddConfig("PointSize", "10"); //点大小
+		mlo3.AddConfig("LineWidth", "1.0" );  //线宽
+		mlo3.AddConfig("BufferAnalysisLineColor", "0,1.0,0.2,1.0"); ////缓冲区分析线颜色
+		mlo3.AddConfig("PolygonColor", "0,0.9,0.7,1.0"); //面颜色
+	
+		mlo3.AddConfig("DrawableType", "1"); //绘制体类型：0-点；1-线；2-面
+		mlo3.AddConfig("BufferDistance", "15"); //缓冲区宽度
+		mlo3.AddConfig("BufferColor", "0.9, 0, 0.7, 1.0"); //缓冲区颜色
+		mlo3.AddConfig("IsSingleSide", "false"); //线缓冲区是否为单侧：true-单侧；false-两侧
+		mlo3.AddConfig("IsLeftSide", "false"); //线缓冲区是否为左侧：true-左侧；false-右侧
+		bufferLayer= map.CreateLayer("AnalysisLayer", mlo3); ////创建分析图层，第一项参数必须为AnalysisLayer
+		layermap[bufferLayer.GetLayerID()] = bufferLayer;
+		map.AddLayer(bufferLayer); ///添加分析图层
+		bufferLayer.AddObserver();
+	}
+	function UpdateBuffer(){
+		var mlo3 = map.CreateLayerOptions("buffer")           // 创建分析图层配置，给配置起个名称，任意名称
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_buffer");        /////// 数据源类型,代表缓冲区分析，必须是此键值对
+		mlo3.AddConfig("PointColor", "0,1,0,1.0"); //点颜色
+		mlo3.AddConfig("PointSize", "7"); //点大小
+		mlo3.AddConfig("LineWidth", "10.0" );  //线宽
+		mlo3.AddConfig("BufferAnalysisLineColor", "0,1.0,0.2,1.0"); ////缓冲区分析线颜色
+		mlo3.AddConfig("PolygonColor", "0,0.9,0.7,1.0"); //面颜色
+	
+		mlo3.AddConfig("DrawableType", "2"); //绘制体类型：0-点；1-线；2-面
+		mlo3.AddConfig("BufferDistance", "15"); //缓冲区宽度；//面缓冲区的缓冲宽度：正数值为向外缓冲；负数值为向内缓冲
+		mlo3.AddConfig("BufferColor", "0.9, 0.2, 0.9, 1.0"); //缓冲区颜色
+		mlo3.AddConfig("IsSingleSide", "false"); //线缓冲区是否为单侧：true-单侧；false-两侧
+		mlo3.AddConfig("IsLeftSide", "false"); //线缓冲区是否为左侧：true-左侧；false-右侧
+		bufferLayer.UpdateLayerOptions(mlo3);
+	}
+	
+	//获取缓冲区分析结果
+	function GetBuffer() {
+		var opt = bufferLayer；.GetLayerResult();						//获取图层结果
+		//判断当前图层数据源类型
+		if(opt.GetConfigValueByKey("DataSourceTypeName") == "as_buffer")
+		{
+			var Points = opt.GetConfigValueByKey("ClickPoints"); 		//获取点击点坐标
+			alert("Points:" + Points);
+			var DrawableType = opt.GetConfigValueByKey("DrawableType"); //绘制体类型：
+			var BufferPoints = opt.GetConfigValueByKey("BufferOutlinePoints"); 		//水量
+			var BufferPointsIndex = opt.GetConfigValueByKey("BufferOutlinePointsIndexs");
+			alert("BufferPoints:" + BufferPoints + "; BufferPointsIndex:" + BufferPointsIndex);
+		}
+	}
+		
+	function RemoveBuffer(){
+		map.RemoveLayer(bufferLayer);
+	}
+		
+	//开启KdTree操作
+	var KdTreeOperation;
+	function OpenKdTree() {
+		var tlo = map.CreateOperationOptions("KdTree");                //创建配置类型,操作类型的配置
+		tlo.AddConfig("OptionsTypeName", "KdTreeOption");              //添加配置项类名  
+		tlo.AddConfig("IsUsed", "true");                               //是否使用   
+
+		KdTreeOperation = map.CreateOperation("KdTreeOperation", tlo); //创建更新图层，第一项必须为KdTreeOperation
+		map.AddOperation(KdTreeOperation);                             //加入操作并执行
+	}
+	
+	//更新KdTree操作
+	var bState = false;
+	function UpdateKdTree(){
+		 var tlo = map.CreateOperationOptions("KdTree"); 			   //创建配置类型,操作类型的配置
+		tlo.AddConfig("OptionsTypeName", "KdTreeOption");              //添加配置项类名  
+		if (bState) {
+			tlo.AddConfig("IsUsed", "true");                           //是否使用
+			bState = false;
+		} else {
+			tlo.AddConfig("IsUsed", "false");                          //是否使用
+			bState = true;
+		}
+		
+		KdTreeOperation.UpdateOperationOptions(tlo); 					//更新操作    
+	}
+	
+	
+	var mtdsdemlayer;
+	//加载DEM数据
+	function LoadDEMMTDS() {
+		var tlo = map.CreateLayerOptions("demlayer"); 				//创建dem图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); //创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); 				//数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 				//代表地形驱动，必须是此键值对
+
+		//以下部分可以通过图层信息获取获得相应的配置//////
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); //要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "tif"); 							//切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); 							//数据的坐标参考
+		tlo.AddConfig("MaxX", "120.71408849655"); 					//数据的范围X向最大值
+		tlo.AddConfig("MinX", "118.33968849655"); 					//数据的范围X向最小值
+		tlo.AddConfig("MaxY", "30.5651894750343"); 					//数据的范围Y向最大值
+		tlo.AddConfig("MinY", "29.1885894750343"); 					//数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "16"); //切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); //数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); //数据显示的最大层级
+
+		mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); //创建DEM图层，第一项参数必须为ElevationLayer
+		map.AddLayer(mtdsdemlayer); //添加DEM图层
+		mtdsdemlayer.Locate(); //DEM图层定位
+	}
+
+	var mtdsdomlayer;
+	//加载DOM数据
+	function LoadDOMMTDS() {
+		var tlo = map.CreateLayerOptions("domlayer"); 	//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); //数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); //代表地形驱动，必须是此键值对
+
+		////////以下部分可以通过图层信息获取获得相应的配置//////
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); ///要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "png"); //切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); //数据的坐标参考
+		tlo.AddConfig("MaxX", " 120.714010586176"); //数据的范围X向最大值
+		tlo.AddConfig("MinX", " 118.339686018686"); //数据的范围X向最小值
+		tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+		tlo.AddConfig("MinY", " 29.188584444612"); 	//数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "256"); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); //数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); //数据显示的最大层级
+
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdsdomlayer); ///添加DOM图层
+		mtdsdomlayer.Locate(); //DOM图层定位
+	}
+
+
+
+</script>
+
+</head>
+<body>
+    分析:
+	<input id="Button1"  type="button" value="初始化" 		onclick="InitScene()" />
+	<input id="Button1"  type="button" value="加载地形影像" 		onclick="LoadDOMDEM()" />
+    <input id="Button1"  type="button" value="加载模型" 		onclick="LoadGMS()" />
+    <input id="Button5" type="button" value="卸载GMS" onclick="RemoveGMS()" />
+    <input id="Button6" type="button" value="显隐GMS" onclick="VisibleGMS()" />
+    <input id="Button2"  type="button" value="开启KdTree" 		onclick="OpenKdTree()" />
+    <input id="Button3"  type="button" value="更新KdTree" 		onclick="UpdateKdTree()" />
+    <input id="Button4"   type="button" value="通视分析" 		onclick="CreateLineOfSight()" />
+    <input id="Button5"   type="button" value="更新通视分析" 	onclick="UpdateLineOfSight()" />
+    <input id="Button6"   type="button" value="获取通视分析结果" onclick="GetLineOfSight()" />
+    <input id="Button7"   type="button" value="删除通视分析" 	onclick="RemoveLineOfSight()" />
+	&nbsp;
+    <input id="Button8"   type="button" value="视域分析" 		onclick="CreateViewShed()" />
+    <input id="Button9"   type="button" value="更新视域分析" 	onclick="UpdateViewShed()" />
+    <input id="Button10"  type="button" value="获取视域分析结果" onclick="GetViewShed()" />
+    <input id="Button11"  type="button" value="删除视域分析" 	onclick="RemoveViewShed()" />
+    <input id="Button10"  type="button" value="显隐视域分析" 	onclick="VisibleViewShed()" />
+	
+	</br>
+    <input id="Button12"  type="button" value="控高分析" 		onclick="CreateHeightControl()" />
+    <input id="Button13"  type="button" value="更新控高分析" 	onclick="UpdateHeightControl()" />
+    <input id="Button14"  type="button" value="获取控高分析结果" onclick="GetHeightControl()" />
+    <input id="Button15"  type="button" value="删除控高分析" 	onclick="RemoveHeightControl()" />
+    <input id="Button15"  type="button" value="显隐控高分析" 	onclick="VisibleheightControl()" />
+	&nbsp;
+    <input id="Button16"  type="button" value="区域隐藏" 		onclick="CreateAreaHidding()" />
+    <input id="Button17"  type="button" value="更新区域隐藏" 	onclick="UpdateAreaHidding()" />
+    <input id="Button18"  type="button" value="获取区域隐藏结果" onclick="GetAreaHidding()" />
+    <input id="Button19"  type="button" value="删除区域隐藏" 	onclick="RemoveAreaHidding()" />
+    <input id="Button15"  type="button" value="显隐区域隐藏" 	onclick="VisibleAreaHidding()" />
+
+	</br>
+    <input id="Button16"  type="button" value="区域压平" 		onclick="CreateAreaFlattening()" />
+    <input id="Button17"  type="button" value="更新区域压平" 	onclick="UpdateAreaFlattening()" />
+    <input id="Button18"  type="button" value="获取区域压平结果" onclick="GetAreaFlattening()" />
+    <input id="Button19"  type="button" value="删除区域压平" 	onclick="RemoveAreaFlattening()" />
+    <input id="Button15"  type="button" value="显隐区域压平" 	onclick="VisibleAreaFlattening()" />
+	&nbsp;
+    <input id="Button20"  type="button" value="挖洞分析" 		onclick="CreateHoleOnTerrain()" />
+    <input id="Button21"  type="button" value="更新挖洞分析" 	onclick="UpdateHoleOnTerrain()" />
+    <input id="Button22"  type="button" value="获取挖洞分析结果" onclick="GetHoleOnTerrain()" />
+    <input id="Button23"  type="button" value="删除挖洞分析" 	onclick="RemoveHoleOnTerrain()" />
+	
+	</br>
+    <input id="Button24"  type="button" value="水域分析" 		onclick="AddWaterFlood()" />
+    <input id="Button25"  type="button" value="更新水域分析" 	onclick="UpdateWaterFlood()" />
+    <input id="Button26"  type="button" value="获取水域分析结果" onclick="GetWaterFlood()" />
+    <input id="Button27"  type="button" value="删除水域分析" 	onclick="RemoveWaterFlood()" />
+	&nbsp;	
+    <input id="Button28"   type="button"  value="日照分析" 		onclick="SunLight()" />
+    <input id="Button29"   type= "button" value="播放日照分析" 	onclick ="PlaySunLight()">
+    <input id="Button30"   type="button"  value="暂停日照分析" 	onclick="SunLightPlayStatus(2)" />
+    <input id="Button35"   type="button"  value="重新播放日照分析" onclick="SunLightPlayStatus(3)" />
+    <input id="Button31"   type="button"  value="删除日照分析" 	onclick="RemoveSunLight()" />
+  
+ 	&nbsp;   
+    <input id="Button32"  type="button" value="缓冲区分析" 		onclick="Buffer()" />
+	<input id="Button33"  type="button" value="更新缓冲区分析" onclick="UpdateBuffer()" />
+	<input id="Button34"  type="button" value="删除缓冲区分析" onclick="RemoveBuffer()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%"></object>
+</body>
+</html>

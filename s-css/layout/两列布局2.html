@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>两列布局</title>
+  <style>
+    body,
+    html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+    }
+    .clearfix:after {
+      content: '';
+      height: 0;
+      visibility: hidden;
+      display: block;
+      clear: both;
+    }
+    .left {
+      width: 100px;
+      float: left;
+      background-color: #ccc;
+      margin-right: 30px;
+    }
+
+    .main {
+      /* overflow: auto; */
+      background-color: #999;
+    }
+  </style>
+</head>
+
+<body>
+  <div class='left'>left</div>
+  <div class='clearfix'></div>
+  <div class='main'>mainclass='left'class='left'class='left'class='left'class='left'class='left'</div>
+</body>
+
+</html>

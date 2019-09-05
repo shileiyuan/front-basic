@@ -1,0 +1,469 @@
+<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<title>5.0球面版本测试用例3 矢量</title>
+    <script language="javascript" type="text/javascript" event="FireOnLButtonUp(tx,ty)"
+        for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+		if(addState)
+		{
+			pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+			alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+			addFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ()+2);////向编辑图层添加坐标点信息
+		}
+    </script>
+    <script language="javascript" type="text/javascript">
+	var addState = false;
+	var map;
+	var count = 0;
+	var addFeature;
+	var nav;
+	var pos;
+	
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+        map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+        transformate = map.CreateTransformation();
+		nav = map.CreateNavigation();
+		AddResState();
+        //LoadDOMMTDS();
+		//LoadDEMMTDS();
+		}
+	
+	//*************************************************************************
+	//数据加载
+	//*************************************************************************
+	var c3sLayer;
+	//加载本地C3S模型数据
+	function LoadC3S() {	
+		var tlo = map.CreateLayerOptions("c3s"); 	//创建cpm图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "c3s");//数据源类型,代表CPM插件，必须是此键值对
+		tlo.AddConfig("PriorityScale","1.0");		//结点调度优先级的缩放值PriorityScale,
+		tlo.AddConfig("PriorityOffset","1.0");		//结点调度优先级的偏移值PriorityOffset,
+
+		//C3S和C3SA 都是用此类方法加载
+		tlo.AddConfig("Url", "F:\\项目相关\\天尊\\ok\\model\\0.c3s"); //要加载的数据路径
+		c3sLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+		map.AddLayer(c3sLayer); 		//添加模型图层
+		c3sLayer.Locate(); 				//模型图层定位
+	   
+	}
+
+	//定位本地C3S模型数据
+	function Locate() {
+		if(c3sLayer)
+		{
+			c3sLayer.Locate(); 				//模型图层定位
+		}
+	}
+	
+	//删除本地C3S模型数据
+	function RemoveC3S() {
+		if(c3sLayer)
+		{
+			map.RemoveLayer(c3sLayer); 		//删除C3S模型数据
+		}
+	}
+	//*************************************************************************
+	//管线加载
+	//*************************************************************************
+	//加载引水管
+	var YSLineLayer;
+	function LoadYSLineShp() {
+	    var polygonSymbol = map.CreateSymbol("PolygonSymbol");  //创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+	    polygonSymbol.AddConfig("Color", "1.0, 0.0, 0.0,1.0");  //颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+	    var lStyle = map.CreateStyle("polygonStyle"); 			//创建名称为PolygonStyle的样式，名称任意
+	    lStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); //将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+	    var extruSymbol = map.CreateSymbol("LineExtrusionSymbol");//创建类型为LineExtrusionSymbol的符号,为线挤出符号，必须为LineExtrusionSymbol字符串
+	    extruSymbol.AddConfig("Casing", "true"); 				//是否使用套接样式
+	    extruSymbol.AddConfig("CurrentDirection", "true"); 		//是否使用默认流向(从起点流向终点)
+	    extruSymbol.AddConfig("SplitPointNum", "8"); 			//剖面多边形的顶点数,近似圆周circular(8 or 16，set nlExtrusion->Casing() = true),正方形rectangular(4);
+	    extruSymbol.AddConfig("Angle", 0); 						//剖面多边形的起点顶点的旋转角度(与局部x轴)，radian
+	    extruSymbol.AddConfig("Radius", "[15]"); 				//管线半径，单位mm	
+        extruSymbol.AddConfig("StartDepth", "[27]"); 			//起点深度
+        extruSymbol.AddConfig("EndDepth", "[28]"); 				//终点深度
+	    extruSymbol.AddConfig("SurfaceStyle", "polygonStyle");  //配置样式至表面样式，第二参与前面创建的表面样式名称要一致
+	    extruSymbol.AddConfig("CasingStyle", "CasingStyle");    //配置样式至套接样式，第二参与后面创建的套接样式名称要一致
+
+	    var eStyle = map.CreateStyle("default"); 				//创建名称为ExtruStyle的样式，名称任意
+	    eStyle.AddSymbol("LineExtrusionSymbol", extruSymbol.GetConfig()); //将符号配置添加到该样式
+	    eStyle.AddFilterName("ExtrudeGeometryFilter"); 			//设置挤出符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+		
+		//设置管线套接样式
+		var SphereSymbol = map.CreateSymbol("SphereSymbol");	//管线的套接样式--圆柱体符号
+		SphereSymbol.AddConfig("LibraryName", "Library"); 		//库名称
+		SphereSymbol.AddConfig("Visible", "true"); 				//是否可见
+		SphereSymbol.AddConfig("Xscale", "1.0"); 				//X缩放因子
+		SphereSymbol.AddConfig("Yscale", "1.0"); 				//Y缩放因子
+		SphereSymbol.AddConfig("Zscale", "1.0"); 				//Z缩放因子
+		SphereSymbol.AddConfig("Radius", "1.0"); 				//半径，m
+		SphereSymbol.AddConfig("Segments", "8"); 				//分段数
+		var CylinderSymbol = map.CreateSymbol("CylinderSymbol");//管线的套接样式--圆柱体符号
+		CylinderSymbol.AddConfig("LibraryName", "Library"); 	//库名称
+		CylinderSymbol.AddConfig("Visible", "true"); 			//是否可见
+		CylinderSymbol.AddConfig("Xscale", "1.0"); 				//X缩放因子
+		CylinderSymbol.AddConfig("Yscale", "1.0"); 				//Y缩放因子
+		CylinderSymbol.AddConfig("Zscale", "1.0"); 				//Z缩放因子
+		CylinderSymbol.AddConfig("Radius", "1.0"); 				//半径，m
+		CylinderSymbol.AddConfig("Segments", "8"); 				//分段数
+		CylinderSymbol.AddConfig("Height", "5"); 				//高度
+		
+	    var casingStyle = map.CreateStyle("CasingStyle"); 		//创建名称为CasingStyle的样式，名称任意
+	    casingStyle.AddSymbol("SphereSymbol", SphereSymbol.GetConfig()); 		//将符号配置添加到该样式
+	    casingStyle.AddSymbol("CylinderSymbol", CylinderSymbol.GetConfig()); 	//将符号配置添加到该样式
+		
+		var SphereRes = map.CreateResource("SphereSymbol");		//创建样式资源(该资源配置必须与SphereSymbol一样)
+        SphereRes.AddConfig("Radius", "1.0");					//半径，m
+        SphereRes.AddConfig("Segments", "8");					//分段数
+		
+		var CylinderRes = map.CreateResource("CylinderSymbol");	//创建样式资源(该资源配置必须与CylinderSymbol一样)
+        CylinderRes.AddConfig("Radius", "1.0");					//半径，m
+        CylinderRes.AddConfig("Segments", "8");					//分段数
+        CylinderRes.AddConfig("Height", "5"); 					//高度
+		var reslib = map.CreateResourceLibrary("Library"); 		//创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(SphereRes); 							//将资源添加至资源库
+        reslib.AddResource(CylinderRes); 						//将资源添加至资源库
+		
+	    var styleSheet = map.CreateStyleSheet(); 				//创建样式表
+	    styleSheet.AddStyle(eStyle.GetConfig()); 				//将样式配置添加至样式表
+	    styleSheet.AddStyle(lStyle.GetConfig()); 				//将样式配置添加至样式表
+	    styleSheet.AddStyle(casingStyle.GetConfig()); 			//将样式配置添加至样式表
+	    styleSheet.AddResLib(reslib.GetConfig()); 				//将样式配置添加至样式表
+
+	    var tlo = map.CreateLayerOptions("shp"); 				//创建图层配置对象
+	    tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); //创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+	    tlo.AddConfig("DataSourceTypeName", "fmgeom"); 			//数据源类型,代表fmgeom插件，必须是此键值对
+	    tlo.AddConfig("Driver", "ESRI Shapefile"); 				//数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+	    tlo.AddConfig("Url", "F:\\项目相关\\天尊\\shp\\YS.shp"); //数据存放位置，注意双斜杠
+	    tlo.AddConfig("FeatureSourceType", "ogr"); 				//要素数据源类型，针对shp、dxf数据源必须是ogr
+	    tlo.AddConfig("TileSizeFactor", "1.0"); 				//瓦片大小的影响因子，建议是1.0
+	    tlo.AddConfig("TileSize", "5000"); 						//瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+	    tlo.AddConfig("LiftUp", "0"); 							//抬升高度，任意值
+	    tlo.AddConfig("MaxRange", "3000000.0"); 				//最大显示范围，大于最小显示范围-无穷大
+	    tlo.AddConfig("MinRange", "0.0"); 						//最小显示范围，0-无穷大
+	    tlo.AddConfig("RenderOrder", "-10"); 					//绘制顺序
+	    tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 	//将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+	    YSLineLayer = map.CreateLayer("FeatureModelLayer", tlo); //创建矢量图层，第一项参数必须为FeatureModelLayer
+	    map.AddLayer(YSLineLayer); 	//添加矢量图层
+	    YSLineLayer.Locate(); 		//矢量图层定位（不建议，不精准）
+	}
+    
+	//定位引水管
+	function LocateYSLine() {
+		if(YSLineLayer)
+		{
+			YSLineLayer.Locate(); 				//模型图层定位
+		}
+	}
+	
+	//删除引水管
+	function RemoveYSLine() {
+		if(YSLineLayer)
+		{
+			map.RemoveLayer(YSLineLayer); 		//删除引水管
+		}
+	}
+	
+	//加载污水管
+	var WSLineLayer;
+	function LoadWSLineShp() {
+	    var polygonSymbol = map.CreateSymbol("PolygonSymbol");  //创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+	    polygonSymbol.AddConfig("Color", "0.0, 0.0, 1.0,1.0");  //颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+	    var lStyle = map.CreateStyle("polygonStyle"); 			//创建名称为PolygonStyle的样式，名称任意
+	    lStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); //将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+	    var extruSymbol = map.CreateSymbol("LineExtrusionSymbol");//创建类型为LineExtrusionSymbol的符号,为线挤出符号，必须为LineExtrusionSymbol字符串
+	    extruSymbol.AddConfig("Casing", "true"); 				//是否使用套接样式
+	    extruSymbol.AddConfig("CurrentDirection", "true"); 		//是否使用默认流向(从起点流向终点)
+	    extruSymbol.AddConfig("SplitPointNum", "8"); 			//剖面多边形的顶点数,近似圆周circular(8 or 16，set nlExtrusion->Casing() = true),正方形rectangular(4);
+	    extruSymbol.AddConfig("Angle", 0); 						//剖面多边形的起点顶点的旋转角度(与局部x轴)，radian
+	    extruSymbol.AddConfig("Radius", "[15]"); 				//管线半径，单位mm	
+        extruSymbol.AddConfig("StartDepth", "[27]"); 			//起点深度
+        extruSymbol.AddConfig("EndDepth", "[28]"); 				//终点深度
+	    extruSymbol.AddConfig("SurfaceStyle", "polygonStyle");  //配置样式至表面样式，第二参与前面创建的表面样式名称要一致
+	    extruSymbol.AddConfig("CasingStyle", "CasingStyle");    //配置样式至套接样式，第二参与后面创建的套接样式名称要一致
+
+	    var eStyle = map.CreateStyle("default"); 				//创建名称为ExtruStyle的样式，名称任意
+	    eStyle.AddSymbol("LineExtrusionSymbol", extruSymbol.GetConfig()); //将符号配置添加到该样式
+	    eStyle.AddFilterName("ExtrudeGeometryFilter"); 			//设置挤出符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+		
+		//设置管线套接样式
+		var SphereSymbol = map.CreateSymbol("SphereSymbol");	//管线的套接样式--圆柱体符号
+		SphereSymbol.AddConfig("LibraryName", "Library"); 		//库名称
+		SphereSymbol.AddConfig("Visible", "true"); 				//是否可见
+		SphereSymbol.AddConfig("Xscale", "1.0"); 				//X缩放因子
+		SphereSymbol.AddConfig("Yscale", "1.0"); 				//Y缩放因子
+		SphereSymbol.AddConfig("Zscale", "1.0"); 				//Z缩放因子
+		SphereSymbol.AddConfig("Radius", "1.0"); 				//半径，m
+		SphereSymbol.AddConfig("Segments", "8"); 				//分段数
+		var CylinderSymbol = map.CreateSymbol("CylinderSymbol");//管线的套接样式--圆柱体符号
+		CylinderSymbol.AddConfig("LibraryName", "Library"); 	//库名称
+		CylinderSymbol.AddConfig("Visible", "true"); 			//是否可见
+		CylinderSymbol.AddConfig("Xscale", "1.0"); 				//X缩放因子
+		CylinderSymbol.AddConfig("Yscale", "1.0"); 				//Y缩放因子
+		CylinderSymbol.AddConfig("Zscale", "1.0"); 				//Z缩放因子
+		CylinderSymbol.AddConfig("Radius", "1.0"); 				//半径，m
+		CylinderSymbol.AddConfig("Segments", "8"); 				//分段数
+		CylinderSymbol.AddConfig("Height", "5"); 				//高度
+		
+	    var casingStyle = map.CreateStyle("CasingStyle"); 		//创建名称为CasingStyle的样式，名称任意
+	    casingStyle.AddSymbol("SphereSymbol", SphereSymbol.GetConfig()); 		//将符号配置添加到该样式
+	    casingStyle.AddSymbol("CylinderSymbol", CylinderSymbol.GetConfig()); 	//将符号配置添加到该样式
+		
+		var SphereRes = map.CreateResource("SphereSymbol");		//创建样式资源(该资源配置必须与SphereSymbol一样)
+        SphereRes.AddConfig("Radius", "1.0");					//半径，m
+        SphereRes.AddConfig("Segments", "8");					//分段数
+		
+		var CylinderRes = map.CreateResource("CylinderSymbol");	//创建样式资源(该资源配置必须与CylinderSymbol一样)
+        CylinderRes.AddConfig("Radius", "1.0");					//半径，m
+        CylinderRes.AddConfig("Segments", "8");					//分段数
+        CylinderRes.AddConfig("Height", "5"); 					//高度
+		var reslib = map.CreateResourceLibrary("Library"); 		//创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(SphereRes); 							//将资源添加至资源库
+        reslib.AddResource(CylinderRes); 						//将资源添加至资源库
+		
+	    var styleSheet = map.CreateStyleSheet(); 				//创建样式表
+	    styleSheet.AddStyle(eStyle.GetConfig()); 				//将样式配置添加至样式表
+	    styleSheet.AddStyle(lStyle.GetConfig()); 				//将样式配置添加至样式表
+	    styleSheet.AddStyle(casingStyle.GetConfig()); 			//将样式配置添加至样式表
+	    styleSheet.AddResLib(reslib.GetConfig()); 				//将样式配置添加至样式表
+
+	    var tlo = map.CreateLayerOptions("shp"); 				//创建图层配置对象
+	    tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); //创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+	    tlo.AddConfig("DataSourceTypeName", "fmgeom"); 			//数据源类型,代表fmgeom插件，必须是此键值对
+	    tlo.AddConfig("Driver", "ESRI Shapefile"); 				//数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+	    tlo.AddConfig("Url", "F:\\项目相关\\天尊\\shp\\WS.shp"); //数据存放位置，注意双斜杠
+	    tlo.AddConfig("FeatureSourceType", "ogr"); 				//要素数据源类型，针对shp、dxf数据源必须是ogr
+	    tlo.AddConfig("TileSizeFactor", "1.0"); 				//瓦片大小的影响因子，建议是1.0
+	    tlo.AddConfig("TileSize", "5000"); 						//瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+	    tlo.AddConfig("LiftUp", "0"); 							//抬升高度，任意值
+	    tlo.AddConfig("MaxRange", "3000000.0"); 				//最大显示范围，大于最小显示范围-无穷大
+	    tlo.AddConfig("MinRange", "0.0"); 						//最小显示范围，0-无穷大
+	    tlo.AddConfig("RenderOrder", "-10"); 					//绘制顺序
+	    tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 	//将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+	    WSLineLayer = map.CreateLayer("FeatureModelLayer", tlo); //创建矢量图层，第一项参数必须为FeatureModelLayer
+	    map.AddLayer(WSLineLayer); //添加矢量图层
+	    WSLineLayer.Locate(); //矢量图层定位（不建议，不精准）
+	}
+	
+	//定位污水管
+	function LocateWSLine() {
+		if(WSLineLayer)
+		{
+			WSLineLayer.Locate(); 				//模型图层定位
+		}
+	}
+	
+	//删除污水管
+	function RemoveWSLine() {
+		if(WSLineLayer)
+		{
+			map.RemoveLayer(WSLineLayer); 		//删除污水管
+		}
+	}
+	
+	//*************************************************************************
+	//光线更新操作
+	//*************************************************************************
+	//创建光线更新操作，同一个对象最多添加 0~7 八个光源，多添加将无效 
+	var operationPtr = null;
+	function CreateLightOption(){//创建更新操作
+		if ( null == operationPtr ) {
+			var layerId;
+			if(YSLineLayer != null) {
+				layerId = YSLineLayer.GetLayerID();
+			}
+			if (WSLineLayer != null) {
+				layerId = layerId + "," + WSLineLayer.GetLayerID();
+			}
+			var tlo = map.CreateOperationOptions("Light");              //创建配置类型,操作类型的配置
+			tlo.AddConfig("OptionsTypeName", "LightOptions");           //操作配置项类名
+			tlo.AddConfig("Ambient", "0.5,0.5,0.5,1.0");                //环境光
+			tlo.AddConfig("Operation", "Add");                          //操作类型添加   
+			tlo.AddConfig("Position", "119,30,1000000,1.0");   			//光线位置设置 （x, y, z,w）
+			tlo.AddConfig("LayerID", layerId);     						//添加图层id, 若值设置为 10000 则光照将对场景相机进行操作    
+			operationPtr = map.CreateOperation("LightOperation", tlo);  //根据配置创建模型调整操作
+			map.AddOperation(operationPtr);                             //加入操作并执行
+		}
+	}
+
+	//移除光线更新操作
+	function RemoveLightOption() {
+		if ( null != operationPtr ) {
+			var tlo = map.CreateOperationOptions("Light");
+			tlo.AddConfig("OptionsTypeName", "LightOptions");   //图层配置项类型
+			tlo.AddConfig("Operation", "Remove");               //添加光线操作类型
+			operationPtr.UpdateOperationOptions(tlo);           //根据配置创建模型调整操作
+			map.RemoveOperation(operationPtr);
+			operationPtr = null;
+		}
+	}
+
+	//*************************************************************************
+	//地形透明
+	//*************************************************************************	
+    //创建地形透明操作
+    var operationTerrainPtr = null;
+    function CreateTerriantOperation() {
+        var tlo = map.CreateOperationOptions("TerrainOption"); 			    //创建配置类型,操作类型的配置
+        tlo.AddConfig("OptionsTypeName", "TerrainOption"); 				    //地形配置项名称  
+        tlo.AddConfig("Operation", "Opacity"); 							    //添加操作类型为透明度操作
+        tlo.AddConfig("Opacity", 0.1); 									    //透明度值0.0~1.0 
+
+        operationTerrainPtr = map.CreateOperation("TerrainOperation", tlo); //根据配置创建模型调整操作，第一个参数为模型操作的类名
+        //operationPtr.AddObserver(); 									    //回调事件添加        
+        map.AddOperation(operationTerrainPtr); 								//加入操作并执行
+    }
+
+	//更新地形透明操作
+    function UpdateTerriantOperation() {
+        if (operationTerrainPtr != null) 
+        {
+            var OpacityArrays = [0.0, 0.1, 0.2, 0.5, 0.8, 1.0]; 		//透明度值数组
+            var opacity = OpacityArrays[Math.floor(Math.random() * OpacityArrays.length)]; //从数组中获取透明度的值
+            alert("opacity: " + opacity);
+            var tlo = map.CreateOperationOptions("TerrainOption"); 		//创建配置类型,操作类型的配置
+            tlo.AddConfig("OptionsTypeName", "TerrainOption"); 			//创建添加配置项类型
+            tlo.AddConfig("Opacity", opacity); 							//添加透明度
+            operationTerrainPtr.UpdateOperationOptions(tlo); 					//更新透明度   
+        }
+    }
+
+    //移除地形透明操作
+    function RemoveTerrainOperation(){
+        if (operationTerrainPtr != null) {
+			var tlo = map.CreateOperationOptions("TerrainOption"); 		//创建配置类型,操作类型的配置
+            tlo.AddConfig("OptionsTypeName", "TerrainOption"); 			//创建添加配置项类型
+            tlo.AddConfig("Opacity", "1");	 							//添加透明度
+            operationTerrainPtr.UpdateOperationOptions(tlo); 			//更新透明度 
+            map.RemoveOperation(operationTerrainPtr);
+            operationTerrainPtr = null;
+        }
+    }
+
+	//*************************************************************************
+	//挖洞分析
+	//*************************************************************************	
+	var holeOnTerrain;
+	//创建挖洞分析
+	function CreateHoleOnTerrain() {
+		var mlo3 = map.CreateLayerOptions("")
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型,AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_holeonterrain");	//数据源类型,代表挖洞分析，必须是此键值对
+		mlo3.AddConfig("PointColor", "0,0,1,1.0");					//设置点击点的颜色透明度（RGBA）
+		mlo3.AddConfig("PointSize", "7");							//设置点击点的大小
+		mlo3.AddConfig("HoleOnTerrainLineColor", "0,1,0,1.0");		//画线颜色
+		//mlo3.AddConfig("IsDepthTest", "true"); 					//深度测试 固定值
+
+		holeOnTerrain = map.CreateLayer("AnalysisLayer", mlo3);
+		map.AddLayer(holeOnTerrain);
+	}
+
+	//移除挖洞分析
+	function RemoveHoleOnTerrain() {
+		map.RemoveLayer(holeOnTerrain);
+	}
+	
+	//添加状态栏
+	var resState;
+	function AddResState() {
+		var resp = map.CreateResponserOptions("UIStateResponser");
+		resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\msyh.TTF"); /////字体格式文件路径
+		//resp.AddConfig("TextFont", "C:\\WINDOWS\\Fonts\\ebrima.ttf");
+		resp.AddConfig("StateCurrent", "true");/////当前视点信息开关
+		resp.AddConfig("StateMouse", "true");/////当前鼠标信息开关
+		resp.AddConfig("StateHeight", "true");/////当前高度信息开关
+		//resp.AddConfig("CurrentShow", "中心视点： ");/////中心视点文字
+		//resp.AddConfig("MouseShow", " 鼠标位置：");/////鼠标位置文字
+		//resp.AddConfig("LonShow", " 经度： ");/////经度文字
+		//resp.AddConfig("LatShow", " 纬度： ");/////纬度文字
+		//resp.AddConfig("HeightShow", " 高程：");/////高程文字
+		resState = map.CreateResponser("UIStateResponser", resp); /////创建状态栏响应器，必须为UIStateResponser
+		map.AddResponser(resState);
+	}
+
+	//*************************************************************************
+	//地形、影像加载
+	//*************************************************************************	
+    var mtdsdemlayer;
+    //加载DEM数据
+    function LoadDEMMTDS() {
+        var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+        tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+        tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+        tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+        tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+        mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+        map.AddLayer(mtdsdemlayer); ///添加DEM图层
+        mtdsdemlayer.Locate(); ////DEM图层定位
+    }
+
+    var mtdsdomlayer;
+    //加载DOM数据
+    function LoadDOMMTDS() {
+        var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); //http://192.168.3.57:9091/coo-server/tomcatfile/jxdom/tms.xml /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+        tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+        tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+        tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+        tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+        mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+        map.AddLayer(mtdsdomlayer); ///添加DOM图层
+        mtdsdomlayer.Locate(); ////DOM图层定位
+    }
+
+</script>
+</head>
+<body onload="InitScene()">
+    OGR矢量符号化:
+    <input id ="Button1" type="button" value="加载模型" onclick="LoadC3S()" />
+    <input id ="Button2" type="button" value="定位模型" onclick="Locate()" />
+    <input id ="Button3" type="button" value="删除模型" onclick="RemoveC3S()" />
+	&nbsp;
+    <input id ="Button4" type="button" value="加载引水管" onclick="LoadYSLineShp()" />
+    <input id ="Button5" type="button" value="定位引水管" onclick="LocateYSLine()" />
+    <input id ="Button6" type="button" value="删除引水管" onclick="RemoveYSLine()" />
+	&nbsp;
+    <input id ="Button7" type="button" value="加载污水管" onclick="LoadWSLineShp()" />
+    <input id ="Button8" type="button" value="定位污水管" onclick="LocateWSLine()" />
+    <input id ="Button9" type="button" value="删除污水管" onclick="RemoveWSLine()" />
+  	&nbsp; 
+    <input id ="Button10" type= "button" value="启动光线" onclick = "CreateLightOption()" />
+    <input id ="Button11" type= "button" value="关闭光线" onclick = "RemoveLightOption()" />
+
+    <input id ="Button12" type= "button" value="创建地形透明" onclick = "CreateTerriantOperation()" />
+    <input id ="Button13" type= "button" value="设置地形透明" onclick = "UpdateTerriantOperation()" />
+    <input id ="Button14" type= "button" value="结束透明操作" onclick = "RemoveTerrainOperation()" />
+	&nbsp;
+    <input id="Button15" type="button" value="挖洞分析"     onclick="CreateHoleOnTerrain()" />
+    <input id="Button16" type="button" value="删除挖洞分析" onclick="RemoveHoleOnTerrain()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%"></object>
+</body>
+</html>

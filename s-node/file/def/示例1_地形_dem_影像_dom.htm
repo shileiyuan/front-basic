@@ -1,0 +1,334 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>5.0球面版本测试用例1 地形、影像(dem、dom)</title>
+    <script language="javascript" type="text/javascript">
+
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        var mtdsdemlayer;
+        //////加载DEM数据
+        function LoadDEMMTDS() {
+            var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+            tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+            tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+            mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+            map.AddLayer(mtdsdemlayer);///添加DEM图层
+            mtdsdemlayer.Locate();////DEM图层定位
+        }
+
+        //////删除DEM数据
+        function RemoveDEMMTDS() {
+            map.RemoveLayer(mtdsdemlayer);////删除DEM数据
+        }
+
+        /////显隐DEM数据
+        var mtdsDemVisble = true;
+        function VisibleDEMMTDS() {
+            if (mtdsDemVisble) {
+                mtdsDemVisble = false;
+            } else {
+                mtdsDemVisble = true;
+            }
+            mtdsdemlayer.SetVisible(mtdsDemVisble);/////显隐DEM数据
+        }
+
+        var mtddemlayer;
+        //////加载DEM数据
+        function LoadDEMMTD() {
+            var tlo = map.CreateLayerOptions("demlayer"); 	// 创建dem图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtd"); // 数据源类型,代表MTD插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "F:\\本地数据\\zhoushan\\DEM"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "tif"); ///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MaxX", "122.3111785789604"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", "122.1255763746238"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.04137683107282"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "29.91682461040015"); /////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "32"); /////切割数据的瓦片大小，可以往小于32的方向设置，但绝对不能往大于32的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "32"); /////数据显示的最大层级
+
+            mtddemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+            map.AddLayer(mtddemlayer); ///添加DEM图层
+            mtddemlayer.Locate(); ////DEM图层定位
+        }
+
+        //////删除DEM数据
+        function RemoveDEMMTD() {
+            map.RemoveLayer(mtddemlayer); ////删除DEM数据
+        }
+
+        /////显隐DEM数据
+        var mtdDemVisble = true;
+        function VisibleDEMMTD() {
+            if (mtdDemVisble) {
+                mtdDemVisble = false;
+            } else {
+                mtdDemVisble = true;
+            }
+            mtddemlayer.SetVisible(mtdDemVisble); /////显隐DEM数据
+        }
+
+
+        var mtdsdomlayer;
+        //////加载DOM数据
+        function LoadDOMMTDS() {
+            var tlo = map.CreateLayerOptions("domlayer"); 							//// 创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); 				//// 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); 							//// 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); 							//// 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); 			//// 要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "png"); 										//// 切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); 										//// 数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176"); 							//// 数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686"); 							//// 数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501"); 							//// 数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612"); 								//// 数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256"); 										//// 切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); 										//// 数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); 										//// 数据显示的最大层级
+			//tlo.AddConfig("RenderOrder", "100");									//// 绘制顺序
+
+			mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); 						//// 创建DEM图层，第一项参数必须为ImageLayer
+			map.AddLayer(mtdsdomlayer); 											//// 添加DOM图层						
+            mtdsdomlayer.Locate(); ////DOM图层定位
+        }
+
+        //////删除DOM数据
+        function RemoveDOMMTDS() {
+            map.RemoveLayer(mtdsdomlayer); ////删除DOM数据
+        }
+
+        /////显隐DOM数据
+        var mtdsDomVisble = true;
+        function VisibleDOMMTDS() {
+            if (mtdsDomVisble) {
+                mtdsDomVisble = false;
+            } else {
+                mtdsDomVisble = true;
+            }
+            mtdsdomlayer.SetVisible(mtdsDomVisble); /////显隐DOM数据
+        }
+
+        var mtddomlayer;
+        //////加载DOM数据
+        function LoadDOMMTD() {
+            var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtd"); // 数据源类型,代表MTD插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "F:\\本地数据\\zhoushan\\DOM\\"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MaxX", "122.3111785789604"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", "122.1255763746238"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.04137683107282"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "29.91682461040015"); /////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "14"); /////数据显示的最大层级
+
+            mtddomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtddomlayer); ///添加DOM图层
+            mtddomlayer.Locate(); ////DOM图层定位
+        }
+
+		var mtddomlayer;
+        //////删除DOM数据
+        function RemoveDOMMTD() {
+            map.RemoveLayer(mtddomlayer); ////删除DOM数据
+        }
+
+        /////显隐DOM数据
+        var mtdDomVisble = true;
+        function VisibleDOMMTD() {
+            if (mtdDomVisble) {
+                mtdDomVisble = false;
+            } else {
+                mtdDomVisble = true;
+            }
+            mtddomlayer.SetVisible(mtdDomVisble); /////显隐DOM数据
+        }
+
+
+        var wmslayer;
+        //////加载WMS数据
+        function LoadWMS() {
+            var tlo = map.CreateLayerOptions("wms"); 	// 创建wms图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "wms"); // 数据源类型,代表WMS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+            tlo.AddConfig("Transparent", "true"); //设置请求的数据透明通道是否透明
+            tlo.AddConfig("TileSize", "256"); /////数据的瓦片大小，建议设置大小为256
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "19"); /////数据显示的最大层级
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.67:8080/geoserver/ows?"); /////要加载的数据服务路径
+            tlo.AddConfig("LayerName", "kelanWorkspace:DIANLIGX"); //图层名称  -多个图层，加载其中的一个
+            tlo.AddConfig("Style", "default"); /////样式
+            tlo.AddConfig("ImageFormat", "image/png"); /////Image的格式
+            tlo.AddConfig("WmsVersion", "1.3.0"); /////WMS服务版本号
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+
+            //////此部分可以不配置，数据照样可以加载，但图层定位会有问题///////
+            tlo.AddConfig("MaxX", " 120.639296"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", "119.84338399999999"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.419473"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "30.001248999999998"); /////数据的范围Y向最小值
+
+            wmslayer = map.CreateLayer("ImageLayer", tlo); ////创建WMS图层，第一项参数必须为ImageLayer
+            map.AddLayer(wmslayer); ///添加WMS图层
+            wmslayer.Locate(); ////WMS图层定位
+        }
+
+        //////删除WMS数据
+        function RemoveWMS() {
+            map.RemoveLayer(wmslayer); ////删除WMS数据
+        }
+
+        /////显隐WMS数据
+        var wmsVisble = true;
+        function VisibleWMS() {
+            if (wmsVisble) {
+                wmsVisble = false;
+            } else {
+                wmsVisble = true;
+            }
+            wmslayer.SetVisible(wmsVisble); /////显隐WMS数据
+        }
+
+
+        var wmtslayer;
+        //////加载WMTS数据
+        function LoadWMTS() {
+            var tlo = map.CreateLayerOptions("wmts"); 	// 创建wmts图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "wmts"); // 数据源类型,代表WMTS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.57:6080/arcgis/rest/services/WMTS/WMTSMapService1/MapServer/WMTS/1.0.0/WMTSCapabilities.xml"); /////要加载的数据服务路径
+            tlo.AddConfig("LayerName", "WMTS_WMTSMapService1"); /////图层名称
+            tlo.AddConfig("ImageFormat", "image/png"); /////Image的格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "19"); /////数据显示的最大层级
+
+            //////此部分可以不配置，数据照样可以加载，但图层定位会有问题///////
+            tlo.AddConfig("MaxX", " 120.639296"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", "119.84338399999999"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.419473"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "30.001248999999998"); /////数据的范围Y向最小值
+
+            //////////////以上部分可以通过图层信息获取获得相应的配置////////////
+
+            wmtslayer = map.CreateLayer("ImageLayer", tlo); ////创建WMTS图层，第一项参数必须为ImageLayer
+            map.AddLayer(wmtslayer); ///添加WMTS图层
+            wmtslayer.Locate(); ////WMTS图层定位
+        }
+
+        //////删除WMTS数据
+        function RemoveWMTS() {
+            map.RemoveLayer(wmtslayer); ////删除WMTS数据
+        }
+
+        /////显隐WMTS数据
+        var wmtsVisble = true;
+        function VisibleWMTS() {
+            if (wmtsVisble) {
+                wmtsVisble = false;
+            } else {
+                wmtsVisble = true;
+            }
+            wmtslayer.SetVisible(wmtsVisble); /////显隐WMTS数据
+        }
+
+		//////加载Rest数据
+        function LoadRest() {
+            var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "rest"); // 数据源类型,代表MTD插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+            tlo.AddConfig("Transparent", "true"); // 
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.57:6080/arcgis/rest/services/WMTS/LXMapService/MapServer"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("LayerName", "Layers"); ///////切割形成的数据格式
+            tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MaxX", "106.281996"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", "105.591768"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "28.78023448"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "28.24094519"); /////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "22"); /////数据显示的最大层级
+
+            mtddomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtddomlayer); ///添加DOM图层
+            mtddomlayer.Locate(); ////DOM图层定位
+        }
+        
+    </script>
+</head>
+<body onload = "InitScene()">
+    <input id="Button1" type="button" value="加载DOMmtds" onclick="LoadDOMMTDS()" />
+    <input id="Button2" type="button" value="卸载DOMmtds" onclick="RemoveDOMMTDS()" />
+    <input id="Button3" type="button" value="显隐DOMmtds" onclick="VisibleDOMMTDS()" />
+&nbsp;
+    <input id="Button4" type="button" value="加载DEMmtds" onclick="LoadDEMMTDS()" />
+    <input id="Button5" type="button" value="卸载DEMmtds" onclick="RemoveDEMMTDS()" />
+    <input id="Button6" type="button" value="显隐DEMmtds" onclick="VisibleDEMMTDS()" />
+&nbsp;
+    <input id="Button7" type="button" value="加载DOMmtd" onclick="LoadDOMMTD()" />
+    <input id="Button8" type="button" value="卸载DOMmtd" onclick="RemoveDOMMTD()" />
+    <input id="Button9" type="button" value="显隐DOMmtd" onclick="VisibleDOMMTD()" />
+&nbsp;
+    <input id="Button10" type="button" value="加载DEMmtd" onclick="LoadDEMMTD()" />
+    <input id="Button11" type="button" value="卸载DEMmtd" onclick="RemoveDEMMTD()" />
+    <input id="Button12" type="button" value="显隐DEMmtd" onclick="VisibleDEMMTD()" />
+ &nbsp;   
+    <input id="Button13" type="button" value="加载网络地图服务(WMS)" onclick="LoadWMS()" />
+    <input id="Button14" type="button" value="卸载网络地图服务(WMS)" onclick="RemoveWMS()" />
+    <input id="Button15" type="button" value="显隐网络地图服务(WMS)" onclick="VisibleWMS()" />
+&nbsp;
+    <input id="Button16" type="button" value="加载网络地图瓦片服务(WMTS)" onclick="LoadWMTS()" />
+    <input id="Button17" type="button" value="卸载网络地图瓦片服务(WMTS)" onclick="RemoveWMTS()" />
+    <input id="Button18" type="button" value="显隐网络地图瓦片服务(WMTS)" onclick="VisibleWMTS()" />
+&nbsp;
+    <input id="Button10" type="button" value="加载LoadRest" onclick="LoadRest()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

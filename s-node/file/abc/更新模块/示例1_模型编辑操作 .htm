@@ -1,0 +1,284 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>模型编辑操作</title>
+	
+	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+		//alert(1);
+        responseStr = res.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+		alert(responseStr);
+	</script>
+	<script language="javascript" type="text/javascript" event="FireOnOperationNotify(x , y)" for="VPSDKCtrl">
+		//alert(1);
+       var result = operationPtr.GetOperationResult();
+	   alert("modelName:" + result.GetConfigValueByKey("ModelName"));
+	   alert("highlight:" + result.GetConfigValueByKey("HighLightState"));
+	</script>
+    <script language="javascript" type="text/javascript">
+
+        var MouseX = "";
+        var MouseY = "";
+        /**
+         @brief 鼠标左键触发事件
+         @param [in] x 鼠标点击位置x轴坐标
+         @param [in] y 鼠标点击位置y轴坐标
+        */
+        function LButtonDown(x, y) {
+
+           
+            MouseX = x;
+            MouseY = y;
+            //window.alert("X: " + MouseX + "Y: " + MouseY);
+        }
+          /**
+         @brief 操作事件
+         @param [in] type   操作类型
+         @param [in] result 操作结果
+        */
+        function FireOnOperationNotify(type, result)
+        {
+            window.alert( "ModelEdit: " + " type: " + type + " result: " + result );
+        }
+
+
+        var responseStr;
+        function FireOnResponserNotify(x, y) {//拾取响应器触发
+            responseStr = res.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+        }
+
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            //obj.attachEvent("FireOnLButtonDown", LButtonDown);
+            //obj.attachEvent("FireOnOperationNotify", FireOnOperationNotify);
+            //obj.attachEvent("FireOnResponserNotify", FireOnResponserNotify);
+
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+            
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+
+            tlo.AddConfig("Name", "Lod1"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/Out1_Compressed"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+            //InitMouseEvent();
+        }
+		var cpmLayer;
+        //////加载模型数据
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+            
+        }
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+		
+		var c3sLayer;
+        //加载本地C3S模型数据
+        function LoadC3S() {
+        
+            var tlo = map.CreateLayerOptions("c3s"); 	//创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "c3s");//数据源类型,代表CPM插件，必须是此键值对
+			tlo.AddConfig("PriorityScale","1.0");		//结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");		//结点调度优先级的偏移值PriorityOffset,
+
+			//C3S和C3SA 都是用此类方法加载
+            //tlo.AddConfig("Url", "F:\\项目相关\\天尊\\ok\\model\\0.c3s"); //要加载的数据路径
+            tlo.AddConfig("Url", "D:\\文件接收\\丁之宇(002324AD900A)(192.168.1.90)\\2018-05-14 15_50_04\\model\\0.c3s"); //要加载的数据路径
+            //tlo.AddConfig("Url", "F:\\项目相关\\湖南双排\\gsOutPut\\layer6\\0104\\0_1_0_4_0_0_1@OSGBID169.c3s"); //要加载的数据路径
+            c3sLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(c3sLayer); 		//添加模型图层
+            c3sLayer.Locate(); 				//模型图层定位
+           
+        }
+
+        var res;
+        function PickLineOpen() {
+			var resp = map.CreateResponserOptions("123"); 	//创建响应器配置，参数任意名称
+			resp.AddConfig("PickLayerIdList", -1); 			//拾取图层id //c3sLayer.GetLayerID() 
+			resp.AddConfig("PickColor", "0,0,1,0.3"); 		//拾取颜色
+			resp.AddConfig("IsChangeColor", "false"); 		//是否变色
+			res = map.CreateResponser("PickModelResponser", resp); //创建模型拾取响应器，第一参必须为PickModelResponser字符串
+			res.AddObserver();	//添加监听
+			map.AddResponser(res); //添加响应器
+        }
+		
+		//关闭模型拾取响应器
+		function ClosePick() 
+		{
+			map.RemoveResponser("PickModelResponser");						//移除响应器 
+			res = null;
+		}
+
+        
+        var operationPtr;
+        var isRemove = false;
+        function CreateUpdateOperation(){//创建更新操作
+
+            if (responseStr == null) {
+                alert("pick point is null!"); 
+            }
+            var blh = responseStr.split(",;");
+            blh = blh[blh.length - 1];
+            blh = blh.replace(";", "");
+           
+            var LonLatH = blh.split(",");
+            var tlo = map.CreateOperationOptions("ModelOptions"); //创建配置类型,操作类型的配置
+
+            tlo.AddConfig("OptionsTypeName", "ModelOptions");
+            tlo.AddConfig("LayersID", "-1");                      //添加需要拾取相交的图层id，以分号分隔
+            tlo.AddConfig("Operation", "Create");                 //创建节点关系
+            //tlo.AddConfig("PickColor", "1,0,0,0.3");
+           
+            tlo.AddConfig("LonCoord", LonLatH[0]);                        //经度坐标
+            tlo.AddConfig("LatCoord", LonLatH[1]);                        //纬度坐标
+            tlo.AddConfig("HCoord", LonLatH[2]);                          //高度坐标
+
+            operationPtr = map.CreateOperation("ModelOperation", tlo);  //根据配置创建模型调整操作，第一个参数为模型操作的类名
+            //operationPtr.AddObserver();                               //回调事件添加
+            if (isRemove) {
+                isRemove = false; 
+            }
+	        map.AddOperation(operationPtr);                             //加入操作并执行
+			operationPtr.AddObserver();
+	    }
+
+		
+	    function UpdateOperation() {//更新操作
+		
+            if (responseStr == null) {
+                alert("pick point is null!"); 
+            }
+            var blh = responseStr.split(",;");
+            blh = blh[blh.length - 1];
+            blh = blh.replace(";", "");
+           
+            var LonLatH = blh.split(",");
+	        var tlo = map.CreateOperationOptions("ModelOperation"); //创建配置类型,操作类型的配置
+	        tlo.AddConfig("OptionsTypeName", "ModelOptions");  //第二个参数为配置类名
+           // tlo.AddConfig("LonCoord", LonLatH[0]);                        //经度坐标
+            //tlo.AddConfig("LatCoord", LonLatH[1]);                        //纬度坐标
+           // tlo.AddConfig("HCoord", LonLatH[2]);                          //高度坐标
+			tlo.AddConfig("PickColor", "1,1,0,0.3");
+			operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+
+	    }
+		
+	    function UpdateRotateOperation() {//旋转操作
+	        var tlo = map.CreateOperationOptions("ModelOperation"); //创建配置类型,操作类型的配置
+	        tlo.AddConfig("PickColor", "0,1,0,1.0");
+	        tlo.AddConfig("OptionsTypeName", "ModelOptions");  //第二个参数为配置类名
+	        tlo.AddConfig("Operation", "Rotate");              //添加操作类型为位置平移
+	        tlo.AddConfig("Z", "1");                            //沿X方向旋转
+	        tlo.AddConfig("Angle", "60");                      //添加旋转角度
+	        if(!isRemove)
+	            operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+
+	    }
+
+
+	    function UpdatePositionOperation() {//平移操作
+	        var tlo = map.CreateOperationOptions("ModelOperation"); //创建配置类型,操作类型的配置
+	        tlo.AddConfig("OptionsTypeName", "ModelOptions");
+	        tlo.AddConfig("Operation", "Position");             //添加操作类型为位置平移
+	        tlo.AddConfig("PickColor", "1,1,0,0.5");
+	        tlo.AddConfig("X", "100");                          // 沿x方向平移0
+	        tlo.AddConfig("Y", "0");                            //沿Y方向平移0
+	        tlo.AddConfig("Z", "0");                            //沿z方向平移0
+
+	        if(!isRemove)
+	            operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+	       
+	    }
+
+	    function UpdateScaleOperation() {//缩放操作
+	        var tlo = map.CreateOperationOptions("ModelOperation"); //创建配置类型,操作类型的配置
+	        tlo.AddConfig("PickColor", "0,0,1.0,1.0");
+	        tlo.AddConfig("OptionsTypeName", "ModelOptions");
+	        tlo.AddConfig("Operation", "Scale");             //添加操作类型为位置平移
+	        tlo.AddConfig("X", "1.5");                          //沿x方向缩放1.5
+	        tlo.AddConfig("Y", "0");                            //沿y方向不缩放
+	        tlo.AddConfig("Z", "0");                            //沿z方向不缩放
+
+	        if (!isRemove)
+	            operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+	       
+
+	    }
+
+	    function RemoveOperation() { //移除操作
+
+	        if (!isRemove) {
+	            map.RemoveOperation(operationPtr);
+	            isRemove = true;
+	        }
+	          
+	       
+        }
+		
+		var resAxis = null;
+		function AddResAxis() {													//右手坐标系建轴
+			var resp = map.CreateResponserOptions("AxisEditResponser");
+			resp.AddConfig("PickLayerIdList", gmsLayer.GetLayerID());
+			resp.AddConfig("PickColor", "1.0,1.0,0,0.3");					    //拾取颜色r g b a
+			resp.AddConfig("IsChangeColor", "true");						    //是否变色
+			//resp.AddConfig("XRotate", "XRotate");								//x轴关联字段（红轴）
+			//resp.AddConfig("YRotate", "YRotate");								//y轴关联字段（绿轴）
+			//resp.AddConfig("ZRotate", "ZRotate");								//z轴关联字段（蓝轴）
+			resp.AddConfig("Adjustment", "0.01");								//微调部件步进值，默认为0.01
+			resp.AddConfig("DragSpeed", "1");									//拖拽速度系数，默认为1
+			resp.AddConfig("SizeScale", "0.8");									//轴初始化大小比例，默认为1	
+			resp.AddConfig("ConfigPath", "C:\\test.ini");						//配置文件生成路径，该文件可用于模型更新器
+			if(resAxis == null)
+			{
+				resAxis = map.CreateResponser("AxisEditResponser", resp); 		//坐标轴响应器，必须为AxisEditResponser
+				resAxis.AddObserver();
+				map.AddResponser(resAxis);
+			}
+		}
+    </script>
+</head>
+<body onload="InitScene()">
+  
+
+    <input id="Button10" type="button" value="加载(CPM)" onclick="LoadCPM()" />
+    <input id="Button10" type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input id="Button19" type="button" value="卸载(GMS)" onclick="RemoveGMS()" />
+    <input id="Button19" type="button" value="加载C3S" onclick="LoadC3S()" />
+    <input id ="Button8" type = "button" value = "打开响应器" onclick ="PickLineOpen()" />
+	<input id ="Button8" type = "button" value = "打开Axis响应器" onclick ="AddResAxis()" />
+    <input id ="Button8" type = "button" value = "移除响应器" onclick ="ClosePick()" />
+
+    <input id="Button20" type="button" value="创建操作"  onclick="CreateUpdateOperation()" />
+    <input id="Button21" type="button" value="更新操作"  onclick="UpdateOperation()" />
+    <input id="Button21" type="button" value="旋转操作"  onclick="UpdateRotateOperation()" />
+    <input id="Button22" type="button" value="平移操作"  onclick="UpdatePositionOperation()" />
+    <input id="Button23" type="button" value="缩放操作"  onclick="UpdateScaleOperation()" />
+    <input id="Button24" type="button" value="移除操作"  onclick="RemoveOperation()" />
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

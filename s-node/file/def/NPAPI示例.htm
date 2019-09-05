@@ -1,0 +1,169 @@
+﻿<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=8">
+    <title>5.0球面版本测试用例2 模型</title>
+	
+    <script language="javascript" type="text/javascript">
+
+        var obj;
+        var map;
+
+		function addEvent(obj, name, func)
+		{
+			if(obj.attachEvent)
+			{ obj.attachEvent('on'+name, func); }
+			else if(obj.addEventListener)
+			{ obj.addEventListener(name, func, false); }
+			else { alert("failed to attach event"); }
+		}
+		
+		function delEvent(obj, name, func)
+		{
+			if(obj.detachEvent)
+			{ obj.detachEvent('on'+name, func); }
+			else if(obj.removeEventListener)
+			{ obj.removeEventListener(name, func, false); }
+			else { alert("failed to remove event"); }
+		}
+		
+		function AttachEvent()
+		{
+			addEvent(VPSDKCtrl, "FireOnResponserNotify", function(x, y){
+				var str = res.GetResponserResult().GetConfigValueByKey("PickPointList");
+				alert(str);
+			});
+		}
+		
+		function DetachEvent()
+		{
+			delEvent(VPSDKCtrl, "FireOnResponserNotify", function(x, y){});
+		}	
+		
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+			obj.InitLic("192.168.1.50@8088@");
+            map = obj.GetIMapMgrPtr();
+        }
+
+        var cpmLayer;
+        //////加载模型数据
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "F:\\测试数据\\大华测试\\301学院\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+            
+        }
+
+        ////删除模型数据
+        function RemoveCPM() {
+            map.RemoveLayer(cpmLayer); ////删除模型数据
+        }
+
+        /////显隐模型数据
+        var cpmVisble = true;
+        function VisibleCPM() {
+            if (cpmVisble) {
+                cpmVisble = false;
+            } else {
+                cpmVisble = true;
+            }
+            cpmLayer.SetVisible(cpmVisble); /////显隐模型数据
+        }
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+            var tlo = map.CreateLayerOptions("hengmao_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "hengmao_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/dahua"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+        /////显隐模型数据
+        var gmsVisble = true;
+        function VisibleGMS() {
+            if (gmsVisble) {
+                gmsVisble = false;
+            } else {
+                gmsVisble = true;
+            }
+            gmsLayer.SetVisible(gmsVisble); /////显隐模型数据
+        }
+
+
+        var singleModelLayer;
+        //////加载模型数据
+        function LoadSingleModel() {
+            var tlo = map.CreateLayerOptions("singlemodel"); // 创建singlemodel图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "singlemodel"); // 数据源类型,代表SINGLEMODEL插件，必须是此键值对
+            tlo.AddConfig("Url", "E:\\TestData\\3318495DX40005.wrl"); /////要加载的数据路径，此数据需为但wrl数据
+            singleModelLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(singleModelLayer); ///添加模型图层
+            singleModelLayer.Locate(); ////模型图层定位
+        }
+
+        ////删除模型数据
+        function RemoveSingleModel() {
+            map.RemoveLayer(singleModelLayer); ////删除模型数据
+        }
+
+        /////显隐模型数据
+        var singleModelVisble = true;
+        function VisibleSingleModel() {
+            if (singleModelVisble) {
+                singleModelVisble = false;
+            } else {
+                singleModelVisble = true;
+            }
+            singleModelLayer.SetVisible(singleModelVisble); /////显隐模型数据
+        }
+		var res;
+
+		function PickLineOpen() 
+		{
+			var resp = map.CreateResponserOptions("123"); 
+			resp.AddConfig("PickLayerIdList", gmsLayer.GetLayerID()); 
+			resp.AddConfig("IsChangeColor", "true"); 
+			res = map.CreateResponser("PickModelResponser", resp);
+			res.AddObserver();
+			map.AddResponser(res); 
+		}
+
+
+		
+    </script>
+</head>
+<body onload="InitScene()">
+	<input id="Button1" type="button" value="添加事件" onclick="AttachEvent()" />
+	<input id="Button1" type="button" value="卸载事件" onclick="DetachEvent()" />
+    <input id="Button1" type="button" value="加载CPM" onclick="LoadCPM()" />
+    <input id="Button4" type="button" value="卸载CPM" onclick="RemoveCPM()" />
+    <input id="Button5" type="button" value="显隐CPM" onclick="VisibleCPM()" />
+
+    <input id="Button2" type="button" value="加载GMS" onclick="LoadGMS()" />
+    <input id="Button6" type="button" value="卸载GMS" onclick="RemoveGMS()" />
+    <input id="Button7" type="button" value="显隐GMS" onclick="VisibleGMS()" />
+
+    <input id="Button3" type="button" value="加载非LOD模型数据(singlemodel)" onclick="LoadSingleModel()" />
+    <input id="Button8" type="button" value="卸载非LOD模型数据(singlemodel)" onclick="RemoveSingleModel()" />
+    <input id="Button9" type="button" value="显隐非LOD模型数据(singlemodel)" onclick="VisibleSingleModel()" />
+	 <input id="Button7" type="button" value="打开响应器" onclick="PickLineOpen()" />
+    <object id="VPSDKCtrl" type="application/x-CoorunAWP" style="width: 100%; height: 980px"></object>
+</body>
+</html>

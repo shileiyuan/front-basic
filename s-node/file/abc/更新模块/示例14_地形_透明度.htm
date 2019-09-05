@@ -1,0 +1,159 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>6.0球面版本地形透明</title>
+    <script language="javascript" type="text/javascript">
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        ///加载矢量面
+        var polygonshpLayer1;
+        function LoadPolygonShp1() {
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+            pSymbol.AddConfig("Color", "0.5,0.1,0.1,0.3"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+            var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+            pStyle.SetName("polygon"); ////设置别名polygon
+            pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+            pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "F:\\演示测试数据\\dxyc.shp"); ////数据存放位置，注意双斜杠
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "-20"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "1000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+            tlo.AddConfig("RenderOrder", -10); //设置渲染顺序，在设置透明时要加上RenderOrder项，为小于-5的一个值
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+            polygonshpLayer1 = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(polygonshpLayer1); ////添加矢量图层
+            polygonshpLayer1.Locate(); ////矢量图层定位（不建议，不精准）
+        }
+
+        var mtdsdemlayer;
+        //////加载DEM数据
+        function LoadDEMMTDS() {
+            var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+            tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+            tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+            mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+            map.AddLayer(mtdsdemlayer);///添加DEM图层
+            mtdsdemlayer.Locate();////DEM图层定位
+        }
+
+        //////删除DEM数据
+        function RemoveDEMMTDS() {
+            map.RemoveLayer(mtdsdemlayer);////删除DEM数据
+        }
+
+        var mtdsdomlayer;
+        //////加载DOM数据
+        function LoadDOMMTDS() {
+            var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+            mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtdsdomlayer); ///添加DOM图层
+            mtdsdomlayer.Locate(); ////DOM图层定位
+        }
+
+        //////删除DOM数据
+        function RemoveDOMMTDS() {
+            map.RemoveLayer(mtdsdomlayer); ////删除DOM数据
+        }
+
+		//创建更新操作
+        var operationPtr;
+        function CreateTerriantOperation() {//创建更新操作
+            var tlo = map.CreateOperationOptions("TerrainOption"); 			//创建配置类型,操作类型的配置
+            tlo.AddConfig("OptionsTypeName", "TerrainOption"); 				//地形配置项名称  
+            tlo.AddConfig("Operation", "Opacity"); 							//添加操作类型为透明度操作
+            tlo.AddConfig("Opacity", 0.5); 									//透明度值0.0~1.0 
+
+            operationPtr = map.CreateOperation("TerrainOperation", tlo); 	//根据配置创建模型调整操作，第一个参数为模型操作的类名
+            //operationPtr.AddObserver(); 									//回调事件添加        
+            map.AddOperation(operationPtr); 								//加入操作并执行
+        }
+
+		//更新地形操作
+        function UpdateTerriantOperation() {                                                   
+            if (operationPtr != null) {
+                var OpacityArrays = [0.0, 0.1, 0.2, 0.5, 0.8, 1.0]; 		//透明度值数组
+                var opacity = OpacityArrays[Math.floor(Math.random() * OpacityArrays.length)]; //从数组中获取透明度的值
+                alert("opacity: " + opacity);
+                var tlo = map.CreateOperationOptions("TerrainOption"); 		//创建配置类型,操作类型的配置
+                tlo.AddConfig("OptionsTypeName", "TerrainOption"); 			//创建添加配置项类型
+                tlo.AddConfig("Opacity", opacity); 							//添加透明度
+                operationPtr.UpdateOperationOptions(tlo); 					//更新透明度   
+            }    
+        }
+
+		//移除更新操作
+        function RemoveOperation() {
+            if( operationPtr != null) {
+				var tlo = map.CreateOperationOptions("TerrainOption"); 		//创建配置类型,操作类型的配置
+                tlo.AddConfig("OptionsTypeName", "TerrainOption"); 			//创建添加配置项类型
+                tlo.AddConfig("Opacity", "1");	 							//添加透明度
+                operationPtr.UpdateOperationOptions(tlo); 					//更新透明度   
+				map.RemoveOperation(operationPtr);
+			}
+		}
+    </script>
+</head>
+<body onload="InitScene()">
+    <input id="Button1" type="button" value="加载DOMmtds" onclick="LoadDOMMTDS()" />
+    <input id="Button2" type="button" value="卸载DOMmtds" onclick="RemoveDOMMTDS()" />
+    <input id="Button3" type="button" value="加载DEMmtds" onclick="LoadDEMMTDS()" />
+    <input id="Button4" type="button" value="卸载DEMmtds" onclick="RemoveDEMMTDS()" />
+   
+    <input id = "Button5" type = "button" value = "加载地下矢量面" onclick = "LoadPolygonShp1()" />
+    <input id = "Button6" type = "button" value = "创建地形更新操作"  onclick ="CreateTerriantOperation()" />
+    <input id = "Button7" type = "button" value = "透明度设置"    onclick ="UpdateTerriantOperation()" />
+    <input id = "Button8" type = "button" value = "移除地形更新操作"  onclick ="RemoveOperation()" />
+  
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

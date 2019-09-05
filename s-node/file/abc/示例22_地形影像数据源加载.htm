@@ -1,0 +1,589 @@
+<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<title>5.0球面版本测试用例1 地形、影像(dem、dom)</title>
+<script language="javascript" type="text/javascript">
+
+	var obj;
+	var map;
+
+	function InitScene() {
+		obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+	}
+//////////////////////////////DOM-MTDS、MTD/////////////////////////////////////
+	var mtdsDomLayer;
+	//加载网络DOM数据
+	function LoadDOMMTDS() {
+		var dataSourceOptions = map.CreateDataSourceOptions("mtds");	//创建数据源配置项,名称必须与数据源类型匹配
+		dataSourceOptions.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/tms.xml"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		//获取数据源图层配置项
+		var Url = dataSource.GetLayerInfo(0, "Url");
+		var Format = dataSource.GetLayerInfo(0, "Format");
+		var Srs = dataSource.GetLayerInfo(0, "Srs");
+		var MaxX = dataSource.GetLayerInfo(0, "MaxX");
+		var MinX = dataSource.GetLayerInfo(0, "MinX");
+		var MaxY = dataSource.GetLayerInfo(0, "MaxY");
+		var MinY = dataSource.GetLayerInfo(0, "MinY");
+		var TileSize = dataSource.GetLayerInfo(0, "TileSize")  || "256";
+		var MinLevel = dataSource.GetLayerInfo(0, "MinLevel");
+		var MaxLevel = dataSource.GetLayerInfo(0, "MaxLevel") || "10";
+		
+		var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds");			//数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 			//代表地形驱动，必须是此键值对
+		tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", Format);  				//切割形成的数据格式
+		tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+		tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+		tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("TileSize", TileSize); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", MinLevel); 			//数据显示的最小层级
+		tlo.AddConfig("MaxLevel", MaxLevel); 			//数据显示的最大层级
+
+		mtdsDomLayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdsDomLayer); 					//添加DOM图层
+		mtdsDomLayer.Locate(); 							//DOM图层定位
+	}
+
+	//删除网络DOM数据
+	function RemoveDOMMTDS() {
+		map.RemoveLayer(mtdsDomLayer); ////删除DOM数据
+	}
+
+	//显隐网络DOM数据
+	var mtdsDomVisble = true;
+	function VisibleDOMMTDS() {
+		if (mtdsDomVisble) {
+			mtdsDomVisble = false;
+		} else {
+			mtdsDomVisble = true;
+		}
+		mtdsDomLayer.SetVisible(mtdsDomVisble); /////显隐DOM数据
+	}
+
+	var mtdDomLayer;
+	//加载本地DOM数据
+	function LoadDOMMTD() {
+		var dataSourceOptions = map.CreateDataSourceOptions("ogr");	//创建数据源配置项,名称必须与数据源类型匹配
+		dataSourceOptions.AddConfig("Url", "F:\\演示测试数据\\point.shp"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		//获取数据源图层配置项
+		var Url = dataSource.GetLayerInfo(0, "Url");
+		var Format = dataSource.GetLayerInfo(0, "Format");
+		var Srs = dataSource.GetLayerInfo(0, "Srs");
+		var MaxX = dataSource.GetLayerInfo(0, "MaxX");
+		var MinX = dataSource.GetLayerInfo(0, "MinX");
+		var MaxY = dataSource.GetLayerInfo(0, "MaxY");
+		var MinY = dataSource.GetLayerInfo(0, "MinY");
+		var TileSize = dataSource.GetLayerInfo(0, "TileSize");
+		var MinLevel = dataSource.GetLayerInfo(0, "MinLevel");
+		var MaxLevel = dataSource.GetLayerInfo(0, "MaxLevel") || "10";
+		
+		var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtd");				//数据源类型,代表MTD插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 			//代表地形驱动，必须是此键值对
+		tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", Format);  				//切割形成的数据格式
+		tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+		tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+		tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("TileSize", TileSize); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", MinLevel); 			//数据显示的最小层级
+		tlo.AddConfig("MaxLevel", MaxLevel); 			//数据显示的最大层级
+
+		mtdDomLayer = map.CreateLayer("ImageLayer", tlo); //创建DOM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdDomLayer); 						//添加DOM图层
+		mtdDomLayer.Locate(); 							//DOM图层定位
+	}
+
+	//删除本地DOM数据
+	function RemoveDOMMTD() {
+		map.RemoveLayer(mtdDomLayer); ////删除DOM数据
+	}
+
+	//显隐本地DOM数据
+	var mtdDomVisble = true;
+	function VisibleDOMMTD() {
+		if (mtdDomVisble) {
+			mtdDomVisble = false;
+		} else {
+			mtdDomVisble = true;
+		}
+		mtdDomLayer.SetVisible(mtdDomVisble); /////显隐DOM数据
+	}
+
+//////////////////////////////DEM-MTDS、MTD/////////////////////////////////////
+	var mtdsDemLayer;
+	//加载网络DEM数据
+	function LoadDEMMTDS() {
+		var dataSourceOptions = map.CreateDataSourceOptions("mtds");	//创建数据源配置项,名称必须与数据源类型匹配
+		dataSourceOptions.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/tms.xml"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		//获取数据源图层配置项
+		var Url = dataSource.GetLayerInfo(0, "Url");
+		var Format = dataSource.GetLayerInfo(0, "Format");
+		var Srs = dataSource.GetLayerInfo(0, "Srs");
+		var MaxX = dataSource.GetLayerInfo(0, "MaxX");
+		var MinX = dataSource.GetLayerInfo(0, "MinX");
+		var MaxY = dataSource.GetLayerInfo(0, "MaxY");
+		var MinY = dataSource.GetLayerInfo(0, "MinY");
+		var TileSize = dataSource.GetLayerInfo(0, "TileSize");
+		var MinLevel = dataSource.GetLayerInfo(0, "MinLevel");
+		var MaxLevel = dataSource.GetLayerInfo(0, "MaxLevel") || "10";
+		
+		var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); //创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds");			//数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 			//代表地形驱动，必须是此键值对
+		tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", Format);  				//切割形成的数据格式
+		tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+		tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+		tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("TileSize", TileSize); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", MinLevel); 			//数据显示的最小层级
+		tlo.AddConfig("MaxLevel", MaxLevel); 			//数据显示的最大层级
+
+		mtdsDemLayer = map.CreateLayer("ElevationLayer", tlo); //创建DEM图层，第一项参数必须为ElevationLayer
+		map.AddLayer(mtdsDemLayer);						//添加DEM图层
+		mtdsDemLayer.Locate();							//DEM图层定位
+	}
+
+	//删除网络DEM数据
+	function RemoveDEMMTDS() {
+		map.RemoveLayer(mtdsDemLayer);////删除DEM数据
+	}
+
+	//显隐网络DEM数据
+	var mtdsDemVisble = true;
+	function VisibleDEMMTDS() {
+		if (mtdsDemVisble) {
+			mtdsDemVisble = false;
+		} else {
+			mtdsDemVisble = true;
+		}
+		mtdsDemLayer.SetVisible(mtdsDemVisble);/////显隐DEM数据
+	}
+
+	var mtdDemLayer;
+	//加载本地DEM数据
+	function LoadDEMMTD() {
+		var dataSourceOptions = map.CreateDataSourceOptions("mtd");	//创建数据源配置项,名称必须与数据源类型匹配
+		dataSourceOptions.AddConfig("Url", "F:\\VPDE\\DE_tags\\DynamicEarth-2.1.0\\testdata\\zhoushan\\DEM\\tms.xml"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		//获取数据源图层配置项
+		var Url = dataSource.GetLayerInfo(0, "Url");
+		var Format = dataSource.GetLayerInfo(0, "Format");
+		var Srs = dataSource.GetLayerInfo(0, "Srs");
+		var MaxX = dataSource.GetLayerInfo(0, "MaxX");
+		var MinX = dataSource.GetLayerInfo(0, "MinX");
+		var MaxY = dataSource.GetLayerInfo(0, "MaxY");
+		var MinY = dataSource.GetLayerInfo(0, "MinY");
+		var TileSize = dataSource.GetLayerInfo(0, "TileSize");
+		var MinLevel = dataSource.GetLayerInfo(0, "MinLevel");
+		var MaxLevel = dataSource.GetLayerInfo(0, "MaxLevel") || "10";
+		
+		var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); //创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtd");				//数据源类型,代表MTD插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 			//代表地形驱动，必须是此键值对
+		tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", Format);  				//切割形成的数据格式
+		tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+		tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+		tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("TileSize", TileSize); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", MinLevel); 			//数据显示的最小层级
+		tlo.AddConfig("MaxLevel", MaxLevel); 			//数据显示的最大层级
+
+		mtdDemLayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+		map.AddLayer(mtdDemLayer); ///添加DEM图层
+		mtdDemLayer.Locate(); ////DEM图层定位
+	}
+
+	//删除本地DEM数据
+	function RemoveDEMMTD() {
+		map.RemoveLayer(mtdDemLayer); ////删除DEM数据
+	}
+
+	//显隐本地DEM数据
+	var mtdDemVisble = true;
+	function VisibleDEMMTD() {
+		if (mtdDemVisble) {
+			mtdDemVisble = false;
+		} else {
+			mtdDemVisble = true;
+		}
+		mtdDemLayer.SetVisible(mtdDemVisble); /////显隐DEM数据
+	}
+
+//////////////////////////////WMS、WMTS/////////////////////////////////////////
+	var wmsLayer = new Array();
+	//加载WMS数据
+	function LoadWMS() {
+		var dataSourceOptions = map.CreateDataSourceOptions("rest");	//创建数据源配置项,名称必须与数据源类型匹配
+		//dataSourceOptions.AddConfig("Url", "http://192.168.1.67:8080/geoserver/ows?service=wms&version=1.1.1&request=GetCapabilities"); //设置数据源配置路径,此处失效
+		dataSourceOptions.AddConfig("Url", "http://192.168.1.67:8080/geoserver/ows?"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		alert(count);
+		var i;
+		for(i = 0; i < count; i++)
+		{
+			//获取数据源图层配置项
+			var Url = dataSource.GetLayerInfo(i, "Url");
+			var Srs = dataSource.GetLayerInfo(i, "Srs");
+			var LayerName = dataSource.GetLayerInfo(i, "LayerName");
+			var ImageFormat = dataSource.GetLayerInfo(i, "ImageFormat");
+			var Style = dataSource.GetLayerInfo(i, "Style");
+			var WmsVersion = dataSource.GetLayerInfo(i, "WmsVersion");
+			var MaxX = dataSource.GetLayerInfo(i, "MaxX");
+			var MinX = dataSource.GetLayerInfo(i, "MinX");
+			var MaxY = dataSource.GetLayerInfo(i, "MaxY");
+			var MinY = dataSource.GetLayerInfo(i, "MinY");
+			
+			var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "wms");			//数据源类型,代表WMS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); 		//代表地形驱动，必须是此键值对
+			tlo.AddConfig("Transparent", "true");				//设置请求的数据透明通道是否透明
+			tlo.AddConfig("TileSize", "256");//切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel","0");						//数据显示的最小层级								
+			tlo.AddConfig("MaxLevel", "19");					//数据显示的最大层级
+			tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+			tlo.AddConfig("LayerName", LayerName);  		//图层名称
+			tlo.AddConfig("ImageFormat", ImageFormat);  	//Image数据格式
+			tlo.AddConfig("Style", Style);  				//样式
+			tlo.AddConfig("WmsVersion", WmsVersion);  		//WMS服务版本号
+			tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+			tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+			tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+			tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+			tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+
+
+			wmsLayer[i] = map.CreateLayer("ImageLayer", tlo); //创建WMS图层，第一项参数必须为ImageLayer
+			map.AddLayer(wmsLayer[i]); 						//添加WMS图层
+			if(i == count -1)
+			{
+				wmsLayer[i].Locate(); 						//WMS图层定位
+			}
+		}
+	}
+
+	//删除WMS数据
+	function RemoveWMS() {
+		var i;
+		for(i in wmsLayer)
+		{
+			map.RemoveLayer(wmsLayer[i]); //删除WMS数据
+		}
+	}
+
+	//显隐WMS数据
+	var wmsVisble = true;
+	function VisibleWMS() {
+		if (wmsVisble) {
+			wmsVisble = false;
+		} else {
+			wmsVisble = true;
+		}
+		for(i in wmsLayer)
+		{
+			wmsLayer[i].SetVisible(wmsVisble); //显隐WMS数据
+		}
+	}
+
+	var wmtsLayer;
+	//加载WMTS数据
+	function LoadWMTS() {
+		var dataSourceOptions = map.CreateDataSourceOptions("wmts");	//创建数据源配置项,名称必须与数据源类型匹配
+		dataSourceOptions.AddConfig("Url", "http://192.168.1.34:9091/geoserver/gwc/service/wmts?REQUEST=GetCapabilities"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		var i;
+		for(i = 0; i < count; i++)
+		{
+			//获取数据源图层配置项
+			var Url = dataSource.GetLayerInfo(i, "Url");
+			var Srs = dataSource.GetLayerInfo(i, "Srs");
+			var LayerName = dataSource.GetLayerInfo(i, "LayerName");
+			var ImageFormat = dataSource.GetLayerInfo(i, "ImageFormat");
+			var MinLevel = dataSource.GetLayerInfo(i, "MinLevel");
+			var MaxLevel = dataSource.GetLayerInfo(i, "MaxLevel");
+			var MaxX = dataSource.GetLayerInfo(i, "MaxX");
+			var MinX = dataSource.GetLayerInfo(i, "MinX");
+			var MaxY = dataSource.GetLayerInfo(i, "MaxY");
+			var MinY = dataSource.GetLayerInfo(i, "MinY");
+			
+			var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "wmts");			//数据源类型,代表WMTS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); 	//代表地形驱动，必须是此键值对
+			tlo.AddConfig("Transparent", "true");			//设置请求的数据透明通道是否透明
+			tlo.AddConfig("MinLevel", MinLevel);			//数据显示的最小层级								
+			tlo.AddConfig("MaxLevel", MaxLevel);			//数据显示的最大层级
+			tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+			tlo.AddConfig("LayerName", LayerName);  		//图层名称
+			tlo.AddConfig("ImageFormat", ImageFormat);  	//Image数据格式
+			tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+			tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+			tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+			tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+			tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+
+
+			wmtsLayer[i] = map.CreateLayer("ImageLayer", tlo); //创建WMS图层，第一项参数必须为ImageLayer
+			map.AddLayer(wmtsLayer[i]); 						//添加WMS图层
+			if(i == count -1)
+			{
+				wmtsLayer[i].Locate(); 						//WMS图层定位
+			}
+		}
+	}
+
+	//删除WMTS数据
+	function RemoveWMTS() {
+		var i;
+		for(i in wmtsLayer)
+		{
+			map.RemoveLayer(wmtsLayer[i]); //删除WMTS数据
+		}
+	}
+
+	//显隐WMTS数据
+	var wmtsVisble = true;
+	function VisibleWMTS() {
+		if (wmtsVisble) {
+			wmtsVisble = false;
+		} else {
+			wmtsVisble = true;
+		}
+		for(i in wmsLayer)
+		{
+			wmtsLayer[i].SetVisible(wmtsVisble); //显隐WMS数据
+		}
+	}
+
+//////////////////////////////gdal-DOM、DEM/////////////////////////////////////	
+	var DomGdalLayer;
+	//加载影像gdal数据
+	function LoadDomGdal() {
+		var dataSourceOptions = map.CreateDataSourceOptions("gdal");	//创建数据源配置项,名称必须与数据源类型匹配
+		dataSourceOptions.AddConfig("Url", "F:\\VPDE\\DE_tags\\DynamicEarth-2.1.0\\testdata\\image\\hz1.tif"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			//return;
+		}
+		//获取数据源图层配置项
+		var Url = dataSource.GetLayerInfo(0, "Url");
+		var Srs = dataSource.GetLayerInfo(0, "Srs");
+		var MaxX = dataSource.GetLayerInfo(0, "MaxX");
+		var MinX = dataSource.GetLayerInfo(0, "MinX");
+		var MaxY = dataSource.GetLayerInfo(0, "MaxY");
+		var MinY = dataSource.GetLayerInfo(0, "MinY");
+		var MinLevel = dataSource.GetLayerInfo(0, "MinLevel");
+		var MaxLevel = dataSource.GetLayerInfo(10, "MaxLevel");
+		var TileSize = dataSource.GetLayerInfo(256, "TileSize");
+		
+		var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "gdal");			//数据源类型,代表gdal插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 			//代表地形驱动，必须是此键值对
+		tlo.AddConfig("IsCreatePyramid", "true");				//是否在加载时创建金字塔文件,若有，则会先删除再创建
+		tlo.AddConfig("IsInterpolateImagery", "true");			//是否变换影像成像方式，默认为false
+		//InterpolationMethod 差值方式
+		//INTER_CUBIC -- 立方插值:最耗时,比双线性插值边沿更平滑(默认值)
+		//INTERP_BILINEAR -- 双线性插值:较为平滑,耗时一般;(IsInterpolateImagery必须设为true才生效)
+		//INTERP_NEAREST -- 临近插值法:速度最快,临近像素点值一样;(IsInterpolateImagery必须设为true才生效)
+		tlo.AddConfig("InterpolationMethod", "INTER_CUBIC");	//立方插值
+		//tlo.AddConfig("InterpolationMethod", "INTERP_BILINEAR");//双线性插值
+		//tlo.AddConfig("InterpolationMethod", "INTERP_NEAREST"); //临近插值法
+
+		tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+		tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+		tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("MinLevel", MinLevel); 			//数据的最小层级
+		tlo.AddConfig("MaxLevel", MaxLevel); 			//数据的最大层级
+		tlo.AddConfig("TileSize", TileSize); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+
+		DomGdalLayer = map.CreateLayer("ImageLayer", tlo); //创建DOM图层，第一项参数必须为ImageLayer
+		map.AddLayer(DomGdalLayer); 						//添加DOM图层
+		DomGdalLayer.Locate(); 							//DOM图层定位
+	}
+
+	//删除影像gdal数据
+	function RemoveDomGdal() {
+		map.RemoveLayer(DomGdalLayer); 					//删除DOM数据
+	}
+
+	//显隐影像gdal数据
+	var DomGdalVisble = true;
+	function VisibleDomGdal() {
+		if (DomGdalVisble) {
+			DomGdalVisble = false;
+		} else {
+			DomGdalVisble = true;
+		}
+		DomGdalLayer.SetVisible(DomGdalVisble); 		//显隐DOM数据
+	}
+
+	var DemGdalLayer;
+	//加载地形gdal数据
+	function LoadDemGdal() {
+		var dataSourceOptions = map.CreateDataSourceOptions("gdal");	//创建数据源配置项,名称必须与数据源类型匹配
+		dataSourceOptions.AddConfig("Url", "F:\\VPDE\\DE_tags\\DynamicEarth-2.1.0\\testdata\\elevation\\world_dem_Clip.tif"); //设置数据源配置路径
+		//dataSourceOptions.AddConfig("Url", "F:\\项目相关\\厦门忆力吉奥\\img2\\DEMHalf0.2\\DEMHalf02.tif"); //设置数据源配置路径
+		var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		//获取数据源图层配置项
+		var Url = dataSource.GetLayerInfo(0, "Url");
+		var Srs = dataSource.GetLayerInfo(0, "Srs");
+		var MaxX = dataSource.GetLayerInfo(0, "MaxX");
+		var MinX = dataSource.GetLayerInfo(0, "MinX");
+		var MaxY = dataSource.GetLayerInfo(0, "MaxY");
+		var MinY = dataSource.GetLayerInfo(0, "MinY");
+		var TileSize = dataSource.GetLayerInfo(0, "TileSize");
+		
+		var tlo = map.CreateLayerOptions("domlayer"); 			//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); //创建配置类型, ElevationLayerOptions代表地形数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "gdal");			//数据源类型,代表gdal插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 			//代表地形驱动，必须是此键值对
+		tlo.AddConfig("IsCreatePyramid", "true");				//是否在加载时创建金字塔文件,若有，则会先删除再创建
+		tlo.AddConfig("IsInterpolateImagery", "true");			//是否变换影像成像方式，默认为false
+		//InterpolationMethod 差值方式
+		//INTER_CUBIC -- 立方插值:最耗时,比双线性插值边沿更平滑(默认值)
+		//INTERP_BILINEAR -- 双线性插值:较为平滑,耗时一般;(IsInterpolateImagery必须设为true才生效)
+		//INTERP_NEAREST -- 临近插值法:速度最快,临近像素点值一样;(IsInterpolateImagery必须设为true才生效)
+		tlo.AddConfig("InterpolationMethod", "INTER_CUBIC");	//立方插值
+		//tlo.AddConfig("InterpolationMethod", "INTERP_BILINEAR");//双线性插值
+		//tlo.AddConfig("InterpolationMethod", "INTERP_NEAREST"); //临近插值法
+		
+		tlo.AddConfig("Url", Url); 						//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("MinX", MinX); 					//数据的范围X向最小值
+		tlo.AddConfig("MaxY", MaxY); 					//数据的范围Y向最大值
+		tlo.AddConfig("MinY", MinY); 					//数据的范围Y向最小值
+		tlo.AddConfig("MaxX", MaxX); 					//数据的范围X向最大值
+		tlo.AddConfig("TileSize", TileSize); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+
+		DemGdalLayer = map.CreateLayer("ElevationLayer", tlo); //创建DEM图层，第一项参数必须为ElevationLayer
+		map.AddLayer(DemGdalLayer); 						//添加DEM图层
+		DemGdalLayer.Locate(); 							//DEM图层定位
+	}
+
+	//删除地形gdal数据
+	function RemoveDemGdal() {
+		map.RemoveLayer(DemGdalLayer); 					//删除DEM数据
+	}
+
+	//显隐地形gdal数据
+	var DemGdalVisble = true;
+	function VisibleDemGdal() {
+		if (DemGdalVisble) {
+			DemGdalVisble = false;
+		} else {
+			DemGdalVisble = true;
+		}
+		DemGdalLayer.SetVisible(DemGdalVisble); 		//显隐DEM数据
+	}
+</script>
+</head>
+<body onload="InitScene()">
+    <input id="Button1" type="button" value="加载网络DOM" onclick="LoadDOMMTDS()" />
+    <input id="Button2" type="button" value="卸载网络DOM" onclick="RemoveDOMMTDS()" />
+    <input id="Button3" type="button" value="显隐网络DOM" onclick="VisibleDOMMTDS()" />
+    <input id="Button4" type="button" value="加载网络DEM" onclick="LoadDEMMTDS()" />
+    <input id="Button5" type="button" value="卸载网络DEM" onclick="RemoveDEMMTDS()" />
+    <input id="Button6" type="button" value="显隐网络DEM" onclick="VisibleDEMMTDS()" />
+	&nbsp;
+    <input id="Button7" type="button" value="加载本地DOM" onclick="LoadDOMMTD()" />
+    <input id="Button8" type="button" value="卸载本地DOM" onclick="RemoveDOMMTD()" />
+    <input id="Button9" type="button" value="显隐本地DOM" onclick="VisibleDOMMTD()" />
+    <input id="Button10" type="button" value="加载本地DEM" onclick="LoadDEMMTD()" />
+    <input id="Button11" type="button" value="卸载本地DEM" onclick="RemoveDEMMTD()" />
+    <input id="Button12" type="button" value="显隐本地DEM" onclick="VisibleDEMMTD()" />
+    <br/>
+    <input id="Button13" type="button" value="加载网络地图服务(WMS)" onclick="LoadWMS()" />
+    <input id="Button14" type="button" value="卸载网络地图服务(WMS)" onclick="RemoveWMS()" />
+    <input id="Button15" type="button" value="显隐网络地图服务(WMS)" onclick="VisibleWMS()" />
+    <input id="Button16" type="button" value="加载网络地图瓦片服务(WMTS)" onclick="LoadWMTS()" />
+    <input id="Button17" type="button" value="卸载网络地图瓦片服务(WMTS)" onclick="RemoveWMTS()" />
+    <input id="Button18" type="button" value="显隐网络地图瓦片服务(WMTS)" onclick="VisibleWMTS()" />
+    <br/>
+    <input id="Button19" type="button" value="加载地形Gdal" onclick="LoadDemGdal()" />
+    <input id="Button20" type="button" value="卸载地形Gdal" onclick="RemoveDemGdal()" />
+    <input id="Button21" type="button" value="显隐地形Gdal" onclick="VisibleDemGdal()" />
+    <input id="Button22" type="button" value="加载影像Gdal" onclick="LoadDomGdal()" />
+    <input id="Button23" type="button" value="卸载影像Gdal" onclick="RemoveDomGdal()" />
+    <input id="Button24" type="button" value="显隐影像Gdal" onclick="VisibleDomGdal()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

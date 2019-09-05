@@ -1,0 +1,329 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>分屏调用模式</title>
+	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+		//////响应器的回调事件//////
+		var respName = x;		//响应器类型名，这里为PickModelResponser
+		var mapViewId = y;		//响应器所属窗口id
+		if(mapViewId == 0)		//判断属于窗口1后的操作
+		{
+			var str = resp1.GetResponserResult().GetConfigValueByKey("PickPointList");							//拾取点
+			var PickName = resp1.GetResponserResult().GetConfigValueByKey("PickName");							//拾取对象名
+			PickLayerId = resp1.GetResponserResult().GetConfigValueByKey("PickLayerList");						//拾取对象所属图层id
+			//alert("窗口1：" + "PickPoint:" + str + " PickName: " +  PickName + " PickLayerId: " +  PickLayerId);
+		}
+		else if(mapViewId == 1)	//判断属于窗口1后的操作
+		{
+			var str = resp2.GetResponserResult().GetConfigValueByKey("PickPointList");							//拾取点
+			var PickName = resp2.GetResponserResult().GetConfigValueByKey("PickName");							//拾取对象名
+			PickLayerId = resp2.GetResponserResult().GetConfigValueByKey("PickLayerList");						//拾取对象所属图层id
+			//alert("窗口2：" + "PickPoint:" + str + " PickName: " +  PickName + " PickLayerId: " +  PickLayerId);
+		}
+		
+	</script>
+    <script language="javascript" type="text/javascript">
+
+        var obj;
+        var map;
+
+		///页面加载初始化所需操作：获取控件对象，获取MapMgr操作对象，连接服务进行授权///
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");		//获取控件对象
+            map = obj.GetIMapMgrPtr();						//获取MapMgr操作对象
+			var ret = obj.InitLic("192.168.1.50@8088@");	//连接服务进行授权
+        }
+	
+		var mv1;											//窗口1，这里为默认窗口
+		var mv2;											//窗口2，这里为新添加窗口
+		function AddScreen(){
+			var mvCount = map.GetMapViewCount();			//获取窗口个数
+			mvID = map.GetMapViewIDByIndex(mvCount - 1);	//根据索引获取窗口id
+			mv1 = map.GetMapViewByID(mvID);					//根据窗口id获取窗口对象。该例中为初始的窗口对象
+			
+			var mapviewDefOpt = map.CreateMapViewOptions();	//创建窗口配置参数			//////配置窗口所占屏幕比例,格式xx,yy,ww,hh;xx为窗口左下角所在屏幕位置的比例起始位置x;yy为窗口左下角所在屏幕位置的比例起始位置y;ww为窗口宽度所占屏幕比例;hh为窗口高度所占屏幕比例//////
+			mapviewDefOpt.AddConfig("ViewPort", "0,0,0.5,1");//假设窗口大小800*800，这里则表示窗口左下角在屏幕的(800*0,800*0),且大小为[宽(800 * 0.5)]*[高(800 * 1)]
+			mv1.UpdateMapViewOptions(mapviewDefOpt);		 //更新默认窗口的配置参数，这里是只修改了窗口位置及大小
+			///创建参考系（可选1），与可选2互斥，可用默认的参考系,目前针对地形影像图层加载有问题，建议多参考系；但多参考系效率比单参考系低///
+			var refOpt = map.CreateRefrenceSystemOptions();
+			refOpt.AddConfig("SrsInitString", "epsg:4326");
+			refOpt.AddConfig("NumTilesWideAtLod0", "2");
+			refOpt.AddConfig("NumTilesHighAtLod0", "1");
+			refOpt.AddConfig("MinLongitude", "-180");
+			refOpt.AddConfig("MaxLongitude", "180");
+			refOpt.AddConfig("MinLatitude", "-90");
+			refOpt.AddConfig("MaxLatitude", "90");
+			refOpt.AddConfig("CoordSysType", "0");
+			refOpt.AddConfig("MaxExtent", "1000,1000,1000");
+			refOpt.AddConfig("MinExtent", "0,0,0");
+			var refObj = map.CreateRefrenceSystem(refOpt);
+			//////
+			
+			var mapviewOpt = map.CreateMapViewOptions();		//创建窗口配置参数	
+			mapviewOpt.AddConfig("CameraName", "split1");		//窗口名称
+			mapviewOpt.AddConfig("RenderOrder", "2");			//窗口绘制顺序
+			mapviewOpt.AddConfig("IsOrtho", "false");			//true正交投影 false透视投影，一般透视投影
+			mapviewOpt.AddConfig("Aspect", "1");				//宽高比
+			mapviewOpt.AddConfig("Fovy", "35");					//视野角度
+			mapviewOpt.AddConfig("ZNear", "100");				//近截面
+			mapviewOpt.AddConfig("ZFar", "100000000");			//远截面
+			var sdkPath = obj.GetSDKPath();
+			sdkPath = sdkPath.substr(0, sdkPath.indexOf("bin")) + "data\\Skybox\\";
+			//mapviewOpt.AddConfig("ClearFlagFilePath", sdkPath);	//背景天空盒路径，与ClearFlagColor互斥
+			mapviewOpt.AddConfig("ClearFlagColor", "1,0,0,1");	//背景颜色RGBA，与ClearFlagColor互斥	///配置窗口所占屏幕比例,格式xx,yy,ww,hh;xx为窗口左下角所在屏幕位置的比例起始位置x;yy为窗口左下角所在屏幕位置的比例起始位置y;ww为窗口宽度所占屏幕比例;hh为窗口高度所占屏幕比例///
+			mapviewOpt.AddConfig("ViewPort", "0.5,0,0.5,1");	//假设窗口大小800*800,这里则表示窗口左下角在屏幕的(800*0.5,800*0.5),且大小为[宽(800 * 0.5)]*[高(800 * 1)]
+			mapviewOpt.AddConfig("Eye", "0,0,15");				//窗口初始视点，一般不改动
+			mapviewOpt.AddConfig("Center", "0,0,0");			//窗口初始中心点，一般不改动
+			mapviewOpt.AddConfig("Up", "0,1,0");				//窗口初始上方向，一般不改动
+			
+			//var refObj = map.GetRefrenceSystem();				//使用默认的参考系(可选2)，与可选1互斥
+			mv2 = map.CreateMapView(refObj, mapviewOpt);		//根据参考系和窗口配置创建窗口对象
+			SetScreen2();										//设置当前操作窗口为mv2
+			LoadDefDom();										//加载默认地球数据
+		}
+		function LoadDefDom(){
+			var tlo = map.CreateLayerOptions("domlayer"); 			// 创建dom图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtd"); 			// 数据源类型,代表MTD插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); 			// 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			var sdkPath = obj.GetSDKPath();
+			sdkPath = sdkPath.substr(0, sdkPath.indexOf("bin")) + "bin\\data\\Earth\\DOM";
+			//alert(sdkPath);
+            tlo.AddConfig("Url", sdkPath); 							//要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "png"); 						//切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); 						//数据的坐标参考
+            tlo.AddConfig("MaxX", "180"); 							//数据的范围X向最大值
+            tlo.AddConfig("MinX", "-180"); 							//数据的范围X向最小值
+            tlo.AddConfig("MaxY", "90"); 							//数据的范围Y向最大值
+            tlo.AddConfig("MinY", "-90");							//数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); 						//数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "3"); 						//数据显示的最大层级
+
+            var mtddomlayer = map.CreateLayer("ImageLayer", tlo); 	//创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtddomlayer); 								//添加DOM图层
+		}
+		function SetScreen1(){
+			map.SetCurrentMapViewID(mv1.GetMapViewID());//设置当前操作窗口,这里为窗口1，任何针对窗口操作的功能，调用之前必须调用此方法
+		}
+		
+		function SetScreen2(){
+			map.SetCurrentMapViewID(mv2.GetMapViewID());//设置当前操作窗口,这里为窗口2，任何针对窗口操作的功能，调用之前必须调用此方法
+		}
+		
+		function RemoveScreen1(){
+			if(mv1){
+				map.DestroyMapView(mv1);				//销毁窗口1		
+				var opt = map.CreateMapViewOptions();
+				opt.AddConfig("ViewPort", "0,0,1,1");	//假设窗口大小800*800，这里则表示窗口左下角在屏幕的(800*0,800*0),且大小为[宽(800 * 1)]*[高(800 * 1)]
+				mv2.UpdateMapViewOptions(opt);			//更新窗口参数
+				SetScreen2();							//设置当前操作窗口为窗口2
+			}
+		}
+		
+		function RemoveScreen2(){
+			if(mv2){
+				map.DestroyMapView(mv2);				//销毁窗口2				
+				var opt = map.CreateMapViewOptions();
+				opt.AddConfig("ViewPort", "0,0,1,1");	//假设窗口大小800*800，这里则表示窗口左下角在屏幕的(800*0,800*0),且大小为[宽(800 * 1)]*[高(800 * 1)]
+				mv1.UpdateMapViewOptions(opt);
+				SetScreen1();							//设置当前操作窗口为窗口1
+			}
+		}
+		//////分屏下有两种功能使用的方式//////
+		//////第一种方式：对象，可以被多窗口共同使用，当其中一个窗口的对象发生改变或者销毁时，另外一个窗口的对象不会发生改变或者销毁；这种方式优点是开销小//////
+        var bothLayer = null;												//该图层被添加至两个窗口中，即以共用的方式存在在多个窗口中被调用
+        //////以共用方式添加图层对象。有些对象例外：响应器对象图层、空间分析图层，必须以一对一方式使用//////
+        function LoadBothLayer() {
+		///此处拿地形影像加载为例///
+            var tlo = map.CreateLayerOptions("domlayer"); 					// 创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); 		// 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); 					// 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); 					// 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); 	// 要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "png"); 								// 切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); 								// 数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176"); 					// 数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686"); 					// 数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501"); 					// 数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612"); 						// 数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256"); 								// 切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); 								// 数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); 								// 数据显示的最大层级
+			//tlo.AddConfig("RenderOrder", "100");							// 绘制顺序
+
+			if(bothLayer == null)
+			{
+				bothLayer = map.CreateLayer("ImageLayer", tlo); 			//创建DOM图层，第一项参数必须为ImageLayer
+			}
+            map.AddLayer(bothLayer);										//添加DOM图层
+            bothLayer.Locate();												//DOM图层定位
+        }
+
+        //////销毁共用对象//////
+        function RemoveBothLayer() {
+            map.RemoveLayer(bothLayer);
+        }
+
+        //////显隐对象//////
+        var bVisble = true;
+        function ChangeBothLayer() {
+            if (bVisble) {
+                bVisble = false;
+            } else {
+                bVisble = true;
+            }
+            bothLayer.SetVisible(bVisble);									//显隐对象
+        }
+
+		//////第二种方式：对象只被单一窗口使用//////
+		var eachLayer1 = null;//该图层被添加到窗口1或窗口2中，即只会存在在一个窗口中
+		var eachLayer2 = null;//该图层被添加到窗口1或窗口2中，即只会存在在一个窗口中
+
+        //////加载图层至某一窗口中//////
+        function LoadEachLayer1() {
+		 var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "F:\\测试数据\\大华测试\\大华球面模型\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");//结点调度优先级的缩放值PriorityScale,默认为1
+			tlo.AddConfig("PriorityOffset","1.0");//结点调度优先级的偏移值PriorityOffset,
+            eachLayer1 = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(eachLayer1); ///添加模型图层
+            eachLayer1.Locate(); ////模型图层定位
+			
+			
+            /*var tlo = map.CreateLayerOptions("test"); 				//给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed");			//图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); 			// 数据源类型,代表GMS插件，必须是此键值对
+			tlo.AddConfig("Compress","true");						//支持压缩和未压缩数据(根据数据实际情况设置)
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/");//要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");					// 结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");					// 结点调度优先级的偏移值PriorityOffset,
+            eachLayer1 = map.CreateLayer("ModelLayer", tlo); 		//创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(eachLayer1); 								//添加模型图层
+            eachLayer1.Locate(); 									//模型图层定位*/
+        }
+
+		//////加载图层至某一窗口中//////
+        function LoadEachLayer2() {
+		var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "F:\\测试数据\\大华测试\\大华球面模型\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");//结点调度优先级的缩放值PriorityScale,默认为1
+			tlo.AddConfig("PriorityOffset","1.0");//结点调度优先级的偏移值PriorityOffset,
+            eachLayer2 = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(eachLayer2); ///添加模型图层
+            eachLayer2.Locate(); ////模型图层定位
+			
+            /*var tlo = map.CreateLayerOptions("test"); 				//给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed");			//图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); 			// 数据源类型,代表GMS插件，必须是此键值对
+			tlo.AddConfig("Compress","true");						//支持压缩和未压缩数据(根据数据实际情况设置)
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/");//要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");					// 结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");					// 结点调度优先级的偏移值PriorityOffset,
+            eachLayer2 = map.CreateLayer("ModelLayer", tlo); 		//创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(eachLayer2); 								//添加模型图层
+            eachLayer2.Locate(); 									//模型图层定位*/
+        }
+        //////删除eachLayer1对象,删除之前记得指定与之对应的窗口对象，否则删除无效//////
+        function RemoveEachLayer1() {
+            map.RemoveLayer(eachLayer1); 
+        }
+
+		//////删除eachLayer2对象,删除之前记得指定与之对应的窗口对象，否则删除无效//////
+        function RemoveEachLayer2() {
+            map.RemoveLayer(eachLayer2);
+        }
+		
+		//////响应器需要一对一窗口//////
+		var resp1 = null;													//该响应器被添加到窗口1或窗口2中，即只会存在在一个窗口中
+		var resp2 = null;													//该响应器被添加到窗口1或窗口2中，即只会存在在一个窗口中
+		function AddResp1(){
+			var respOpt = map.CreateResponserOptions("123"); 				//创建响应器配置，参数任意名称
+			respOpt.AddConfig("PickLayerIdList", eachLayer1.GetLayerID()); 	//拾取图层id,-1表示所有图层
+			respOpt.AddConfig("PickColor", "1.0,0.0,0.0,0.8"); 				//拾取颜色R,G,B,A,此例中设为红色
+			respOpt.AddConfig("IsChangeColor", "true"); 					//是否变色
+			respOpt.AddConfig("IsGetLayerID", "true"); 						//是否需要获取节点所在图层ID
+			resp1 = map.CreateResponser("PickModelResponser", respOpt); 	//创建模型拾取响应器，第一参必须为PickModelResponser字符串
+			resp1.AddObserver();											//添加监听
+			map.AddResponser(resp1);										//添加响应器
+		}
+		
+		function AddResp2(){
+			var respOpt = map.CreateResponserOptions("123"); 				//创建响应器配置，参数任意名称
+			respOpt.AddConfig("PickLayerIdList", eachLayer2.GetLayerID()); 	//拾取图层id,-1表示所有图层
+			respOpt.AddConfig("PickColor", "0.0,1.0,0.0,0.8"); 				//拾取颜色R,G,B,A,此例中设为绿色
+			respOpt.AddConfig("IsChangeColor", "true"); 					//是否变色
+			respOpt.AddConfig("IsGetLayerID", "true"); 						//是否需要获取节点所在图层ID
+			resp2 = map.CreateResponser("PickModelResponser", respOpt); 	//创建模型拾取响应器，第一参必须为PickModelResponser字符串
+			resp2.AddObserver();											//添加监听
+			map.AddResponser(resp2);										//添加响应器
+		}
+    </script>
+</head>
+<body onload = "InitScene()">
+	</br>分屏功能区：
+	<input id="Button3" type="button" value="添加屏幕2" onclick="AddScreen()" />
+	<input id="Button3" type="button" value="移除屏幕1" onclick="RemoveScreen1()" />
+	<input id="Button3" type="button" value="移除屏幕2" onclick="RemoveScreen2()" />
+	<input id="Button3" type="button" value="设置屏幕1" onclick="SetScreen1()" />
+	<input id="Button3" type="button" value="设置屏幕2" onclick="SetScreen2()" />
+	</br>一.添加屏幕:
+	</br><input id="Button3" type="button" value="添加窗口2" onclick="AddScreen()" />-->继续点击模块二
+	</br>二.多窗口复用单图层范例，请按照按钮顺序点击体验：
+	</br>
+    <input id="Button1" type="button" value="设置窗口1" onclick="SetScreen1()" />-->
+    <input id="Button2" type="button" value="为窗口1添加地形数据" onclick="LoadBothLayer()" />-->
+    <input id="Button3" type="button" value="设置窗口2" onclick="SetScreen2()" />-->
+	<input id="Button2" type="button" value="为窗口2添加地形数据" onclick="LoadBothLayer()" />-->
+	<input id="Button1" type="button" value="设置窗口1" onclick="SetScreen1()" />-->
+	<input id="Button2" type="button" value="在窗口1设置地形隐藏" onclick="ChangeBothLayer()" />-->
+	<input id="Button1" type="button" value="设置窗口1" onclick="SetScreen1()" />-->
+	<input id="Button2" type="button" value="在窗口1设置地形显示" onclick="ChangeBothLayer()" />-->可选模块三删除地形数据，也可选模块四继续加载模型
+	</br>三.删除地形数据
+	<input id="Button3" type="button" value="设置窗口2" onclick="SetScreen2()" />-->
+	<input id="Button2" type="button" value="删除窗口2地形数据" onclick="RemoveBothLayer()" />-->
+	<input id="Button1" type="button" value="设置窗口1" onclick="SetScreen1()" />-->
+	<input id="Button2" type="button" value="删除窗口1地形数据" onclick="RemoveBothLayer()" />
+	</br>四.多窗口分别使用图层范例，请按照按钮顺序点击体验：
+	</br>
+	<input id="Button1" type="button" value="设置窗口1" onclick="SetScreen1()" />-->
+    <input id="Button2" type="button" value="为窗口1添加地形数据" onclick="LoadEachLayer1()" />-->
+    <input id="Button3" type="button" value="设置窗口2" onclick="SetScreen2()" />-->
+	<input id="Button2" type="button" value="为窗口2添加模型数据" onclick="LoadEachLayer2()" />-->可选模块五删除模型数据，也可选模块六继续使用响应器
+	</br>五.删除模型数据
+	<input id="Button3" type="button" value="设置窗口2" onclick="SetScreen2()" />-->
+	<input id="Button2" type="button" value="删除窗口2模型数据" onclick="RemoveEachLayer2()" />-->
+	<input id="Button1" type="button" value="设置窗口1" onclick="SetScreen1()" />-->
+	<input id="Button2" type="button" value="删除窗口1模型数据" onclick="RemoveEachLayer1()" />
+	</br>六.多窗口分别使用响应器范例，请按照按钮顺序点击体验：
+	</br>
+	<input id="Button1" type="button" value="设置窗口1" onclick="SetScreen1()" />-->
+    <input id="Button2" type="button" value="为窗口1添加拾取响应器" onclick="AddResp1()" />-->
+    <input id="Button3" type="button" value="设置窗口2" onclick="SetScreen2()" />-->
+	<input id="Button2" type="button" value="为窗口2添加拾取响应器" onclick="AddResp2()" />-->请随意点击窗口中的模型，可获取当前点击生效窗口及拾取信息
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

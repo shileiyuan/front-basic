@@ -1,0 +1,23 @@
+
+<html>
+<head>
+    <title>3DVPSDK??????????</title>
+    <script language="javascript" type="text/javascript">
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			Lic();
+        }
+		
+		function Lic(){
+			var ret = obj.InitLic("127.0.0.1@9095@");
+		}
+    </script>
+</head>
+<body onload = "InitScene()">
+<input id="Button3" type="button" value="???????" onclick="Lic()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width:100%;
+        height:100%">
+    </object>
+</body>
+</html>

@@ -1,0 +1,223 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>5.0球面版本测试用例3 矢量</title>
+    <script language="javascript" type="text/javascript" event="FireOnLButtonUp(tx,ty)"
+        for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+		if(addState)
+		{
+			 var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+			//alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+
+			addFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+			points.push(pos.GetX() + "," + pos.GetY() + "," + pos.GetZ());
+		}
+    </script>
+    <script language="javascript" type="text/javascript">
+        var addState = false;
+        var map;
+        var count = 0;
+        var addFeature;
+        var points = new Array();
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+            transformate = map.CreateTransformation();
+            //LoadDOMMTDS();
+            obj.attachEvent("FireOnResponserNotify", FireOnResponserNotify);
+        }
+
+        var responseStr;
+        function FireOnResponserNotify(x, y) {//拾取响应器触发
+            responseStr = pickResp.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+            alert(responseStr);
+        }
+
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("球面模型");
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions");
+            tlo.AddConfig("DataSourceTypeName", "cpm");
+            tlo.AddConfig("Url", "F:\\大华演示\\大华数据\\大华模型\\sceneName.L000_000.wrl");
+            cpmLayer = map.CreateLayer("ModelLayer", tlo);
+            map.AddLayer(cpmLayer);
+            cpmLayer.Locate();
+        }
+
+        
+        //********************************
+        // 专题配置
+        //********************************
+        var polygoneditLayer;
+        function Theme3DShp() {
+            LoadCPM();
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            for (var i = 0; i < result.length; i++)/////result 存储了很多不同颜色值
+            {
+                /////////////////////此部分是模型在场景中显示的配置/////////////////
+                var tSymbol = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串
+                tSymbol.AddConfig("Heading", "0"); ////绕Z轴(世界坐标系方向相同 far->near)旋转,从far(-Z)向near(+Z)看去,逆时针为正，弧度表示
+                tSymbol.AddConfig("Pitch", "0"); //////绕Y轴(世界坐标系方向相同 down(-Y)向up(Y))旋转,从down(-Y)向up(+Y)看去,逆时针为正，弧度表示
+                tSymbol.AddConfig("Roll", "0"); ////绕X轴(世界坐标系方向相同 left->right)旋转,从left(-X)向right(+X)看去,逆时针为正，弧度表示
+                tSymbol.AddConfig("XScale", "10"); ////模型x方向放大比例
+                tSymbol.AddConfig("YScale", "10"); ////模型y方向放大比例
+                tSymbol.AddConfig("ZScale", "10"); ////模型z方向放大比例
+                tSymbol.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向
+
+                if (result[i] == "Red") {
+                    tSymbol.AddConfig("Url", "F:\\大华演示\\大华数据\\kakou\\半球.wrl"); ////模型资源路径
+                }
+                if (result[i] == "Gray") {
+                    tSymbol.AddConfig("Url", "F:\\大华演示\\大华数据\\kakou\\杆球.wrl"); ////模型资源路径
+                }
+          
+
+                tSymbol.AddConfig("LibraryName", "reslib" + result[i]); ////资源名称
+
+                var res = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol
+
+                if (result[i] == "Red") {
+                    res.AddConfig("Uri", "F:\\大华演示\\大华数据\\kakou\\半球.wrl"); ////图标资源路径
+                }
+                if (result[i] == "Gray") {
+                    res.AddConfig("Uri", "F:\\大华演示\\大华数据\\kakou\\杆球.wrl"); ////图标资源路径
+                }
+          
+
+                var reslib = map.CreateResourceLibrary("reslib" + result[i]); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+                reslib.AddResource(res); ////将资源添加至资源库
+                /////////////////////此部分是模型在场景中显示的配置/////////////////
+
+                var pStyle = map.CreateStyle(result[i]); ////创建名称为Point的样式，名称任意
+                pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); ////将模型符号配置添加到该样式，第一参必须为ModelSymbol字符串
+                pStyle.AddFilterName("SubstituteModelFilter"); ////设置图片构建器符号为SubstituteModelFilter，此为图标符号化和模型符号化共有
+
+
+                styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+                styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+                styleSheet.AddStyleSelector(result[i]); /////添加样式选择器，其名称必须与创建名称为result[i][0]的样式的名称一致,专题配置必须有此项
+            }
+            styleSheet.SetStrExpression("[Name]"); /////专题配置的字段,以此字段中不同的值创建样式，也就是result[i][0]的值就是此字段中不同的值
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+
+            tlo.AddConfig("Url", "F:\\zhumh\\testPoint.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+            tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 
+
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "1000000000000"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+            var themLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(themLayer); ////添加矢量图层
+			//themLayer.Locate(); ////矢量图层定位（不建议，不精准）
+			
+			var id = themLayer.GetLayerID(); ////获取图层id
+			polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+        }
+
+
+        ////编辑后保存图层或者另存为：
+        function pointLayerSave() {
+            polygoneditLayer.SaveLayer(); ////编辑点图层保存，一般用于首次创建保存
+        }
+        function pointLayerAsSave() {
+            polygoneditLayer.SaveAsLayer("F:\\Zhumh\\pointtest.shp"); ; ////编辑点图层另保存。用于多次打开后保存
+        }
+
+
+
+        //************************
+        //要素编辑 以面符号化为例：
+        //***********************
+        //添加点开启
+        function AddPointOpen() {
+            addState = true;
+        }
+
+        //添加点关闭
+        function AddPointClose() {
+            addState = false;
+        }
+
+        //创建要素
+        function CreateFeature() {
+            addFeature = map.CreateFeature(); 							//创建要素对象
+            addFeature.SetGeometryType(1); 								//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+        }
+
+        //添加Red要素属性
+        function AddRedAttribute() {
+            addFeature.AddAttribute("Height", "43.5", 4); 				//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)
+            addFeature.AddAttribute("Name", "Red", 5); 				//添加属性值
+            addFeature.AddAttribute("Width", "54", 3); 					//添加属性值
+        }
+
+        //添加Gray要素属性
+        function AddGrayAttribute() {
+            addFeature.AddAttribute("Height", "43.5", 4); 				//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)
+            addFeature.AddAttribute("Name", "Gray", 5); 				//添加属性值
+            addFeature.AddAttribute("Width", "54", 3); 					//添加属性值
+        }
+
+		var featureId;
+        //添加要素
+        function AddFeature() {
+            featureId = polygoneditLayer.GetMaxFeatureID(); 				//获取矢量图层要素最大ID
+            addFeature.SetFeatureId(featureId + 1); 						//设置FeatureID
+            polygoneditLayer.AddFeature(addFeature); 					//添加到矢量图层
+			//featureId += 1;
+        }
+
+		function AddNewFeature()
+		{
+			CreateFeature();
+			var point = points[0].split(",");
+			addFeature.AddPoint(point[0], point[1], point[2]);////向编辑图层添加坐标点信息
+			AddGrayAttribute();
+			AddFeature();
+		}
+        
+        //根据经纬度删除要素
+        function RemoveFetureByGeo() {
+
+            var point = points[0].split(",");
+			//alert(point[0]);
+			//alert(point[1]);
+			//alert(point[2]);                
+			var state = polygoneditLayer.DeleteFeatureByGeoPos(point[0], point[1], point[2]);
+        }
+    </script>
+</head>
+<body onload="InitScene()">
+    <input id="Button13" type="button" value="矢量编辑点创建" onclick="Theme3DShp()" />
+     <input id="Button16" type="button" value="创建要素" onclick="CreateFeature()" />
+    <input id="Button17" type="button" value="添加点开启" onclick="AddPointOpen()" />
+    <input id="Button18" type="button" value="添加点关闭" onclick="AddPointClose()" />
+    <input id="Button20" type="button" value="添加Red矢量属性" onclick="AddRedAttribute()" />
+    <input id="Button19" type="button" value="添加要素" onclick="AddFeature()" />
+	<input id="Button21" type="button" value="添加新要素" onclick="AddNewFeature()" />
+    
+    <input id="Button14" type="button" value="矢量点图层保存" onclick="pointLayerSave()" />
+    <input id="Button15" type="button" value="矢量点图层另存" onclick="pointLayerAsSave()" />
+   
+    <input id="Button27" type="button" value="经纬度删除要素" onclick="RemoveFetureByGeo()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+<script>
+    var result = ["Red", "Gray"];
+</script>
+</html>

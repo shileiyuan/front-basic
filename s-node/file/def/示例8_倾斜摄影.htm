@@ -1,0 +1,104 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>5.0球面版本测试用例1 地形、影像(dem、dom)</title>
+    <script language="javascript" type="text/javascript">
+
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        var osgblayer;
+        //////加载倾斜摄影数据
+        function LoadOSGB() {
+            var tlo = map.CreateLayerOptions("osgb"); 		//创建osgb图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "smesh"); 	//数据源类型,代表SMESH插件，必须是此键值对
+			tlo.AddConfig("Compress", "false");				//是否压缩数据
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            //tlo.AddConfig("Url", "F:\\大华演示\\大华数据\\迭部\\index.osgb"); /////要加载的数据路径
+            //tlo.AddConfig("Srs", 'PROJCS["84", GEOGCS["GCS_WGS_1984", DATUM["D_WGS_1984", SPHEROID["D_WGS_1984",6378137.0,298.257223563, AUTHORITY["EPSG","1024"]], AUTHORITY["EPSG","1043"]], PRIMEM["Greenwich",0, AUTHORITY["EPSG","8901"]], UNIT["degree",0.0174532925199433, AUTHORITY["EPSG","9122"]], AUTHORITY["EPSG","4490"]], PROJECTION["Transverse_Mercator"], PARAMETER["False_Easting",34500000.0], PARAMETER["False_Northing",0.0], PARAMETER["Central_Meridian",102.0], PARAMETER["Scale_Factor",1.0], PARAMETER["Latitude_Of_Origin",0.0], UNIT["metre",1, AUTHORITY["EPSG","9001"]], AUTHORITY["EPSG","4522"]]'); /////数据的坐标参考
+           // tlo.AddConfig("OriginPoint", "34612590,3770741,0"); /////数据的坐标偏移值
+            //tlo.AddConfig("BasePath", "F:\\大华演示\\大华数据\\迭部\\Data"); /////层级数据的路径，最后面没有斜线
+
+            tlo.AddConfig("Url", "F:\\本地数据\\TP01\\index.osgb"); /////要加载的数据路径
+            tlo.AddConfig("Srs", 'PROJCS["Transverse_Mercator",GEOGCS["Geographic Coordinate System",DATUM["WGS84",SPHEROID["WGS84",6378137,298.257223560493]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433]],PROJECTION["Transverse_Mercator"],PARAMETER["scale_factor",1],PARAMETER["central_meridian",120],PARAMETER["latitude_of_origin",0],PARAMETER["false_easting",500000],PARAMETER["false_northing",0],UNIT["Meter",1]]'); /////数据的坐标参考
+            tlo.AddConfig("OriginPoint", "519734,3347141,0"); /////数据的坐标偏移值
+            tlo.AddConfig("BasePath", "F:\\本地数据\\TP01\\Data"); /////层级数据的路径，最后面没有斜线
+            osgblayer = map.CreateLayer("ModelLayer", tlo); ////创建倾斜摄影图层，第一项参数必须为ModelLayer
+            map.AddLayer(osgblayer); ///添加倾斜摄影图层
+            osgblayer.Locate(); ////倾斜摄影图层定位
+		}
+
+        //////删除倾斜摄影数据
+        function RemoveOSGB() {
+            map.RemoveLayer(osgblayer); ////删除倾斜摄影数据
+        }
+
+        /////显隐倾斜摄影数据
+        var osgbsVisble = true;
+        function VisibleOSGB() {
+            if (osgbsVisble) {
+                osgbsVisble = false;
+            } else {
+                osgbsVisble = true;
+            }
+            osgblayer.SetVisible(osgbsVisble); /////显隐倾斜摄影数据
+        }
+
+        var osgsblayer;
+        //////加载倾斜摄影数据
+        function LoadOSGBS() {
+            var tlo = map.CreateLayerOptions("osgbs"); 	// 创建osgbs图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "smeshs"); // 数据源类型,代表SMESHS插件，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.67:9015/coo-server/dataLoad/njfzm/LAYER00/PRIFIXION_L00_0.osgb.zip"); /////要加载的数据路径
+            tlo.AddConfig("Srs", "EPSG:4549"); /////数据的坐标参考
+            tlo.AddConfig("OriginPoint", "385074,3544608,0"); /////数据的坐标偏移值
+            tlo.AddConfig("BasePath", "http://192.168.1.67:9015/coo-server/dataLoad/njfzm/"); /////层级数据的路径，最后面没有斜线
+			tlo.AddConfig("Scale", "1.0");
+			tlo.AddConfig("Compress","true");				//是否压缩数据
+
+            osgsblayer = map.CreateLayer("ModelLayer", tlo); ////创建倾斜摄影图层，第一项参数必须为ModelLayer
+            map.AddLayer(osgsblayer); ///添加倾斜摄影图层
+            osgsblayer.Locate(); ////倾斜摄影图层定位
+        }
+
+        //////删除倾斜摄影数据
+        function RemoveOSGBS() {
+            map.RemoveLayer(osgsblayer); ////删除倾斜摄影数据
+        }
+
+        /////显隐倾斜摄影数据
+        var osgbsVisble = true;
+        function VisibleOSGBS() {
+            if (osgbsVisble) {
+                osgbsVisble = false;
+            } else {
+                osgbsVisble = true;
+            }
+            osgsblayer.SetVisible(osgbsVisble); /////显隐倾斜摄影数据
+        }
+    </script>
+</head>
+<body onload="InitScene()">
+    <input id="Button8" type="button" value="加载倾斜摄影(OSGB)" onclick="LoadOSGB()" />
+    <input id="Button21" type="button" value="卸载倾斜摄影(OSGB)" onclick="RemoveOSGB()" />
+    <input id="Button22" type="button" value="显隐倾斜摄影(OSGB)" onclick="VisibleOSGB()" />
+
+    <input id="Button9" type="button" value="加载网络倾斜摄影(OSGBS)" onclick="LoadOSGBS()" />
+    <input id="Button23" type="button" value="卸载网络倾斜摄影(OSGBS)" onclick="RemoveOSGBS()" />
+    <input id="Button24" type="button" value="显隐网络倾斜摄影(OSGBS)" onclick="VisibleOSGBS()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

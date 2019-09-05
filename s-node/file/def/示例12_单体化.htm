@@ -1,0 +1,119 @@
+
+<html>
+<head>
+    <title>3DVPSDK开发入门教程</title>
+    <script language="javascript" type="text/javascript" event="FireOnResponserNotify(str, id)"
+        for="VPSDKCtrl">
+        var info = pickResp.GetResponserResult().GetConfigValueByKey("objectid");
+        //alert(info);
+    </script>
+    <script language="javascript" type="text/javascript">
+        var osgbLayer;
+        var shpLayer;
+        var pickResp;
+        var gmsLayer;
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+        function LoadOSGB() {
+            var tlo = map.CreateLayerOptions("osgb"); 	// 创建osgb图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "smeshs");
+            tlo.AddConfig("MaxRange", "1000000.0");
+            tlo.AddConfig("MinRange", "0.0");
+            tlo.AddConfig("Compress", "true");
+            tlo.AddConfig("Srs", "PROJCS[\"Transverse_Mercator\",GEOGCS[\"Geographic Coordinate System\",DATUM[\"WGS84\",SPHEROID[\"WGS84\",6378137,298.257223560493]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"scale_factor\",1],PARAMETER[\"central_meridian\",120],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1]]");
+
+            tlo.AddConfig("Url", "http://192.168.1.80:8089/kelan/xihu_Compressed/LAYER00/PRIFIXION_L00_0.osgb.zip");
+            tlo.AddConfig("BasePath", "http://192.168.1.80:8089/kelan/xihu_Compressed/");
+            tlo.AddConfig("OriginPoint", "519734,3347141,0");
+            tlo.AddConfig("Scale", "1.0");
+
+            osgbLayer = map.CreateLayer("ModelLayer", tlo); ////创建倾斜摄影图层，第一项参数必须为ModelLayer
+            map.AddLayer(osgbLayer); ///添加倾斜摄影图层
+            osgbLayer.Locate(); ////倾斜摄影图层定位
+        }
+
+        function LoadShp() {
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+            pSymbol.AddConfig("Color", "0.5,0.1,0.1,0.0"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+            var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+            pStyle.SetName("polygon"); ////设置别名polygon
+            pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+            pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "F:\\演示测试数据\\xihu.shp"); ////数据存放位置，注意双斜杠
+            //F:\\Zhumh\\演示测试数据\\general.shp
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "1000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+            shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(shpLayer); ////添加矢量图层
+        }
+
+        //////加载模型数据
+        function LoadGMS() {
+            var tlo = map.CreateLayerOptions("HaiKang2_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "205012"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/hangzhou/2/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+
+        //创建单体化
+        function CreatePickOSGB() {
+            var pOption = map.CreateResponserOptions("osgb"); 			    //创建响应器配置，参数任意名称
+            pOption.AddConfig("PickLayerIdList", shpLayer.GetLayerID());    //拾取图层id 
+            pOption.AddConfig("PickAssignLayerIdList", gmsLayer.GetLayerID() + "," + osgbLayer.GetLayerID());
+            pOption.AddConfig("IsChangeColor", "true");                     //拾取是否改变颜色
+            pOption.AddConfig("PickColor", "1,0,0,0.3");                    //拾取颜色
+            pOption.AddConfig("HeightValue", "1000");                       //拉伸高度值，一般不变
+            pickResp = map.CreateResponser("PickObliqueResponser", pOption); //创建单体化拾取响应器，第一参必须为PickObliqueResponser字符串
+            pickResp.AddObserver();
+            map.AddResponser(pickResp); 									//添加响应器
+        }
+
+        //移除单体化拾取
+        function RemovePickOSGB() {
+            map.RemoveResponser("PickObliqueResponser"); 					//移除响应器
+        }
+
+        function OpenPick() {
+            pickResp.SetEnabled(true);
+        }
+
+        function ClosenPick() {
+            pickResp.SetEnabled(false);
+        }
+    </script>
+</head>
+<body onload = "InitScene()">
+        <input id="Button1" type="button" value="加载倾斜摄影" onclick="LoadOSGB()" />
+        <input id="Button2" type="button" value="加载矢量" onclick="LoadShp()" />
+        <input id="Button7" type="button" value="加载模型" onclick="LoadGMS()" />
+        <input id="Button3" type="button" value="创建单体化拾取" onclick="CreatePickOSGB()" />
+        <input id="Button4" type="button" value="删除单体化拾取" onclick="RemovePickOSGB()" />
+        <input id="Button5" type="button" value="开启拾取" onclick="OpenPick()" />
+        <input id="Button6" type="button" value="关闭拾取" onclick="ClosenPick()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width:100%;
+        height:100%">
+    </object>
+</body>
+</html>

@@ -1,0 +1,146 @@
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" Content="Microsoft Visual Studio 8.0">
+<TITLE>5.0球面版本测试用例7 其他</TITLE>
+<script language="javascript" type="text/javascript">
+
+	var obj;
+	var map;
+	var transformate;
+
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+        map = obj.GetIMapMgrPtr();
+		transformate = map.CreateTransformation();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+		LoadDOMMTDS();
+	}
+	 		
+	//获取视点信息
+	function GetViewPoint() {
+        var navigation = map.CreateNavigation();	//创建导航对象
+        var info = navigation.GetRoamViewPoint();   //获取漫游视点
+        alert("漫游视点：" + info);
+        var info2 = navigation.GetViewpoint();  	//获取当前视点
+        alert("当前视点：" + info2);
+    }
+	
+	//飞行定位
+	function Navigate() {
+        var navigation = map.CreateNavigation();	//创建导航对象
+        var desP = map.CreatePosition(119.957927, 30.017877, 5286.183036); //创建坐标对象
+        navigation.FlyToDest(desP, 3.14, -0.25*3.14, 1000, 3);	//飞行定位。坐标、旋转角、俯仰角、距离、飞行时间
+    }
+	
+	//图层定位
+	function LocateToLayer() {
+        var navigation = map.CreateNavigation();	//创建导航对象
+        navigation.SetAzimuth(3.14);				//设置旋转角
+        navigation.SetZenith(-0.25*3.14);			//设置俯仰角
+        navigation.SetDistance(20000);				//设置距离
+        var flytime = navigation.LocateToLayer(mtdsdomlayer);//图层定位
+    }
+	
+	//经纬度高程坐标转世界坐标
+	function ConvertLongLatHeightToXYZ() {
+	    var srcPos = map.CreatePosition(120.2071326705743, 30.247303919504386, 5.428); //创建坐标对象
+		var destPos = transformate.ConvertLongLatHeightToXYZ(srcPos);	//经纬度高程坐标转世界坐标
+		alert("x: " + destPos.GetX() + " y: " + destPos.GetY() + " z: " + destPos.GetZ());
+    }
+	
+	//世界坐标转经纬度高程坐标
+	function ConvertXYZToLongLatHeight() {
+	    var srcPos = map.CreatePosition(-2776161.82298,3190613.26802,-4767003.94282); //创建坐标对象
+		var destPos = transformate.ConvertXYZToLongLatHeight(srcPos);	//世界坐标转经纬度高程坐标
+		alert("x: " + destPos.GetX() + " y: " + destPos.GetY() + " z: " + destPos.GetZ());
+    }
+	
+	//经纬度高程坐标转屏幕坐标
+	function ConvertLongLatHeightToScreen() {
+	    var srcPos = map.CreatePosition(120.2071326705743, 30.247303919504386, 5.428); //创建坐标对象
+		var destPos = transformate.ConvertLongLatHeightToScreen(srcPos);	//经纬度高程坐标转屏幕坐标
+		var x = parseInt(destPos.GetX());
+		var y = parseInt(destPos.GetY());
+		alert("x: " + x + " y: " + y);
+    }
+	
+	//根据原始坐标系及目标坐标系进行坐标转换
+	function ConvertCoordBySRS() {
+		//84坐标系：wgs84
+		//2000坐标系: epsg:4490
+	    var srcPos = map.CreatePosition(120.2071326705743, 30.247303919504386, 5.428); //创建坐标对象
+		var destPos = transformate.ConvertCoordBySRS(srcPos,"wgs84","epsg:4490");	//根据原始坐标系及目标坐标系进行坐标转换
+		alert("x: " + destPos.GetX() + " y: " + destPos.GetY() + " z: " + destPos.GetZ());
+    }
+	
+	//获取SDK路径
+	function GetSDKPath() {
+        var path = obj.GetSDKPath(); 		//获取SDK路径
+        alert(path);
+    }
+	
+	//获取当前SDK版本号
+	function GetSDKVersion() 
+	{
+		var SdkVer = obj.GetCurrentVer();	//获取版本号
+		alert(" SDK的版本号: " + SdkVer );
+	}
+	
+	var	mtdsdomlayer;
+	//加载DOM数据
+	function LoadDOMMTDS() {
+		var tlo = map.CreateLayerOptions("domlayer"); 		//创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); 		//数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 		//代表地形驱动，必须是此键值对
+
+		//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); //要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "png"); 					//切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); 					//数据的坐标参考
+		tlo.AddConfig("MaxX", " 120.714010586176"); 		//数据的范围X向最大值
+		tlo.AddConfig("MinX", " 118.339686018686"); 		//数据的范围X向最小值
+		tlo.AddConfig("MaxY", " 30.5651224875501"); 		//数据的范围Y向最大值
+		tlo.AddConfig("MinY", " 29.188584444612"); 			//数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "256"); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); 					//数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); 					//数据显示的最大层级
+
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); 	//创建DEM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdsdomlayer); //添加DOM图层
+		mtdsdomlayer.Locate(); 		//DOM图层定位
+	}
+
+	var gmsLayer;
+	function LoadGMS() {
+	    var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+		tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+		//调度优先级 = priority * PriorityScale + PriorityOffset;
+		//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+		//调度优先级越大，优先调度并显示
+		tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+		tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+		gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+		map.AddLayer(gmsLayer); ///添加模型图层
+		gmsLayer.Locate(); ////模型图层定位
+	}
+</script>
+</HEAD>
+<BODY onload="InitScene()">
+	<input id="Button1" type="button" value="加载模型" onclick="LoadGMS()" />
+	<input id="Button1" type="button" value="获取当前视点" onclick="GetViewPoint()" />
+	<input id="Button2" type="button" value="导航定位" onclick="Navigate()" />
+	<input id="Button3" type="button" value="图层定位" onclick="LocateToLayer()" />
+	<input id="Button7" type="button" value="获取SDK路径" onclick="GetSDKPath()" />
+    <input id="Button8" type="button" value="SDK版本号" onclick = "GetSDKVersion()" />
+	<br/>
+	<input id="Button4" type="button" value="经纬高程转世界坐标" onclick="ConvertLongLatHeightToXYZ()" />
+	<input id="Button5" type="button" value="世界坐标转经纬高程" onclick="ConvertXYZToLongLatHeight()" />
+	<input id="Button6" type="button" value="经纬高程转屏幕坐标" onclick="ConvertLongLatHeightToScreen()" />
+	<input id="Button6" type="button" value="根据原始坐标系及目标坐标系进行坐标转换" onclick="ConvertCoordBySRS()" />
+	<OBJECT id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 100%"></OBJECT>
+</BODY>
+</HTML>

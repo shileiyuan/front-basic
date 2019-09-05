@@ -1,0 +1,300 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>光线操作</title>
+    <script language="javascript" type="text/javascript">
+
+        var MouseX = "";
+        var MouseY = "";
+        /**
+         @brief 鼠标左键触发事件
+         @param [in] x 鼠标点击位置x轴坐标
+         @param [in] y 鼠标点击位置y轴坐标
+        */
+        function LButtonDown(x, y) {
+
+           
+            MouseX = x;
+            MouseY = y;
+            //window.alert("X: " + MouseX + "Y: " + MouseY);
+        }
+          /**
+         @brief 操作事件
+         @param [in] type   操作类型
+         @param [in] result 操作结果
+        */
+        function FireOnOperationNotify(type, result)
+        {
+            window.alert( "ViewPoint: " + " type: " + type + " result: " + result );
+        }
+
+
+        var responseStr;
+        function FireOnResponserNotify(x, y) {//拾取响应器触发
+            responseStr = res.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+            alert("responserStr: " + responseStr);
+       
+        }
+
+
+        var res;
+        function PickOpen() 
+        {
+            var resp = map.CreateResponserOptions("123");
+            resp.AddConfig("PickLayerIdList", "2");    //图层id设置               
+            resp.AddConfig("IsChangeColor", "false");  //颜色是否改变
+            res = map.CreateResponser("PickModelResponser", resp);
+            res.AddObserver();
+            map.AddResponser(res);
+        }
+
+        function RemovePick() {
+
+            map.RemoveResponser("PickModelResponser"); //移除响应器
+        }
+
+  
+        var obj;
+        var map;
+        var tools;
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            obj.attachEvent("FireOnLButtonDown", LButtonDown);
+            obj.attachEvent("FireOnOperationNotify", FireOnOperationNotify);
+            obj.attachEvent("FireOnResponserNotify", FireOnResponserNotify);
+
+            map = obj.GetIMapMgrPtr();
+            tools = obj.GetIToolsCOMPtr();
+        }
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+
+            var tlo = map.CreateLayerOptions("HaiKang2_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+
+        }
+
+        var c3sLayer0;
+        var c3sLayer1;
+        //////加载模型数据
+        function LoadC3S()
+        {
+            var tlo = map.CreateLayerOptions("c3s"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "c3ss"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.34:9095/coo-server/tomcatfile/c3sTest/SN/model/0.c3s.zip");
+            tlo.AddConfig("Compress", "1");
+            c3sLayer0 = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(c3sLayer0); ///添加模型图层
+            c3sLayer0.Locate();
+            tlo.AddConfig("Url", "http://192.168.1.34:9095/coo-server/tomcatfile/c3sTest/SW/model/0.c3s.zip");
+            c3sLayer1 = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(c3sLayer1); ///添加模型图层
+            c3sLayer1.Locate();
+            
+        }
+
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+        //加载c3s服务
+        var parseC3sTool = null;
+        function LoadC3SNew() {
+
+            if (null != parseC3sTool) {
+
+                alert("Repeat Load The Same Layer!!!");
+                C3sLocate();
+                return;
+            }
+
+            if (null != tools) {
+
+                var tlo = tools.CreateToolsOptions("ToolsOption");
+                if (null != tlo) {
+
+                    tlo.AddConfig("Url", "192.168.1.34");        //服务ip
+                    tlo.AddConfig("Port", 9095);                 //服务端口
+                    tlo.AddConfig("Type", "gms");                //服务类型
+                    tlo.AddConfig("Name", "admin");              //服务用户名
+                    tlo.AddConfig("Password", "admin");          //服务密码
+                    //tlo.AddConfig("ServerName", "TestOne");    //服务名 
+
+                    //tlo.AddConfig("ServerName", "TestTwo");
+                    //tlo.AddConfig("ServerName", "TestThree");
+                    tlo.AddConfig("ServerName", "c3sTest");
+
+
+                    parseC3sTool = tools.CreateToolsObject("ParseModelWebData", tlo);      //加载服务的工具对象类名
+                    if (null != parseC3sTool) 
+                    {
+                        var res = tools.ActiveTools(parseC3sTool);                         //激活对象工具
+                        C3sLocate();
+                    }
+                }
+
+            } else {
+
+                alert("null tools invalid handle");
+            }
+        }
+
+
+        var bVisible = 1;
+        var strVisible;
+        function SetC3sVisible() {
+
+            if (null != parseC3sTool) {
+
+                bVisible = !bVisible;
+                if (bVisible) {
+                    strVisible = "1";                                //显示
+                } else {
+                    strVisible = "0";                               //隐藏 
+                }
+
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+                mlo.AddConfig("Visible", strVisible);               //设置加载图层显隐状态0，隐藏 1，显示（使用字符创“0” or "1"）
+                parseC3sTool.UpdateToolsOption(mlo);                //更新工具配置项
+
+            }
+
+        }
+
+
+        function C3sLocate() {
+
+            if (null != parseC3sTool) {
+
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+                mlo.AddConfig("LocateState", "1");                  //c3s定位 
+                parseC3sTool.UpdateToolsOption(mlo);                //更新工具配置项
+            }
+        }
+
+
+        function SetC3sLoadState() {
+
+            if (null != parseC3sTool) {
+
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+                mlo.AddConfig("LoadState", "0");                    //设置加载载状态 0,卸载
+                parseC3sTool.UpdateToolsOption(mlo);                //更新工具配置项   
+                tools.DestoryTools(parseDomTool);
+                parseC3sTool = null;
+            }
+        }
+
+
+        /***************** 光线操作 ***************************
+           操作步骤:
+                   1， 载入c3s服务
+                   2， 启动光线操作
+                   3， 更新参数设置
+                   4， 移除参数设置
+        *******************************************************/
+
+        //创建更新操作，同一个对象最多添加 0~7 八个光源，多添加将无效 
+        var operationPtr = null;
+        function CreateUpdateOperation(){//创建更新操作
+
+            if ( null == operationPtr ) {
+
+                var tlo = map.CreateOperationOptions("Light");             //创建配置类型,操作类型的配置
+                tlo.AddConfig("OptionsTypeName", "LightOptions");          //操作配置项类名
+                tlo.AddConfig("Ambient", "0.9,0.0,0.0,1.0");               //环境光
+                tlo.AddConfig("Operation", "Add");                         //操作类型添加   
+                tlo.AddConfig("LayerID", gmsLayer.GetLayerID());          //添加图层id, 若值设置为 10000 则光照将对场景相机进行操作    
+                operationPtr = map.CreateOperation("LightOperation", tlo); //根据配置创建模型调整操作
+                map.AddOperation(operationPtr);                            //加入操作并执行
+            }
+
+        }
+
+
+        //更新添加操作
+        function UpdateAddLightOption(){//更新光线参数
+
+            if (null != operationPtr) {
+                var tlo = map.CreateOperationOptions("Light");
+                tlo.AddConfig("OptionsTypeName", "LightOptions");
+                tlo.AddConfig("Ambient", "0.2,0.2,0.2,1.0");       //环境光
+                tlo.AddConfig("Operation", "Add");                 //添加操作
+
+                /**以下注释配置项，需要时打开*/
+                //tlo.AddConfig("Diffuse", "1.0,1.0,1.0,1");       //漫反射光
+                //tlo.AddConfig("Specular", "1.0,1.0,1.0,1");      //镜面光
+                //tlo.AddConfig("SpotCutOff",180.0);               //光源的最大散布角
+                //tlo.AddConfig("SpotExponet", 2.0);               //聚光源指数
+                //tlo.AddConfig("Attenuation", 0.9);               //衰变系数
+                //tlo.AddConfig("Direction", "0,0, 0.0, -1.0");    //光线方向设置
+                //tlo.AddConfig("Position", "20,30,40,1.0");       //光线位置设置 （x, y, z,w）
+
+                tlo.AddConfig("LayerID", gmsLayer.GetLayerID());  //添加图层id, 若值设置为 10000 则光照将对场景相机进行操作  
+                operationPtr.UpdateOperationOptions(tlo);          //根据配置创建模型调整操作
+            
+            }
+        }
+
+
+        //更新删除操作
+        function UpdateRemoveLightOption() {
+
+            if ( null != operationPtr ) {
+
+                var tlo = map.CreateOperationOptions("Light");
+
+                tlo.AddConfig("OptionsTypeName", "LightOptions");   //图层配置项类型
+                tlo.AddConfig("Operation", "Remove");               //添加光线操作类型
+
+                tlo.AddConfig("LayerID", c3sLayer0.GetLayerID() + "," + c3sLayer1.GetLayerID());   //添加图层id, 若值设置为 10000 则光照将对场景相机进行操作 
+                operationPtr.UpdateOperationOptions(tlo);           //根据配置创建模型调整操作
+
+            }
+
+        }
+
+        //移除操作
+        function RemoveOperation() 
+        { 
+            if( null != operationPtr ) 
+            {
+                map.RemoveOperation(operationPtr);
+                operationPtr = null;
+            }
+        }
+    </script>
+
+
+</head>
+
+
+<body onload="InitScene()">
+    
+    <input id="Button3"   type="button"   value="加载c3s"       onclick="LoadC3S()" />
+    <input id="Button1"   type="button"   value="开启拾取"      onclick="PickOpen()" />
+    <input id="Button2"   type="button"   value="关闭拾取"      onclick="RemovePick()" />
+
+    <input id="Button17"  type="button"   value="加载(GMS)"     onclick="LoadGMS()" />
+    <input id="Button18"  type="button"   value="卸载(GMS)"     onclick="RemoveGMS()" />
+
+    <input id ="Button20" type= "button"  value="启动光线操作"  onclick = "CreateUpdateOperation()" />
+    <input id ="Button21" type= "button"  value="更新参数设置"  onclick = "UpdateAddLightOption()" />
+    <input id ="Button4"  type= "button"  value="移除参数设置"  onclick = "UpdateRemoveLightOption()" />
+    <input id ="Button23" type= "button"  value="结束操作"      onclick = "RemoveOperation()" />
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

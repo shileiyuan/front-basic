@@ -1,0 +1,292 @@
+﻿<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=8">
+<title>6.0球面版本测试用类视点图层</title>
+	
+<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+	responseStr = res.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+	PickName = res.GetResponserResult().GetConfigValueByKey("PickName");
+	PickLayerId = res.GetResponserResult().GetConfigValueByKey("PickLayerList");
+	alert("PickPoint:" + responseStr + " PickName: " +  PickName + " PickLayerId: " +  PickLayerId);
+</script>
+
+<script language="javascript" type="text/javascript" event="FireOnOperationNotify(type, result)" for="VPSDKCtrl">
+	var Result = operationPtr.GetOperationResult().GetConfigValueByKey("Result");
+	alert("Result=" + Result);
+</script>
+<script language="javascript" type="text/javascript">
+	var obj;
+	var map;
+	var tools;
+	var responseStr;
+	var PickName;
+	var PickLayerId = -1;
+	var ServerName;
+	
+	//初始化
+	function InitScene() {
+		obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+		tools = obj.GetIToolsCOMPtr();
+	}
+	//********************************
+	// 模型服务加载
+	//********************************
+	//加载Model服务
+	var parseModelTool = null;
+	function LoadModelServer() {
+		if (null != parseModelTool) {
+			alert("Repeat Load The Same Layer!!!");
+			return;
+		}
+		if (null != tools) {
+			var tlo = tools.CreateToolsOptions("ToolsOption");
+			if (null != tlo) {
+				tlo.AddConfig("Url", "192.168.1.50"); 		//服务ip 67
+				tlo.AddConfig("Port", 8087); 				//服务端口 9015
+				tlo.AddConfig("Type", "gms"); 				//服务类型
+				tlo.AddConfig("Name", "admin"); 			//服务用户名
+				tlo.AddConfig("Password", "admin"); 		//服务密码
+				tlo.AddConfig("Version", "6.4"); 			//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+				tlo.AddConfig("ServerName", "TEHotel");		//服务名称  nanjingmodel 南京C3S数据 杭州wrl
+				tlo.AddConfig("LocateState", "1"); 			//服务定位状态
+				parseModelTool = tools.CreateToolsObject("ParseModelWebData", tlo); 	//加载服务的工具对象类名
+				if (null != parseModelTool) {
+					var res = tools.ActiveTools(parseModelTool); 		//激活对象工具
+				}
+			}
+		} else {
+			alert("null tools invalid handle");
+		}
+	}
+
+	//显隐Model服务
+	var bVisible = 1;
+	var strVisible;
+	function VisibleModelServer() {
+		if (null != parseModelTool) {
+			bVisible = !bVisible;
+			if (bVisible) {
+				strVisible = "1";
+			} else {
+				strVisible = "0";
+			}
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+			mlo.AddConfig("Visible", strVisible);               //设置加载图层显隐状态0，隐藏 1，显示（使用字符创“0” or "1"）
+			parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项
+		}
+	}
+
+	//定位Model服务
+	function LocateModelServer() {
+		if (null != parseModelTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+			mlo.AddConfig("LocateState", "1");                  //c3s定位 
+			parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项
+		}
+	}
+
+	//卸载Model服务
+	function UnLoadModelServer() {
+		if (null != parseModelTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+			mlo.AddConfig("LoadState", "0");                    //设置加载载状态 0,卸载
+			parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项   
+			tools.DestoryTools(parseModelTool);					//销毁工具
+			parseModelTool = null;
+		}
+	}
+	
+		//********************************
+	// 分层分户服务加载
+	//********************************
+	//加载Model服务
+	var parsergbaTool = null;
+	function LoadrgbaServer() {
+		if (null != parsergbaTool) {
+			alert("Repeat Load The Same Layer!!!");
+			return;
+		}
+		if (null != tools) {
+			var tlo = tools.CreateToolsOptions("ToolsOption");
+			if (null != tlo) {
+				tlo.AddConfig("Url", "192.168.1.50"); 		//服务ip 67
+				tlo.AddConfig("Port", 8087); 				//服务端口 9015
+				tlo.AddConfig("Type", "rgba"); 				//服务类型
+				tlo.AddConfig("Name", "admin"); 			//服务用户名
+				tlo.AddConfig("Password", "admin"); 		//服务密码
+				tlo.AddConfig("Version", "6.4"); 			//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+				tlo.AddConfig("ServerName", "fenc");		//服务名称  nanjingmodel 南京C3S数据 杭州wrl
+				tlo.AddConfig("LocateState", "1"); 			//服务定位状态
+				parsergbaTool = tools.CreateToolsObject("ParseModelWebData", tlo); 	//加载服务的工具对象类名
+				if (null != parsergbaTool) {
+					var res = tools.ActiveTools(parsergbaTool); 		//激活对象工具
+				}
+			}
+		} else {
+			alert("null tools invalid handle");
+		}
+	}
+
+	//显隐分层分户服务
+	var brgbaVisible = 1;
+	var strrgbaVisible;
+	function VisibletgbaServer() {
+		if (null != parsergbaTool) {
+			brgbaVisible = !brgbaVisible;
+			if (brgbaVisible) {
+				strrgbaVisible = "1";
+			} else {
+				strrgbaVisible = "0";
+			}
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+			mlo.AddConfig("Visible", strrgbaVisible);               //设置加载图层显隐状态0，隐藏 1，显示（使用字符创“0” or "1"）
+			parsergbaTool.UpdateToolsOption(mlo);                //更新工具配置项
+		}
+	}
+
+	//定位分层分户服务
+	function LocatergbaServer() {
+		if (null != parsergbaTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+			mlo.AddConfig("LocateState", "1");                  //c3s定位 
+			parsergbaTool.UpdateToolsOption(mlo);                //更新工具配置项
+		}
+	}
+
+	//卸载分层分户服务
+	function UnLoadrgbaServer() {
+		if (null != parsergbaTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+			mlo.AddConfig("LoadState", "0");                    //设置加载载状态 0,卸载
+			parsergbaTool.UpdateToolsOption(mlo);                //更新工具配置项   
+			tools.DestoryTools(parsergbaTool);					//销毁工具
+			parsergbaTool = null;
+		}
+	}
+	
+	//********************************
+	// 模型拾取
+	//********************************
+	//打开模型拾取响应器
+	var res;
+	function OpenPick() {
+		var resp = map.CreateResponserOptions("123"); 	//创建响应器配置，参数任意名称
+		resp.AddConfig("PickLayerIdList", -1); 			//拾取图层id //c3sLayer.GetLayerID() 
+		resp.AddConfig("PickColor", "1.0,0.0,0.0,0.8"); //拾取颜色
+		resp.AddConfig("IsChangeColor", "true"); 		//是否变色
+		resp.AddConfig("IsGetLayerID", "true"); 		//是否需要获取节点所在图层ID
+		res = map.CreateResponser("PickModelResponser", resp); //创建模型拾取响应器，第一参必须为PickModelResponser字符串
+		res.AddObserver();	//添加监听
+		map.AddResponser(res); //添加响应器
+	}
+	
+	//关闭模型拾取响应器
+	function ClosePick() {
+		map.RemoveResponser("PickModelResponser");						//移除响应器 
+		res = null;
+	}
+	
+	//获取图层配置信息
+	function GetPickLayerAtt() {
+		if(PickLayerId != -1)
+		{
+			var Layer = map.GetLayerObject(PickLayerId);
+			if(Layer)
+			{
+				var LayerOpt = Layer.GetLayerOption();
+				ServerName = LayerOpt.GetConfigValueByKey("ServerName");
+				alert("ServerName:" + ServerName);
+			}
+		}
+	}
+	
+	//********************************
+	// 模型查找删除操作
+	//********************************
+	var operationPtr;
+	//创建更新操作
+	function CreateOperation() {
+		if (responseStr == null || PickName == null) {
+			alert("pick point is null!"); 
+			return;
+		}
+		var tlo = map.CreateOperationOptions("FindModelOptions"); //创建配置类型,操作类型的配置
+		tlo.AddConfig("OptionsTypeName", "FindModelOptions");
+		tlo.AddConfig("FindLayerIdList", "-1"); 				//添加需要拾取相交的图层id，以分号分隔,如果传-1代表对所有模型图层查找
+		tlo.AddConfig("ModelName", PickName); 					//模型名称 //OSGBID628
+		tlo.AddConfig("Point", responseStr); 					//模型坐标（经纬高程） 110.523077105,26.9025233956,273.004930137;
+        tlo.AddConfig("Operation", "Update");                   //操作类型 Get:获取; Update:更新信息;
+        tlo.AddConfig("PickColor", "1,0,0,0.3");				//高亮颜色
+		
+		operationPtr = map.CreateOperation("FindModelOperation", tlo);  //根据配置创建模型查找操作，第一个参数为模型查找操作的类名
+		operationPtr.AddObserver();                               	//回调事件添加
+		map.AddOperation(operationPtr);                             //加入操作并执行
+	}
+	
+	//更新操作 - 获取高亮
+	function UpdateOperation() {
+		if(operationPtr == null)
+		{
+			return;
+		}
+		var tlo = map.CreateOperationOptions("FindModelOptions"); //创建配置类型,操作类型的配置
+		tlo.AddConfig("OptionsTypeName", "FindModelOptions");   //第二个参数为配置类名
+		tlo.AddConfig("FindLayerIdList", "-1"); 				//添加需要拾取相交的图层id，以分号分隔
+		tlo.AddConfig("ModelName", PickName); 					//模型名称
+		tlo.AddConfig("Point", responseStr); 					//模型坐标（经纬高程）
+        tlo.AddConfig("Operation", "Get");                   	//操作类型 Get:获取; Update:更新信息;
+		operationPtr.UpdateOperationOptions(tlo); 				//根据配置创建模型调整操作
+	}
+	
+	//更新操作 - 更新
+	function UpdateOperation2() {
+		if(operationPtr == null)
+		{
+			return;
+		}
+		var tlo = map.CreateOperationOptions("FindModelOptions"); //创建配置类型,操作类型的配置
+		tlo.AddConfig("OptionsTypeName", "FindModelOptions");   //第二个参数为配置类名
+		tlo.AddConfig("FindLayerIdList", "-1"); 				//添加需要拾取相交的图层id，以分号分隔
+		tlo.AddConfig("ModelName", PickName); 					//模型名称
+		tlo.AddConfig("Point", responseStr); 					//模型坐标（经纬高程）
+        tlo.AddConfig("Operation", "Update");                   //操作类型 Get:获取; Update:更新信息;
+		operationPtr.UpdateOperationOptions(tlo); 				//根据配置创建模型调整操作
+	}
+	
+	//移除操作
+	function RemoveOperation() { 
+		map.RemoveOperation(operationPtr);
+	}
+	
+</script>
+</head>
+<body>
+    <input id="Button1" 	type="button"   value="初始化" 		onclick="InitScene()"/>
+    </br>模型服务加载:     
+    <input id="Button6"    type="button"   value="加载模型数据" 		onclick="LoadModelServer()" />
+    <input id="Button7"    type="button"   value="模型数据定位" 		onclick="LocateModelServer()"/>
+    <input id="Button8"    type="button"   value="模型数据显隐"			onclick="VisibleModelServer()"/>
+    <input id="Button9"    type="button"   value="模型数据卸载" 		onclick="UnLoadModelServer()"/>
+	</br>分层分户服务加载:     
+    <input id="Button6"    type="button"   value="加载分层分户数据" 		onclick="LoadrgbaServer()" />
+    <input id="Button7"    type="button"   value="分层分户数据定位" 		onclick="LocatergbaServer()"/>
+    <input id="Button8"    type="button"   value="分层分户数据显隐"			onclick="VisibletgbaServer()"/>
+    <input id="Button9"    type="button"   value="分层分户数据卸载" 		onclick="UnLoadrgbaServer()"/>
+	</br>模型拾取:   
+	<input id="Button10"    type="button"   value="打开模型拾取" 		onclick="OpenPick()"/>
+	<input id="Button11"    type="button"   value="关闭模型拾取" 		onclick="ClosePick()"/>
+	<input id="Button12" 	type="button" 	value="获取图层配置信息" 	onclick="GetPickLayerAtt()"/>
+	&nbsp;
+    <input id="Button13" 	type="button" 	value="创建查找操作"  		onclick="CreateOperation()"/>
+    <input id="Button14" 	type="button" 	value="高亮查询节点"  		onclick="UpdateOperation()"/>
+    <input id="Button14" 	type="button" 	value="更新查找节点"  		onclick="UpdateOperation2()"/>
+    <input id="Button15" 	type="button" 	value="移除查找操作"  		onclick="RemoveOperation()"/>
+    
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 980px">
+	</object>
+</body>
+</html>

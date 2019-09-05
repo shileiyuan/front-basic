@@ -1,0 +1,526 @@
+﻿<HTML>
+<HEAD>
+<TITLE>6.0序列化反序列化</TITLE>
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=8" />
+<script type="text/javascript" src="js/jquery-1.9.1/jquery.min.js"></script>
+<script type="text/javascript" src="js/popwin.js"></script>
+
+<script type="text/javascript" src="js\jsTree\jquery.js"></script>
+<script type="text/javascript" src="js\jsTree\jquery.cookie.js"></script>
+<script type="text/javascript" src="js\jsTree\jquery.hotkeys.js"></script>
+<script type="text/javascript" src="js\jsTree\jquery.jstree.js"></script>
+<link type="text/css" rel="stylesheet" href="js\jsTree\jstree/syntax/!style.css"/>
+<link type="text/css" rel="stylesheet" href="js\jsTree\jstree/!style.css"/>
+<link type="text/css" rel="stylesheet" href="js\jsTree\jstree/themes/default/style.css"/>
+<script type="text/javascript" src="js\jsTree\syntax/!script.js"></script>
+
+<script language="javascript" type="text/javascript" event="FireMouseHover(x , y)" for="VPSDKCtrl">
+	//popWin1.init();
+	//popWin1.showWin("about:Tabs",1000,600,function(){});
+	
+</script>
+
+
+<script language="javascript" type="text/javascript" event="FireOnLButtonDown(x , y)" for="VPSDKCtrl">
+	//popWin1.init();
+	//popWin1.showWin("about:Tabs",1000,600,function(){});
+	//document.getElementById("Text").focus();
+	//document.getElementById("testifream").display = "block";
+	//document.getElementById("test").style = "display:block;";
+</script>
+
+<script language="javascript" type="text/javascript" event="FireOnDeserializeNotify(x)" for="VPSDKCtrl">
+		var layerNum = map.GetLayerCount();
+		var layerGroupNum = map.GetLayerGroupCount();
+		alert("图层数量:" + layerNum + ", 图层组数量:" + layerGroupNum );
+		
+		layerGroup1 = map.GetLayerGroupByIndex(0);
+		layerGroup2 = map.GetLayerGroupByIndex(1);
+		layerGroup3 = map.GetLayerGroupChildByIndex(layerGroup2, 0);
+		
+		var layer = layerGroup1.GetLayerByIndex(0);
+		if(layer.GetLayerName() == "domlayer")
+		{
+			layerArrayer[1] = layer;
+		}
+		
+		//alert(layerArrayer);
+		layerArrayer[2] = layerGroup1.GetLayerByIndex(1);
+		//alert(layerArrayer);
+		layerArrayer[3] = layerGroup3.GetLayerByIndex(1);
+		//alert(layerArrayer);
+		layerArrayer[4] = layerGroup3.GetLayerByIndex(2);
+		//alert(layerArrayer);
+		layerArrayer[5] = layerGroup3.GetLayerByIndex(0);
+		//alert(layerArrayer);
+		layerArrayer[6] = layerGroup2.GetLayerByIndex(0);
+		//alert(layerArrayer);
+		layerArrayer[7] = map.GetLayerByIndex(0);
+		//alert(layerArrayer);
+</script>
+
+
+<script language="javascript" type="text/javascript">
+
+/* 图层树组织结构
+ *                   |-- DOM(1)
+ *                   |            |-- SHP(3)
+ *      |-- Group1 --|-- DEM(2)   |
+ *      |                         |-- Analysis(4)
+ *map --|-- Group2 --|-- Group3 --|
+ *      |            |            |-- OSGB(5)
+ *      |-- CPM(7)   |-- DynamicPath(6)
+ *
+ */
+	var layerArrayer = new Array;
+	var obj;
+	var map;
+	var transformate;
+	
+	var layerGroup1;
+	var layerGroup2;
+	var layerGroup3;
+	
+	var currObject = layerGroup2;
+	
+	var jsonData;
+	
+	var cpmLayer;
+
+    function InitScene() 
+	{
+        var obj = document.getElementById("VPSDKCtrl");
+        map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+		transformate = map.CreateTransformation();
+		
+		layerGroup1 = map.CreateLayerGroup("Group1");
+		map.AddLayerGroup(layerGroup1);
+		
+		layerGroup2 = map.CreateLayerGroup("Group2");
+		map.AddLayerGroup(layerGroup2);
+		
+		layerGroup3 = map.CreateLayerGroup("Group3");
+		layerGroup2.AddLayerGroup(layerGroup3);
+		
+		document.getElementById("Text").value = "E:\\Test\\prj.dep";
+
+		jsonData =  
+		{
+			"data" : [
+			{ 
+				"data" : "map node", 
+				"children" : [
+				{
+					"data" : "group1",
+					"children" : [
+					{
+						"data" : { 
+							"title" : "DOM", 
+							"attr" : { "href" : "#" } 
+						},
+						"metadata" : { id : "1" }
+					}, 
+					{
+						"data" : { 
+							"title" : "DEM", 
+							"attr" : { "href" : "#" } 
+						},
+						"metadata" : { id : "2" },
+					}]
+				},
+				{
+					"data" : "group2",
+					"children" : [
+						{
+							"data" : "group3" ,
+							"children" : [
+							{
+							"data" : { 
+								"title" : "SHP", 
+								"attr" : { "href" : "#" } 
+							},
+							"metadata" : { id : "3" }
+						}, 
+						{
+							"data" : { 
+								"title" : "Analysis", 
+								"attr" : { "href" : "#" } 
+							},
+							"metadata" : { id : "4" },
+						}, 
+						{
+							"data" : { 
+								"title" : "OSGB", 
+								"attr" : { "href" : "#" } 
+							},
+							"metadata" : { id : "5" },
+						}
+						]},
+					{
+						"data" : { 
+								"title" : "DynamicPath", 
+								"attr" : { "href" : "#" } 
+							},
+						"metadata" : { id : "6" }
+					}
+					]},
+				{
+						"data" : { 
+								"title" : "CPM", 
+								"attr" : { "href" : "#" } 
+							},
+						"metadata" : { id : "7" }
+				}
+				]
+			}],
+			"progressive_render" : true
+		};
+
+		$(function () {
+			$("#tree").jstree({ 
+				"plugins" : [ "themes", "json_data", "ui" ],
+				"json_data" : jsonData
+			}).bind("select_node.jstree", function (e, data) { layerArrayer[data.rslt.obj.data("id")].Locate(); });
+		});
+	}
+	
+	
+	function loadCPM()
+	{
+		var tlo = map.CreateLayerOptions("黄龙球面模型");
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions");
+		tlo.AddConfig("DataSourceTypeName", "cpm");
+        tlo.AddConfig("Url", "E:\\TestData\\20161229黄龙饭店最终\\Out1\\Lod1\\sceneName.L000_000.wrl");
+
+		cpmLayer = map.CreateLayer("ModelLayer", tlo);
+		map.AddLayer(cpmLayer);
+		
+		layerArrayer[7] = cpmLayer;
+	}
+
+	var shpLayer;
+    function LoadSHP()
+	{
+		var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "10"); ////点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+        var tSymbol = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串 
+        tSymbol.AddConfig("Heading", "0"); ////绕Z轴(世界坐标系方向相同 far->near)旋转,从far(-Z)向near(+Z)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Pitch", "-3.14"); //////绕Y轴(世界坐标系方向相同 down(-Y)向up(Y))旋转,从down(-Y)向up(+Y)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Roll", "0"); ////绕X轴(世界坐标系方向相同 left->right)旋转,从left(-X)向right(+X)看去,逆时针为正，弧度表示
+
+        tSymbol.AddConfig("XScale", "1000"); ////模型x方向放大比例
+        tSymbol.AddConfig("YScale", "1000"); ////模型y方向放大比例
+        tSymbol.AddConfig("ZScale", "1000"); ////模型z方向放大比例
+        tSymbol.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向
+        tSymbol.AddConfig("Url", "E:\\TestData\\海康示例\\杆球测试数据\\杆球.wrl.004.wrl"); ////模型资源路径
+        tSymbol.AddConfig("LibraryName", "reslib"); ////资源名称
+
+        var res = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol
+        res.AddConfig("Uri", "E:\\TestData\\海康示例\\杆球测试数据\\杆球.wrl.004.wrl"); ////模型资源路径
+        var reslib = map.CreateResourceLibrary("reslib"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); ////将资源添加至资源库
+
+        var pStyle = map.CreateStyle("Point"); ////创建名称为Point的样式，名称任意
+        pStyle.SetName("point"); ////设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将点符号配置添加到该样式
+        pStyle.AddFilterName("BuildGeometryFilter"); //设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+        pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为ModelSymbol字符串
+        pStyle.AddFilterName("SubstituteModelFilter"); ////设置构建器符号为SubstituteModelFilter，必须为SubstituteModelFilter字符串，此为图标符号化和模型符号化共有
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+        styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "E:\\testPoint.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "100"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+		//map.AddLayer(shpLayer);
+		layerGroup3.AddLayer(shpLayer);
+		
+		layerArrayer[3] = shpLayer;
+	}
+	
+	var mtdsdomlayer;
+	function LoadDOMMTDS() 
+	{
+		var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+		//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+		tlo.AddConfig("Url", "http://192.168.1.125:8090/files/hz/DOM"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+		tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+		tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+		tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+		tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+		layerGroup1.AddLayer(mtdsdomlayer); ///添加DOM图层
+		alert(mtdsdomlayer.GetLayerID());
+		
+		layerArrayer[1] = mtdsdomlayer;
+	}
+	
+	var mtdsdemlayer;
+	//////加载DEM数据
+	function LoadDEMMTDS() {
+		var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+		//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+		tlo.AddConfig("Url", "http://192.168.1.125:8090/files/hz/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+		tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+		tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+		tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+		tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+		mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+		layerGroup1.AddLayer(mtdsdemlayer);///添加DEM图层
+		
+		layerArrayer[2] = mtdsdemlayer;
+	}
+	
+	var osgsblayer;
+	function LoadOSGBS() 
+	{
+		var tlo = map.CreateLayerOptions("osgbs"); 	// 创建osgbs图层配置，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "smeshs"); // 数据源类型,代表SMESHS插件，必须是此键值对
+
+		//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+		tlo.AddConfig("Url", "http://192.168.1.125:8090/files/qxsy/qianjiangxincheng/index.osgb"); /////要加载的数据路径
+		tlo.AddConfig("Srs", "PROJCS[\"Transverse_Mercator\",GEOGCS[\"Geographic Coordinate System\",DATUM[\"WGS84\",SPHEROID[\"WGS84\",6378137,298.257223560493]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"scale_factor\",1],PARAMETER[\"central_meridian\",120],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1]]"); /////数据的坐标参考
+		tlo.AddConfig("OriginPoint", "519734,3347141,0"); /////数据的坐标偏移值
+		tlo.AddConfig("BasePath", "http://192.168.1.125:8090/files/qxsy/qianjiangxincheng/Data"); /////层级数据的路径，最后面没有斜线
+
+		osgsblayer = map.CreateLayer("ModelLayer", tlo); ////创建倾斜摄影图层，第一项参数必须为ModelLayer
+		layerGroup3.AddLayer(osgsblayer);
+		
+		layerArrayer[5] = osgsblayer;
+	}
+	
+	function transform(x, y, z)
+	{
+		//var pos = map.CreatePosition(x, y, z);
+		//var llh = transformate.ConvertLongLatHeightToXYZ(pos);
+		//return "" + llh.GetX() + "," + llh.GetY() + "," + llh.GetZ() + ";";
+		return "" + x + "," + y + "," + z + ";";
+	}
+	
+	function LoadDynamicPathLayer(flag) {
+	    var tlo = map.CreateLayerOptions("dynamicpathlayer"); // 创建路径动画图层配置，给配置起个名称，任意名称
+	    tlo.AddConfig("LayerOptionsName", "DynamicPathLayerOptions"); // 创建配置类型, DynamicPathLayerOptions代表路径图层数据配置，必须是此键值对
+	    if(flag)
+	        tlo.AddConfig("Url", "D:/警车.wrl");////配置的动画的模型
+	    tlo.AddConfig("PlayerMode", "PLAYER_ROUND_LOOP");////播放模式 有一次性播放"PLAYER_ONEWAY" 循环一次播放"PLAYER_ONEWAY_LOOP" 往返播放"PLAYER_ROUND_LOOP"
+	    tlo.AddConfig("PlayerState", "PLAYER_PLAY");///播放状态 有播放"PLAYER_PLAY"、暂停"PLAYER_PAUSE"、停止"PLAYER_STOP"
+	    tlo.AddConfig("ViewObjectMode", "0,-0.708,100.0");///路径观察视角，格式为"1.57,-0.708,100",第一个为视角方位角，第二个为视角俯仰角，第三个为视点到关键点距离
+
+	    tlo.AddConfig("KeyPoints", "-2774498.17751,3194088.69226,-4765700.41864;-2774397.76612,3193824.2106,-4765937.63975;-2774193.41551,3193433.6855,-4766320.6009;-2774026.43622,3193006.57824,-4766704.89125;-2773696.27601,3192720.27614,-4767092.13688;");///路径关键点xyz（世界坐标系）以逗号分隔，点与点以分号分割，注意最后有分号
+	    tlo.AddConfig("Velocity","15.0");///速度 单位m/s
+	    tlo.AddConfig("LineWidth","2.0");///线宽
+	    tlo.AddConfig("LineStipple","65535");///线样式
+	    tlo.AddConfig("LineColor", "0.0,1.0,0.0");////路径线颜色
+		
+	    tlo.AddConfig("NodeActive", "false");////节点激活状态,当为true时可以跟随模型或路径移动，当前漫游不可用
+	    //tlo.AddConfig("PathActive", "true");////路径激活状态，与节点激活状态互斥
+
+		var s = transform(120.13767, 30.26950, 20) +
+			transform(120.13837, 30.26950, 20) +
+			transform(120.13930, 30.26950, 20) +
+			transform(120.13930, 30.26898, 20) +
+			transform(120.13930, 30.26847, 20) +
+			transform(120.13842, 30.26847, 20) +
+			transform(120.13708, 30.26847, 20) +
+			transform(120.13708, 30.26847, 20) +
+			transform(120.13691, 30.26912, 20) +
+			transform(120.13767, 30.26950, 20) +
+			transform(120.13837, 30.26950, 20) +
+			transform(120.13930, 30.26950, 20) +
+			transform(120.13930, 30.26898, 20) +
+			transform(120.13930, 30.26847, 20) +
+			transform(120.13708, 30.26847, 20) +
+			transform(120.13691, 30.26912, 20) +
+			transform(120.13767, 30.26950, 20) +
+			transform(120.13930, 30.26950, 20) +
+			transform(120.13837, 30.26950, 20) +
+			transform(120.13930, 30.26950, 20) +
+			transform(120.13930, 30.26898, 20) +
+			transform(120.13930, 30.26847, 20) +
+			transform(120.13842, 30.26847, 20) +
+			transform(120.13708, 30.26847, 20) +
+			transform(120.13691, 30.26912, 20) +
+			transform(120.13767, 30.26950, 20) +
+			transform(120.13837, 30.26950, 20) +
+			transform(120.13930, 30.26950, 20);
+		//document.getElementById("Text").value = s;
+		alert(s);
+		tlo.AddConfig("KeyPoints", s);
+
+		dynamicPathLayer = map.CreateLayer("DynamicPathLayer", tlo);
+		layerGroup2.AddLayer(dynamicPathLayer);
+		
+		layerArrayer[6] = dynamicPathLayer;
+}
+
+	function ViewShed() 
+	{
+		var mlo3 = map.CreateLayerOptions("lineOfSight ")// 创建分析图层配置，给配置起个名称，任意名称
+		mlo3.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+		mlo3.AddConfig("DataSourceTypeName", "as_viewshed"); /////// 数据源类型,代表视域分析，必须是此键值对
+		mlo3.AddConfig("VAngle", "60"); //垂直方向张角
+		mlo3.AddConfig("HAngle", "60"); //水平方向张角
+		mlo3.AddConfig("DrawLineColor", "1,1,0,1"); ////设置点击点的颜色透明度（RGBA） 1为不透明 0为透明
+		
+		mlo3.AddConfig("IsLoad", "true");
+        /////更新视域分析点坐标，当更新点时必须设置IsLoad配置项为true
+        mlo3.AddConfig("EyePos", "120.16119,30.261164,2.042929"); //起始点
+        mlo3.AddConfig("ArmPos", "120.16151,30.261482,2.522919"); //目标点
+
+		viewShed = map.CreateLayer("AnalysisLayer", mlo3); ////创建分析图层，第一项参数必须为AnalysisLayer
+		layerGroup3.AddLayer(viewShed); ///添加分析图层
+		
+		layerArrayer[4] = viewShed;
+	}
+
+	function LayerSerializer() 
+	{
+		var sFilePath = document.getElementById("Text").value;
+		osgsblayer.SerializeLayer(sFilePath);
+	}
+	
+	function LayerDeserializer() 
+	{
+		var sFilePath = document.getElementById("Text").value;
+		var layerObj = map.DeserializeLayer(sFilePath);
+		layerObj.Locate();
+    }
+	
+	function SaveProject() 
+	{
+		var sFilePath = document.getElementById("Text").value;
+		var layerObj = map.SerializeMap(sFilePath);
+    }
+	
+	function OpenProject() 
+	{
+		var sFilePath = document.getElementById("Text").value;
+		map.deserializeMap(sFilePath, 1);
+		
+		
+    }
+	
+	//图层图层组创建获取
+	function PreviousPage() 
+	{
+
+    }
+	
+	function NextPage()
+	{
+
+	}
+	
+	function UpObject()
+	{
+	
+	}
+	
+	function NextObject()
+	{
+	
+	}
+	
+	function CreateLayerGroup()
+	{
+		
+	}
+	
+	function GetLayerGroupInfo()
+	{
+		document.getElementById("Text").focus();
+	}
+	
+	function GetTypeName()
+	{
+		var layerNum = map.GetLayerCount();
+		var layerGroupNum = map.GetLayerGroupCount();
+		alert("图层数量:" + layerNum + ", 图层组数量:" + layerGroupNum );
+		
+	}
+	
+	function Refresh()
+	{
+
+	}
+	
+</script>
+</HEAD>
+<BODY onload="InitScene()">
+	<!--左侧栏-->
+	<div class="sx_btm">
+		<div class="sx_btm_left" style="width:300px;height:900px; float: left;" >
+			<div class="button">
+				</br>文件地址:<input id="Text" style="width: 150px" type="text"/>
+				</br><button onclick="LayerSerializer()">图层序列化</button>
+				</br><button onclick="LayerDeserializer()">图层反序列化</button>
+				</br><button onclick="SaveProject()">保存工程</button>
+				</br><button onclick="OpenProject()">打开工程</button>
+				</br>数据源加载
+				</br><button onclick="loadCPM()">加载CPM模型</button>
+				</br><button onclick="LoadDOMMTDS()">加载DOM</button>
+				</br><button onclick="LoadDEMMTDS()">加载DEM</button>
+				</br><button onclick="LoadOSGBS()">加载倾斜摄影</button>
+				</br><button onclick="LoadDynamicPathLayer(1)">加载动态路径</button>
+				</br><button onclick="LoadSHP()">加载矢量数据</button>
+				</br><button onclick="ViewShed()">视域分析</button>
+				</br>图层图层组创建获取
+				</br><button onclick="PreviousPage()">上移一个层级</button>
+				</br><button onclick="NextPage()">进入图层组</button>
+				</br><button onclick="UpObject()">上一个对象</button>
+				</br><button onclick="NextObject()">下一个对象</button>
+				</br><button onclick="CreateLayerGroup()">创建图层组</button>
+				</br><button onclick="GetLayerGroupInfo()">当前图层组下对象数量</button>
+				</br><button onclick="GetTypeName()">当前对象类型</button>
+				</br><button onclick="Refresh()">刷新场景树</button>
+			</div>
+			<div id="tree" class="demo"></div>			
+   		</div>
+	<!--三维地图-->
+        <div >
+			<OBJECT id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width:1600px; height:900px;float:right;"></OBJECT>
+        </div>
+   </div>
+   <!--<iframe id="testifream" style="position:absolute;left:300px;top:300px;" src="about:blank" width="100" height="100" ></iframe>-->
+</BODY>
+</HTML>

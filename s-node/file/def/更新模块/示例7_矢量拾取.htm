@@ -1,0 +1,219 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>模型拾取</title>
+	
+	<script language="javascript" type="text/javascript" event="FireOnOperationNotify(x , y)" for="VPSDKCtrl">
+		//var str = res.GetResponserResult().GetConfigValueByKey("PickName");
+		var result = ope[x].GetOperationResult();
+		alert(result.GetConfigValueByKey("name"));
+	</script>
+    <script language="javascript" type="text/javascript">
+
+        var MouseX = "";
+        var MouseY = "";
+        
+        // @brief 鼠标左键触发事件
+        // @param [in] x 鼠标点击位置x轴坐标
+        // @param [in] y 鼠标点击位置y轴坐标
+        
+        function LButtonDown(x, y) {     
+            MouseX = x;
+            MouseY = y;
+            //window.alert("X: " + MouseX + "Y: " + MouseY);
+        }
+         
+        // @brief 操作事件
+        // @param [in] type   操作类型
+        // @param [in] result 操作结果
+        
+        function FireOnOperationNotify(type, result)
+        {
+            window.alert( "ViewPoint: " + " type: " + type + " result: " + result ); 
+        }
+
+  
+        var obj;
+        var map;
+		var ope = new Array();
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+        }
+
+ 
+       function LoadDom()
+	   {	   
+			var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+			//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+			mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+			map.AddLayer(mtdsdomlayer); ///添加DOM图层			
+	   }
+ 
+		var textshpLayer;
+        var gmsLayer;
+		var polygoneditLayer;
+        //////加载模型数据
+        function LoadGMS() {
+			LoadDom();
+			var pSymbol = map.CreateSymbol("PointSymbol"); 			//创建类型为PointSymbol的符号，必须为PointSymbol字符串
+			pSymbol.AddConfig("Size", "5"); ////点大小，范围0-10
+			pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); 			//颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+			/////////////////////此部分是点在场景中显示的配置/////////////////
+
+			/////////////////////此部分是文字在场景中显示的配置/////////////////
+			var tSymbol = map.CreateSymbol("TextSymbol"); 			//创建类型为TextSymbol的符号，必须为TextSymbol字符串
+			tSymbol.AddConfig("FillingColor", "0.82, 0.36, 0.0, 1.0"); //文字颜色（RGBA），颜色值0-1，最后一位代表透明度，0为透明，1为不透
+			tSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\msyh.ttf");  //文字字体，从系统字体目录中取，字体文件必须存在，配置一些参数时，如果没生效可能与字体文件相关，例如中文
+			tSymbol.AddConfig("Size", "40"); 						//字体精度大小
+			tSymbol.AddConfig("CharacterSize", "8"); 				//文字大小
+			tSymbol.AddConfig("FieldPrecision", "-20"); 			//字段精度
+			tSymbol.AddConfig("CharacterMode", "1");  //字符大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值
+			tSymbol.AddConfig("AlignmentMode", "4"); 				//设置文字位于要素的位置
+			tSymbol.AddConfig("AxisAlignment", "6"); 				//设置文字旋转模式0 - 7 ， 6: 自动
+			tSymbol.AddConfig("RemoveDuplicateLabels", "false"); 	//是否移除重复的多重标注
+			tSymbol.AddConfig("IsEmbolden", "false"); 				//是否加粗
+			tSymbol.AddConfig("IsTransform", "false"); 				//是否斜体
+			tSymbol.AddConfig("IsUnderline", "false"); 				//是否加下划线
+			tSymbol.AddConfig("IsHorizontal", "true"); 				//是否水平排列
+			tSymbol.AddConfig("HorizonSpacingSize", "1.0"); 			//字符水平间隔距离
+			tSymbol.AddConfig("IsBack", "true"); 					//是否有背景
+			tSymbol.AddConfig("BackColor", "0.88,0.87,0.76,1"); 	//设置文字背景色
+			tSymbol.AddConfig("LineColor", "0.6,0.6,0.6,0.0"); 		//接地线颜色
+			tSymbol.AddConfig("IsAddGroundLine", "0"); 				//是否开启接地线
+			tSymbol.AddConfig("Content", "[NAME]"); 				//[]里代表矢量的某字段名称
+			//***********如果需要配置背景图片，则需要添加图片资源库*********/
+		    tSymbol.AddConfig("ImageURL", "http://192.168.1.50:8088/test/TextureGif.gif"); //背景图片地址
+			//tSymbol.AddConfig("LibraryName", "Library"); 			//设置资源库名称
+			//tSymbol.AddConfig("BackdropMarginLeft", "20"); 		//背景边框左边大小
+			//tSymbol.AddConfig("BackdropMarginRight", "20"); 		//背景边框右边大小
+			//tSymbol.AddConfig("BackdropMarginUp", "20"); 			//背景边框上边大小
+			//tSymbol.AddConfig("BackdropMarginDown", "30"); 		//背景边框下边大小
+
+			//*图片资源库配置信息*/
+					
+			var res = map.CreateResource("TextSymbol"); ////创建图标资源，此处必须为TextSymbol
+			res.AddConfig("Uri", "http://192.168.1.50:8088/test/TextureGif.gif"); ////图标资源路径
+			var reslib = map.CreateResourceLibrary("Library"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+			reslib.AddResource(res); ////将资源添加至资源库
+			
+			var pStyle = map.CreateStyle("Point"); 					//创建名称为Point的样式，名称任意
+			pStyle.AddSymbol("TextSymbol", tSymbol.GetConfig()); 	//将符号配置添加到该样式，第一参必须为TextSymbol字符串
+			pStyle.AddFilterName("BuildTextFilter"); 				//设置文字构建器符号为BuildTextFilter，必须为BuildGeometryFilter字符串
+			/////////////////////此部分是文字在场景中显示的配置/////////////////
+
+			/////////////////////此部分是点在场景中显示的配置/////////////////
+			pStyle.SetName("point"); 								//设置别名point
+			pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 	//将符号配置添加到该样式
+			pStyle.AddFilterName("BuildGeometryFilter");  			//设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+			/////////////////////此部分是点在场景中显示的配置/////////////////
+
+			var styleSheet = map.CreateStyleSheet(); 				//创建样式表
+			styleSheet.AddStyle(pStyle.GetConfig()); 				//将样式配置添加至样式表
+			styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+			var tlo = map.CreateLayerOptions("shp"); 				//创建图层配置对象，名称任意
+			tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); //创建配置类型,FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "fmgeom"); 			//数据源类型,代表fmgeom插件，必须是此键值对
+			tlo.AddConfig("Driver", "ESRI Shapefile"); 				//数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+			tlo.AddConfig("Url", "F:\\演示测试数据\\point.shp"); //数据存放位置，注意双斜杠
+			tlo.AddConfig("FeatureSourceType", "ogr"); 				//要素数据源类型，针对shp、dxf数据源必须是ogr
+			tlo.AddConfig("TileSizeFactor", "1.0"); 				//瓦片大小的影响因子，建议是1.0
+			tlo.AddConfig("TileSize", "500"); 						//瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+			tlo.AddConfig("LiftUp", "30"); 							//抬升高度，任意值
+			tlo.AddConfig("MaxRange", "10000.0"); 					//最大显示范围，大于最小显示范围-无穷大
+			tlo.AddConfig("MinRange", "0.0"); 						//最小显示范围，0-无穷大
+
+			tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); //将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+			textshpLayer = map.CreateLayer("FeatureModelLayer", tlo); //创建矢量图层，第一项参数必须为FeatureModelLayer
+			map.AddLayer(textshpLayer); 		//添加矢量图层
+			textshpLayer.Locate(); 				//矢量图层定位（不建议，不精准）
+			var id = textshpLayer.GetLayerID(); ////获取图层id
+			polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+		
+        }
+
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+        var operationPtr;
+        var isRemove = false;
+        function CreateFeaturePickOperation(){//创建矢量拾取操作  
+            var tlo = map.CreateOperationOptions(""); //创建配置类型,操作类型的配置
+			tlo.AddConfig("OptionsTypeName", "FeatureIntersectOption"); //添加矢量相交配置项
+            tlo.AddConfig("Operation", "GetFeature");
+			tlo.AddConfig("FaultTolerant", "1");			            // 是否启用容差模式
+			tlo.AddConfig("FaultTolerantValue", "1");		            // 容差大小
+			tlo.AddConfig("Lon", "120.07144856100001");                 // 经度
+			tlo.AddConfig("Lat", "30.093893941000090");                 // 纬度
+			tlo.AddConfig("Height", "30");                              // 高度 
+			tlo.AddConfig("HightLight", "1");                           // 高亮 rgba颜色设置
+			tlo.AddConfig("PickColor", "1.0, 0,0,1.0");                 // 拾取颜色 
+			//key = "HightLight"
+			tlo.AddConfig("LayersID", textshpLayer.GetLayerID());       // 图层id 
+	
+            operationPtr = map.CreateOperation("FeatureIntersectOperation", tlo); //根据配置创建模型调整操作
+			operationPtr.AddObserver();                                           //回调事件监听
+            map.AddOperation(operationPtr);                                       //加入操作
+			ope[operationPtr.GetOperationGUID()] = operationPtr;
+            if (isRemove) {
+                isRemove = false; 
+            }
+	    }
+
+        function RemoveOperation() { //删除高亮
+            if (!isRemove) {
+                isRemove = true;
+                map.RemoveOperation(operationPtr);
+            }
+	    }
+		
+		function Pick() {
+            var pOption = map.CreateResponserOptions("123"); 				//创建响应器配置，参数任意名称
+			pOption.AddConfig("PickLayerIdList", textshpLayer.GetLayerID());//拾取图层id
+			pOption.AddConfig("PickColor", "1.0,0,0,1.0");
+			pOption.AddConfig("IsChangeColor", "true");
+			pickResp = map.CreateResponser("PickVectorResponser", pOption); //创建矢量拾取响应器，第一参必须为PickVectorResponser字符串
+			pickResp.AddObserver();
+			map.AddResponser(pickResp); 									//添加响应器
+	    }
+
+
+    </script>
+</head>
+<body onload="InitScene()">
+  
+    <input id="Button17" type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input id="Button18" type="button" value="卸载(GMS)" onclick="RemoveGMS()" />
+
+ 
+    <input id ="Button20" type="button" value="启动高亮操作"  onclick="CreateFeaturePickOperation()" />
+    <input id="Button23" type="button" value="移除操作"  onclick="RemoveOperation()" />
+	
+	<input id="Button23" type="button" value="拾取"  onclick="Pick()" />
+
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

@@ -1,0 +1,516 @@
+<html>
+<head>
+<title>6.0试用例3 矢量</title>
+	<script language="javascript" type="text/javascript" event="FireOnLButtonUp(tx,ty)" for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+		if(addState)
+		{
+			var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+			//alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+			addFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+			
+			responseStr = pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";";
+			alert(responseStr);
+		}
+	</script>	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(str,id)" for="VPSDKCtrl">		var str2 = str.split("|");		if(str2[1] == "PickVectorResponser" || str == "PickVectorResponser")		{			//responseStr = pickResp.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表			var PickLayerList = pickResp.GetResponserResult().GetConfigValueByKey("PickLayerList"); //获取图层ID			//alert("Point:" + responseStr + "; PickLayerList:" + PickLayerList);			}		if(str == "VectorEditResponser" && id == 0)		{			var Points = vectorEditResp.GetResponserResult().GetConfigValueByKey("Points"); //获取经纬度列表			alert("Points:" + Points);			}	</script>
+    <script language="javascript" type="text/javascript">
+	var addState = false;
+	var map;
+	var obj;    var responseStr;	var mtdsdemlayer;	var mtdsdomlayer;	var Datapath="F:\\演示测试数据";    var polygoneditLayer;	var addFeature;	var FeatureType = 4; //要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+	
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+		obj.InitLic("192.168.1.50@8088@");	// 授权
+        
+		map = obj.GetIMapMgrPtr();		var	tools = obj.GetIToolsCOMPtr();
+        transformate = map.CreateTransformation();
+    }		function LoadDOMDEM()	{		LoadDOMMTDS();      //  LoadDEMMTDS();	}
+	var state = false;	function HideDom() {	    mtdsdomlayer.SetVisible(state);		//mtdsdemlayer.SetVisible(state);		state = !state;	}
+	var gmsLayer;
+	function LoadGMS() {
+	    var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+		tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+		tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+		tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+		//调度优先级 = priority * PriorityScale + PriorityOffset;
+		//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+		//调度优先级越大，优先调度并显示
+		tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+		tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+		gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+		map.AddLayer(gmsLayer); ///添加模型图层
+		gmsLayer.Locate(); ////模型图层定位
+	}
+	
+	//定位本地模型数据
+	function LocateGMS() {
+		if(gmsLayer)
+		{
+			gmsLayer.Locate(); 				//模型图层定位
+		}
+	}
+		//删除模型数据
+	function RemoveGMS() {
+		map.RemoveLayer(gmsLayer); 			//删除模型数据
+	}
+	
+	//************************
+	//矢量编辑 以点模型符号化为例：
+    //***********************
+    //首先创建待编辑图层：
+    function CreatePointModelEditLayer() {
+        var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "10"); ////点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+        var tSymbol = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串 
+        tSymbol.AddConfig("Heading", "0"); ////绕Z轴(世界坐标系方向相同 far->near)旋转,从far(-Z)向near(+Z)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Pitch", "-3.14"); //////绕Y轴(世界坐标系方向相同 down(-Y)向up(Y))旋转,从down(-Y)向up(+Y)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Roll", "0"); ////绕X轴(世界坐标系方向相同 left->right)旋转,从left(-X)向right(+X)看去,逆时针为正，弧度表示
+
+        tSymbol.AddConfig("XScale", "10"); ////模型x方向放大比例
+        tSymbol.AddConfig("YScale", "10"); ////模型y方向放大比例
+        tSymbol.AddConfig("ZScale", "10"); ////模型z方向放大比例
+        tSymbol.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向
+        tSymbol.AddConfig("FeatureLiftUp", "0"); 							//// 要素抬升值
+        tSymbol.AddConfig("Url", Datapath+"\\警车.wrl"); ////模型资源路径
+        tSymbol.AddConfig("LibraryName", "reslib"); ////资源名称
+
+        var res = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol
+        res.AddConfig("Uri", Datapath+"\\警车.wrl"); ////模型资源路径
+        var reslib = map.CreateResourceLibrary("reslib"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); ////将资源添加至资源库
+
+        var pStyle = map.CreateStyle("Point"); ////创建名称为Point的样式，名称任意
+        pStyle.SetName("point"); ////设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将点符号配置添加到该样式        pStyle.AddFilterName("BuildGeometryFilter"); 		////添加过滤器名称.构建几何过滤器:BuildGeometryFilter;构建几何瓦片过滤器:BuildGeometryTileFilter
+        pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为ModelSymbol字符串
+        pStyle.AddFilterName("SubstituteModelFilter"); ////设置构建器符号为SubstituteModelFilter，必须为SubstituteModelFilter字符串，此为图标符号化和模型符号化共有
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+        styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "F:\\testPoint.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "10"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+    }
+
+	function CreatePointTextEditLayer() {
+		var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "10"); ////点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+        /////////////////////此部分是文字在场景中显示的配置/////////////////
+        var tSymbol = map.CreateSymbol("TextSymbol"); ////创建类型为TextSymbol的符号，必须为TextSymbol字符串
+        tSymbol.AddConfig("FillingColor", "0.82, 0.36, 0.0, 1.0"); ////文字颜色（RGBA），颜色值0-1，最后一位代表透明度，0为透明，1为不透
+        tSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\msyh.ttf"); ////文字字体，从系统字体目录中取，字体文件必须存在，配置一些参数时，如果没生效可能与字体文件相关，例如中文
+        tSymbol.AddConfig("Size", "20"); ////字体精度大小
+        tSymbol.AddConfig("CharacterSize", "10"); ////文字大小
+        tSymbol.AddConfig("CharacterMode", "2"); ////字符大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值
+        tSymbol.AddConfig("AlignmentMode", "5"); ////设置文字位于要素的位置
+        tSymbol.AddConfig("AxisAlignment", "6"); ////设置文字旋转模式0 - 7 ， 6: 自动
+        tSymbol.AddConfig("RemoveDuplicateLabels", "false"); ////是否移除重复的多重标注
+        tSymbol.AddConfig("IsEmbolden", "false"); ////是否加粗
+        tSymbol.AddConfig("IsTransform", "false"); ////是否斜体
+        tSymbol.AddConfig("IsUnderline", "false"); ////是否加下划线
+        tSymbol.AddConfig("IsBack", "true"); ////是否有背景
+        tSymbol.AddConfig("BackColor", "0.88,0.87,0.76,1"); ////设置文字背景色
+        
+        tSymbol.AddConfig("LineColor", "0.6,0.6,0.6,1.0"); ////接地线颜色        tSymbol.AddConfig("IsAddGroundLine", "0"); 				//// 是否开启接地线		tSymbol.AddConfig("FeatureLiftUp", "50"); 				//接地线抬升值(配置该项接地线将是文字到点之间，否则是文字、点到地底)
+        tSymbol.AddConfig("Content", "[Name]"); ////[]里代表矢量的某字段名称
+		
+		
+		tSymbol.AddConfig("ImageURL", Datapath+"\\arrow.png"); ////背景图片地址
+		// tSymbol.AddConfig("ImageURL", "E:\\TestData\\1.png"); //背景图片地址
+        tSymbol.AddConfig("LibraryName", "Library"); 			//设置资源库名称
+        tSymbol.AddConfig("BackdropMarginLeft", "20"); 		//背景边框左边大小
+        tSymbol.AddConfig("BackdropMarginRight", "20"); 		//背景边框右边大小
+        tSymbol.AddConfig("BackdropMarginUp", "20"); 			//背景边框上边大小
+        tSymbol.AddConfig("BackdropMarginDown", "20"); 		//背景边框下边大小
+		tSymbol.AddConfig("HorizonSpacingSize", "1"); 		//背景边框下边大小
+		
+		
+
+		//*图片资源库配置信息*/
+				
+		var res = map.CreateResource("TextSymbol"); ////创建图标资源，此处必须为TextSymbol
+        res.AddConfig("Uri", Datapath+"\\arrow.png"); ////图标资源路径
+        var reslib = map.CreateResourceLibrary("Library"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); ////将资源添加至资源库
+
+        var pStyle = map.CreateStyle("Point"); ////创建名称为Point的样式，名称任意
+        pStyle.AddSymbol("TextSymbol", tSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为TextSymbol字符串
+        pStyle.AddFilterName("BuildTextFilter"); ////设置文字构建器符号为BuildTextFilter，必须为BuildGeometryFilter字符串
+        /////////////////////此部分是文字在场景中显示的配置/////////////////
+
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+        pStyle.SetName("point"); ////设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式        pStyle.AddFilterName("BuildGeometryFilter"); //// 添加过滤器名称.构建几何过滤器:BuildGeometryFilter;构建几何瓦片过滤器:BuildGeometryTileFilter
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+		styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Ddfriver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "F:\\testPoint.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+    }
+    	function CreatePointIconEditLayer() {        /////////////////////此部分是点在场景中显示的配置/////////////////        var pSymbol = map.CreateSymbol("PointSymbol"); 							//// 创建类型为PointSymbol的符号，必须为PointSymbol字符串        pSymbol.AddConfig("Size", "10"); 										//// 点大小，范围0-10        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); 							//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透        /////////////////////此部分是点在场景中显示的配置/////////////////        /////////////////////此部分是图片在场景中显示的配置/////////////////        var tSymbol = map.CreateSymbol("IconSymbol"); 							//// 创建类型为IconSymbol的符号，必须为IconSymbol字符串        tSymbol.AddConfig("Align", "5"); 										//// 设置图片与要素的相对位置        tSymbol.AddConfig("AxisAlignmentType", "0"); 							//// 设置图片旋转模式        tSymbol.AddConfig("CharacterMode", "1"); 								//// 图片大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值Scale        tSymbol.AddConfig("Scale", "0.2"); 										//// 图片大小变化上限值        tSymbol.AddConfig("XScale", "0.2"); 									//// 图片x方向放大比例        tSymbol.AddConfig("YScale", "0.2"); 									//// 图片y方向放大比例        tSymbol.AddConfig("ZScale", "0.2"); 									//// 图片z方向放大比例        tSymbol.AddConfig("LineColor", "1,0,1,1"); 								//// 接地线颜色        tSymbol.AddConfig("FeatureLiftUp", "10"); 								//// 要素抬升值        tSymbol.AddConfig("IsAddGroundLine", "true"); 							//// 是否开启接地线        tSymbol.AddConfig("Url",Datapath+"\\pine.png"); ////图标资源路径        tSymbol.AddConfig("LibraryName", "reslib"); 							//// 资源名称        var res = map.CreateResource("IconSymbol"); 							//// 创建图标资源，此处必须为IconSymbol        res.AddConfig("Uri", Datapath+"\\pine.png"); ////图标资源路径        var reslib = map.CreateResourceLibrary("reslib"); 						//// 创建资源库，名称和图层配置LibraryName设置的名称对应        reslib.AddResource(res); 												//// 将资源添加至资源库        /////////////////////此部分是图片在场景中显示的配置/////////////////        var pStyle = map.CreateStyle("Point"); 									//// 创建名称为Point的样式，名称任意        pStyle.SetName("point"); 												//// 设置别名point        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 					//// 将点符号配置添加到该样式，第一参必须为PointSymbol字符串                pStyle.AddFilterName("BuildGeometryFilter"); 							//// 添加过滤器名称.构建几何过滤器:BuildGeometryFilter;构建几何瓦片过滤器:BuildGeometryTileFilter		pStyle.AddSymbol("IconSymbol", tSymbol.GetConfig()); 					//// 将图片符号配置添加到该样式，第一参必须为IconSymbol字符串        pStyle.AddFilterName("SubstituteModelFilter"); 							//// 设置图片构建器符号为SubstituteModelFilter，此为图标符号化和模型符号化共有        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表        styleSheet.AddResLib(reslib.GetConfig()); 								//// 将资源库添加至样式表                var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对        tlo.AddConfig("Ddfriver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile        tlo.AddConfig("Url", "F:\\testPoint.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位        tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大        tlo.AddConfig("LiftUp", "10"); ////抬升高度，任意值        tlo.AddConfig("MaxRange", "10000.0"); ////最大显示范围，大于最小显示范围-无穷大        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer        map.AddLayer(shpLayer); ////添加矢量图层		shpLayer.Locate();        var id = shpLayer.GetLayerID(); ////获取图层id        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层    }
+    //************************
+    //矢量编辑 以线符号化为例：
+    //***********************
+    //首先创建待编辑图层：
+    function CreateLineShp() {
+        var lSymbol = map.CreateSymbol("LineSymbol"); ////创建类型为LineSymbol的符号，必须为LineSymbol字符串
+        lSymbol.AddConfig("Stipple", "-1"); ////线条类型，-1 实线 1 虚线
+        lSymbol.AddConfig("Width", "5"); ////线宽 0-10
+        lSymbol.AddConfig("Color", "0.5,0.1,0.8,1.0"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+        var lStyle = map.CreateStyle("Line"); ////创建名称为Line的样式，名称任意
+        lStyle.SetName("line"); ////设置别名line
+        lStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为LineSymbol字符串
+                lStyle.AddFilterName("BuildGeometryFilter"); //// 添加过滤器名称.构建几何过滤器:BuildGeometryFilter;构建几何瓦片过滤器:BuildGeometryTileFilter
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "F:\\testLine.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位	   
+        tlo.AddConfig("GeometryType", "Polyline"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功 
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(lStyle.GetConfig()); ////将样式配置添加至样式表
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+    }
+
+    //************************
+    //矢量编辑 以面符号化为例：
+    //***********************
+    //首先创建待编辑图层：
+    function CreatePolygonShp() {
+        var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        pSymbol.AddConfig("Color", "0.5,0.5,0.1,0.9"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+        var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+        pStyle.SetName("polygon"); ////设置别名polygon
+        pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+        pStyle.AddFilterName("BuildGeometryTileFilter"); //// 添加过滤器名称.构建几何过滤器:BuildGeometryFilter;构建几何瓦片过滤器:BuildGeometryTileFilter
+        		var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "F:\\testpolygon.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        tlo.AddConfig("GeometryType", "Polygon"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "5"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+    }
+ 
+	//********************************
+    // 纹理面符号化加载
+    //********************************
+    function LoadTextureExtruLineShp() {
+        var polygonSymbol = map.CreateSymbol("PolygonSymbol"); 					//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        polygonSymbol.AddConfig("Color", "1,0.1,0.1,1.0"); 						//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+        polygonSymbol.AddConfig("SurfaceStyleName", "skinStyle");				//// 样式名称
+        
+		var skinSymbol = map.CreateSymbol("SkinSymbol");						//// 创建符号化类型
+        skinSymbol.AddConfig("SkinType", "SkinSymbol");							//// 符号化类型
+        skinSymbol.AddConfig("LibraryName", "reslib");							//// 资源库名称
+        skinSymbol.AddConfig("ObjectHeight", "256");							//// 对象高度
+        skinSymbol.AddConfig("MinObjectHeight", "64");							//// 对象最小高度
+        skinSymbol.AddConfig("MaxObjectHeight", "256");							//// 对象最大高度
+        skinSymbol.AddConfig("IsTile", "true");									//// 纹理贴图是否瓦片化显示
+		
+		var skinRes = map.CreateResource("SkinSymbol");							//// 创建资源
+        skinRes.AddConfig("image_url", Datapath+"\\arrow.png");
+		skinRes.AddConfig("image_width", "256");								//// 纹理宽度
+		skinRes.AddConfig("image_height", "256");								//// 纹理高度
+		skinRes.AddConfig("tiled", "true");										//// 纹理贴图是否瓦片化显示
+		var reslib = map.CreateResourceLibrary("reslib");
+		reslib.AddResource(skinRes);
+
+        var skinStyle = map.CreateStyle("skinStyle");							//// 创建样式
+        skinStyle.AddSymbol("SkinSymbol", skinSymbol.GetConfig());				//// 添加管线纹理样式
+        skinStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig());		//// 添加面样式
+        skinStyle.AddFilterName("BuildGeometryFilter");							//// 配置构建器
+
+        var lStyle = map.CreateStyle("polygonStyle"); 							//// 创建名称为PolygonStyle的样式，名称任意
+        lStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); 			//// 将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+        var extruSymbol = map.CreateSymbol("LineExtrusionSymbol"); 				//// 创建类型为LineExtrusionSymbol的符号,为线挤出符号，必须为LineExtrusionSymbol字符串
+        extruSymbol.AddConfig("Casing", "false"); 								//// 是否使用套接样式
+        extruSymbol.AddConfig("SplitPointNum", "2"); 							//// 剖面多边形的顶点数,近似圆周circular(8 or 16，set nlExtrusion->Casing() = true),正方形rectangular(4),带有方向纹理(2);
+        extruSymbol.AddConfig("Angle", 0); 										//// 剖面多边形的起点顶点的旋转角度(与局部x轴)，radian
+        extruSymbol.AddConfig("Radius", "1200"); 								//// 管线半径，单位mm
+        extruSymbol.AddConfig("SurfaceStyle", "skinStyle"); 					//// 配置样式至表面样式，第二参与前面创建的样式名称要一致
+
+        var eStyle = map.CreateStyle("ExtruStyle"); 							//// 创建名称为ExtruStyle的样式，名称任意
+        eStyle.AddSymbol("LineExtrusionSymbol", extruSymbol.GetConfig()); 		//// 将符号配置添加到该样式
+        eStyle.AddFilterName("ExtrudeGeometryFilter"); 							//// 设置挤出符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+	
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(lStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddStyle(eStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddStyle(skinStyle.GetConfig());
+        styleSheet.AddResLib(reslib.GetConfig());
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\road.shp"); 									////数据存放位置，注意双斜杠//F:\\road.shp
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "20"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "300000.0");									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("RenderOrder", "-100"); 									//// 绘制顺序
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        exlineshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 			//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(exlineshpLayer); 											//// 添加矢量图层
+        exlineshpLayer.Locate(); 												//// 矢量图层定位（不建议，不精准）
+        var id = exlineshpLayer.GetLayerID(); 									//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //************************
+    //要素添加
+    //************************	
+	//创建要素
+	function CreateFeature()
+	{
+		addFeature = map.CreateFeature();							//创建要素对象
+		addFeature.SetGeometryType(FeatureType);					//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+		addFeature.SetComponentType(1);								//创建子几何类型（当GeometryType为5时生效）	    addFeature.AddAttribute("Height", "43.5", 4);				//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)	    //addFeature.AddAttribute("Name", "1000007$1$0$0", 5);		//添加属性值	    addFeature.AddAttribute("Name", "测试", 5);					//添加属性值	    addFeature.AddAttribute("Width", "54", 3);					//添加属性值		addFeature.AddAttribute("ID", "54", 3);						//添加属性值        addState = true;											//通过设置该状态，可以在鼠标左键事件中将顶点信息加入要素中
+	}
+			var featureId;
+	//添加要素
+	function AddFeature()
+	{
+		featureId = polygoneditLayer.GetMaxFeatureID() + 1;			//获取矢量图层要素最大ID
+		addFeature.SetFeatureId(featureId); 						//设置FeatureID
+		polygoneditLayer.AddFeature(addFeature);					//添加到矢量图层
+        addState = false;
+	}	   	//保存图层    function polygonLayerSave() {        polygoneditLayer.SaveLayer(); 						//编辑图层保存，一般用于首次创建保存    }	//另存图层    function polygonLayerAsSave() {        polygoneditLayer.SaveAsLayer("F:\\test" + FeatureType +".shp"); //编辑图层另保存。用于多次打开后保存    }	
+    //************************    //要素拾取操作    //************************
+    //创建要素拾取
+	var pickResp;
+    function CreatePickPolygon() {
+        var pOption = map.CreateResponserOptions("123"); 				     //创建响应器配置，参数任意名称
+        pOption.AddConfig("PickLayerIdList", polygoneditLayer.GetLayerID()); //拾取图层id
+        pOption.AddConfig("PickColor", "1.0,0,0,0.3");					     //拾取颜色
+        pOption.AddConfig("IsChangeColor", "true");						     //是否变色
+        pickResp = map.CreateResponser("PickVectorResponser", pOption);      //创建矢量拾取响应器，第一参必须为PickVectorResponser字符串
+        pickResp.AddObserver();
+        map.AddResponser(pickResp); 									     //添加响应器
+    }
+	
+	//移除要素拾取
+    function RemovePickPolygon() {
+        map.RemoveResponser("PickVectorResponser");						    //移除响应器		pickResp = null;
+    }
+		
+	//删除拾取的要素
+	function RemoveFeature() {
+		var state = polygoneditLayer.DeleteFeature();					    //删除要素
+		alert(state);
+    }
+    	//根据经纬度删除要素
+    function RemoveFetureByGeo() {
+
+        if (responseStr == null) {
+            alert("pick point is null!");
+        }
+
+        var blh = responseStr.split(",;");
+
+        blh = blh[blh.length - 1];
+        blh = blh.replace(";", "");
+
+        var LonLatH = blh.split(",");
+        alert(LonLatH);
+
+        var state = polygoneditLayer.DeleteFeatureByGeoPos(LonLatH[0], LonLatH[1], LonLatH[2]);
+    }
+   
+	//通过拾取获取要素
+	function GetFeatureByPick() {
+		if(pickResp)
+		{			if (null == addFeature) {				addFeature = map.CreateFeature(); 							//创建要素对象			}			addFeature.ClearFeatrue(); 										//创建清空要素信息			polygoneditLayer.GetFeatureByPick(addFeature); 					//通过ID获取要素对象值
+			var type = addFeature.GetGeometryType();						//获取要素的几何类型
+			var Ctype = addFeature.GetComponentType();						//获取要素的子几何类型
+			var points = addFeature.GetPoints();							//获取要素的几何点集
+			var SchemaTop = polygoneditLayer.GetFeatureSchema();			//获取要素属性表头
+			var id = addFeature.GetFeatureId();								//获取要素ID
+			var Name = addFeature.GetAttributeValueByName("Name");			//获取要素属性值
+			var Width = addFeature.GetAttributeValueByName("Width");
+			var Height = addFeature.GetAttributeValueByName("Height"); 
+			alert("id=" + id + " | type=" + type  + " | Ctype=" + Ctype + " | points=" + points);
+			alert("SchemaTop=" + SchemaTop);
+			alert("Name=" + Name + ";Width=" + Width + ";Height=" + Height);
+		}
+	}
+
+	//通过ID获取要素
+	function GetFeatureById() {
+
+		addFeature = map.CreateFeature();							//创建要素对象
+		polygoneditLayer.GetFeatureById(0, addFeature);				//通过ID获取要素对象值
+		var type = addFeature.GetGeometryType();					//获取要素的几何类型
+		var points = addFeature.GetPoints();						//获取要素的几何点集
+		var SchemaTop = polygoneditLayer.GetFeatureSchema();		//获取要素属性表头
+		var id = addFeature.GetFeatureId();							//获取要素ID
+		var bz = addFeature.GetAttributeValueByName("BZ");			//获取要素属性值
+		var objectid = addFeature.GetAttributeValueByName("OBJECTID"); 
+		alert("id=" + id + " | type=" +type + " | points=" + points);
+		alert("SchemaTop=" + SchemaTop);
+		alert("BZ=" + bz + ";objectid=" + objectid);
+	}
+		//根据Featrue更新要素    function UpdateFeatureByNewFeature() {        if (null == addFeature) {			addFeature = map.CreateFeature(); 						//创建要素对象			addFeature.ClearFeatrue(); 								//创建清空要素信息			polygoneditLayer.GetFeatureByPick(addFeature); 			//通过ID获取要素对象值        }        var type = addFeature.GetGeometryType(); 				//获取要素的几何类型        var points = addFeature.GetPoints(); 					//获取要素的几何点集        var id = addFeature.GetFeatureId(); 					//获取要素ID        var Name = addFeature.GetAttributeValueByName("Name"); 	//获取要素属性值        var NewFeature = map.CreateFeature(); 					    //创建要素对象        NewFeature.SetGeometryType(type); 							//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)        NewFeature.SetComponentType(1); 						    //创建子几何类型（当GeometryType为5时生效）        NewFeature.AddPoints(points);                               //向编辑图层添加坐标点信息        //NewFeature.AddPoints(geoPos);                               //向编辑图层添加坐标点信息        NewFeature.AddAttribute("Name", "Test", 5);        NewFeature.AddAttribute("Height", "1.253", 3);        NewFeature.AddAttribute("Width", "1.28", 3);        var featureId = polygoneditLayer.GetMaxFeatureID(); 	    //获取矢量图层要素最大ID        NewFeature.SetFeatureId(featureId + 1); 			        //设置FeatureID        var state = polygoneditLayer.UpdateFeatureByNew(addFeature, NewFeature);        //responseStr = null;    }	//根据Id更新要素    function UpdateFeatureById() {        if (null == addFeature) {			addFeature = map.CreateFeature(); 					//创建要素对象        }        var type = addFeature.GetGeometryType(); 				//获取要素的几何类型        var points = addFeature.GetPoints(); 					//获取要素的几何点集        var id = addFeature.GetFeatureId(); 					//获取要素ID        var Name = addFeature.GetAttributeValueByName("Name"); 	//获取要素属性值        var NewFeature = map.CreateFeature(); 					//创建要素对象        NewFeature.SetGeometryType(type); 						//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)        NewFeature.SetComponentType(1); 						//设置子几何类型（当GeometryType为5时生效）        NewFeature.AddPoints(points);                           //添加坐标点信息        NewFeature.AddAttribute("Name", "Test", 5);				//添加要素属性        NewFeature.AddAttribute("Height", "1.253", 3);        NewFeature.AddAttribute("Width", "1.28", 3);        var featureId = polygoneditLayer.GetMaxFeatureID(); 	    //获取矢量图层要素最大ID        NewFeature.SetFeatureId(featureId + 1); 			        //设置FeatureID        var state = polygoneditLayer.UpdateFeatureById(id, NewFeature); //NewFeature若为NULL则为删除id为某值的要素        //responseStr = null;    }	//根据Id删除要素	function DeleteFeatureById() {        var NewFeature = map.CreateFeature(); 					    //创建要素对象		var state = polygoneditLayer.UpdateFeatureById(addFeature.GetFeatureId(), NewFeature); //NewFeature若为NULL则为删除id为某值的要素    	}    //************************    //要素游标查询操作    //************************		//创建要素获取游标	function CreateFeatureCursor() {		var state = polygoneditLayer.CreateFeatureCursor(0, 0, 0, 0);	//创建要素获取游标		alert("CreateFeatureCursor:" + state);	}		//获取下一个要素	function GetNextFeature() {		var feature = map.CreateFeature();								//创建要素对象		var bRet = polygoneditLayer.GetNextFeature(feature);			//获取游标下一个要素		if(bRet) {			var type = feature.GetGeometryType();						//获取要素的几何类型			var points = feature.GetPoints();							//获取要素的几何点集			var SchemaTop = polygoneditLayer.GetFeatureSchema();		//获取要素属性表头			var id = feature.GetFeatureId();							//获取要素ID			var Name = feature.GetAttributeValueByName("Name");			//获取要素属性值			//alert("id=" + id + " | type=" +type + " | points=" + points);			alert("Name=" + Name);		}	}		//清空游标	function ClearFeatureCursor() {		var state = polygoneditLayer.ClearFeatureCursor();	//清空游标		alert("ClearFeatureCursor:" + state);	}    //************************    //要素拾取操作    //************************	
+	//创建矢量编辑
+	var vectorEditResp;
+	function CreateVectorEdit() {
+		var pOption = map.CreateResponserOptions("123");				//创建响应器配置，参数任意名称
+		pOption.AddConfig("PickLayerId", polygoneditLayer.GetLayerID());//拾取图层id
+		pOption.AddConfig("IsOpenZChanged", "true");//是否开启Z值变化（高度）
+		vectorEditResp = map.CreateResponser("VectorEditResponser", pOption);//创建矢量编辑响应器，第一参必须为VectorEditResponser字符串
+		vectorEditResp.AddObserver();
+		map.AddResponser(vectorEditResp);								//添加响应器
+		vectorEditResp.SetEnabled(true);								//开始矢量编辑
+		map.RemoveResponser("PickVectorResponser");						//开启编辑后，需要移除拾取响应器，否则在编辑完成之后会爆机
+		pickResp = null;
+				
+	}
+	
+	//移除矢量编辑
+	function RemoveVectorEdit() {
+        map.RemoveResponser("VectorEditResponser");						//移除响应器
+	}
+	
+	//更新要素点位置
+	function UpdateEditResponse() {
+		var pOption = map.CreateResponserOptions("123");				//创建响应器配置，参数任意名称
+		pOption.AddConfig("Point", responseStr);						//点坐标
+		pOption.AddConfig("XMove", "0.000001");							//X方向移动量（经度）
+		pOption.AddConfig("YMove", "0.000001");							//Y方向移动量（纬度）
+		pOption.AddConfig("ZMove", "10.0");								//Z方向移动量（高程值m）
+        vectorEditResp.UpdateResponserOptions(pOption);					//更新响应器配置项
+	}
+	
+	//设置矢量编辑类型
+	function SetEditType(type) {
+		var iTmp = polygoneditLayer.GetEditType();						//获取当前编辑模式
+		polygoneditLayer.SetEditType(type);								//设置编辑模式(1:要素整体移动, 2:顶点添加, 3:顶点拾取, 4:顶点移动, 5:顶点删除)
+	}
+	
+	//保存矢量编辑
+	function SaveVectorEdit() {
+		var ret = polygoneditLayer.SaveVectorEdit();						//保存矢量编辑,如果需要保存最终结果，需要再次调用矢量图层保存功能
+		RemoveVectorEdit();												//移除矢量编辑
+	}
+	
+	//取消矢量编辑
+	function CancelVectorEdit() {
+		var ret = polygoneditLayer.CancelVectorEdit();					//取消矢量编辑
+		RemoveVectorEdit();												//移除矢量编辑
+	}
+	    var mtdsdemlayer;    //////加载DEM数据    function LoadDEMMTDS() {        var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称        tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对        tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对        tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对        //////////////以下部分可以通过图层信息获取获得相应的配置////////////        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布        tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式        tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考        tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值        tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值        tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值        tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值        tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率        tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级        tlo.AddConfig("MaxLevel", "17"); /////数据显示的最大层级        mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer        map.AddLayer(mtdsdemlayer); ///添加DEM图层        mtdsdemlayer.Locate(); ////DEM图层定位    }    var mtdsdomlayer;    //////加载DOM数据    function LoadDOMMTDS() {        var tlo = map.CreateLayerOptions("domlayer"); 							//// 创建dom图层，给配置起个名称，任意名称        tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); 				//// 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对        tlo.AddConfig("DataSourceTypeName", "mtds"); 							//// 数据源类型,代表MTDS插件，必须是此键值对        tlo.AddConfig("Driver", "terrainquadtree"); 							//// 代表地形驱动，必须是此键值对        //////////////以下部分可以通过图层信息获取获得相应的配置////////////        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); 			//// 要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布        tlo.AddConfig("Format", "png"); 										//// 切割形成的数据格式        tlo.AddConfig("Srs", "EPSG:4326"); 										//// 数据的坐标参考        tlo.AddConfig("MaxX", " 120.714010586176"); 							//// 数据的范围X向最大值        tlo.AddConfig("MinX", " 118.339686018686"); 							//// 数据的范围X向最小值        tlo.AddConfig("MaxY", " 30.5651224875501"); 							//// 数据的范围Y向最大值        tlo.AddConfig("MinY", " 29.188584444612"); 								//// 数据的范围Y向最小值        tlo.AddConfig("TileSize", "256"); 										//// 切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率        tlo.AddConfig("MinLevel", "0"); 										//// 数据显示的最小层级        tlo.AddConfig("MaxLevel", "16"); 										//// 数据显示的最大层级		//tlo.AddConfig("RenderOrder", "100");									//// 绘制顺序        mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); 						//// 创建DEM图层，第一项参数必须为ImageLayer        map.AddLayer(mtdsdomlayer); 											//// 添加DOM图层        mtdsdomlayer.Locate(); 													//// DOM图层定位    }
+    </script>
+</head>
+<body onload="InitScene()">	<input id="Button1"  type="button" value="加载地形影像" 		onclick="LoadDOMDEM()" />
+	模型地形操作:
+    <input id="Button1" type="button" value="加载模型" onclick="LoadGMS()" />
+    <input id="Button2" type="button" value="定位模型" onclick="LocateGMS()" />
+    <input id="Button3" type="button" value="删除模型" onclick="RemoveGMS()" />
+	<input id="Button4" type="button" value="地形显隐" onclick="HideDom()" />
+	</br>矢量图层编辑:
+    <input id="Button13" type="button" value="矢量图层创建1" onclick="CreatePolygonShp()" />
+    <input id="Button16" type="button" value="创建要素2" onclick="CreateFeature()" />
+    <input id="Button19" type="button" value="添加要素3" onclick="AddFeature()" />
+	&nbsp;
+    <input id="Button14" type="button" value="矢量图层保存4" onclick="polygonLayerSave()" />
+    <input id="Button15" type="button" value="矢量图层另存5" onclick="polygonLayerAsSave()" />
+	
+	</br>矢量图层拾取:
+    <input id="Button21" type="button" value="创建矢量拾取" onclick="CreatePickPolygon()" />
+    <input id="Button22" type="button" value="删除矢量拾取" onclick="RemovePickPolygon()" />
+    <input id="Button23" type="button" value="删除拾取的要素" onclick="RemoveFeature()" />
+    <input id="Button24" type="button" value="获取拾取的要素" onclick="GetFeatureByPick()" />
+    <input id="Button28" type="button" value="根据oldFeature更新要素" onclick="UpdateFeatureByNewFeature()" />
+    <input id="Button5"  type="button" value="根据oldId更新要素" onclick="UpdateFeatureById()" />    <input id="Button5"  type="button" value="根据oldId删除要素" onclick="DeleteFeatureById()" />    <input id="Button27" type="button" value="经纬度删除要素" onclick="RemoveFetureByGeo()" />	&nbsp;    <input id="Button25" type="button" value="通过Id获取要素" onclick="GetFeatureById()" />    <input id="Button25" type="button" value="创建要素获取游标" onclick="CreateFeatureCursor()" />    <input id="Button25" type="button" value="获取下一个要素" onclick="GetNextFeature()" />    <input id="Button25" type="button" value="清空游标" onclick="ClearFeatureCursor()" />
+   
+    
+	</br>矢量要素编辑:
+    <input id="Button21" type="button" value="创建矢量编辑" onclick="CreateVectorEdit()" />
+    <input id="Button22" type="button" value="关闭矢量编辑" onclick="RemoveVectorEdit()" />
+    <input id="Button22" type="button" value="添加顶点" onclick="SetEditType(2)" />
+    <input id="Button22" type="button" value="拾取" onclick="SetEditType(3)" />
+    <input id="Button22" type="button" value="移动" onclick="SetEditType(4)" />
+    <input id="Button22" type="button" value="删除" onclick="SetEditType(5)" />
+    <input id="Button22" type="button" value="要素移动" onclick="SetEditType(1)" />
+    <input id="Button22" type="button" value="顶点更新" onclick="UpdateEditResponse()" />
+    <input id="Button22" type="button" value="保存矢量编辑" onclick="SaveVectorEdit()" />
+    <input id="Button22" type="button" value="取消矢量编辑" onclick="CancelVectorEdit()" />
+	
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

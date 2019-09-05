@@ -1,0 +1,160 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>模型查找操作</title>
+	
+	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+        responseStr = res.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+        PickName = res.GetResponserResult().GetConfigValueByKey("PickName");
+        PickLayerId = res.GetResponserResult().GetConfigValueByKey("PickLayerList");
+		alert("PickPoint:" + responseStr + " PickName: " +  PickName + " PickLayerId: " +  PickLayerId);
+	</script>
+	
+	<script language="javascript" type="text/javascript" event="FireOnOperationNotify(type, result)" for="VPSDKCtrl">
+		var Result = operationPtr.GetOperationResult().GetConfigValueByKey("Result");
+		alert("Result=" + Result);
+	</script>
+    <script language="javascript" type="text/javascript">
+        var obj;
+        var map;
+		var responseStr;
+		var PickName;
+		var PickLayerId;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+            
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+
+            tlo.AddConfig("Name", "Lod1"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/Out1_Compressed"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+            //InitMouseEvent();
+        }
+		var cpmLayer;
+        //加载模型数据
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+            
+        }
+        //删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+            map.RemoveLayer(cpmLayer); ////删除模型数据
+        }
+	
+		var c3sLayer;
+        //加载本地C3S模型数据
+        function LoadC3S() {
+        
+            var tlo = map.CreateLayerOptions("c3s"); 	//创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "c3s");//数据源类型,代表CPM插件，必须是此键值对
+			tlo.AddConfig("PriorityScale","1.0");		//结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");		//结点调度优先级的偏移值PriorityOffset,
+
+			//C3S和C3SA 都是用此类方法加载
+            //tlo.AddConfig("Url", "F:\\项目相关\\天尊\\ok\\model\\0.c3s"); //要加载的数据路径
+            tlo.AddConfig("Url", "F:\\项目相关\\湖南双排\\gsOutPut\\0.c3s"); //要加载的数据路径
+            //tlo.AddConfig("Url", "F:\\项目相关\\湖南双排\\gsOutPut\\layer6\\0104\\0_1_0_4_0_0_1@OSGBID169.c3s"); //要加载的数据路径
+            c3sLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(c3sLayer); 		//添加模型图层
+            c3sLayer.Locate(); 				//模型图层定位
+           
+        }
+		
+		//删除模型数据
+        function RemoveC3s() {
+            map.RemoveLayer(c3sLayer); ////删除模型数据
+        }
+
+        var res;
+		//开启模型拾取
+        function PickLineOpen() {			
+			var resp = map.CreateResponserOptions("123"); 	//创建响应器配置，参数任意名称
+			resp.AddConfig("PickLayerIdList", -1); 			//拾取图层id //c3sLayer.GetLayerID() 
+			resp.AddConfig("PickColor", "1.0,0.0,0.0,0.8"); //拾取颜色
+			resp.AddConfig("IsChangeColor", "true"); 		//是否变色
+			resp.AddConfig("IsGetLayerID", "true"); 		//是否需要获取节点所在图层ID
+			res = map.CreateResponser("PickModelResponser", resp); //创建模型拾取响应器，第一参必须为PickModelResponser字符串
+			res.AddObserver();	//添加监听
+			map.AddResponser(res); //添加响应器
+        }
+		
+		//关闭模型拾取
+		function ClosePick() 
+		{
+			map.RemoveResponser("PickModelResponser");				//移除模型拾取响应器 
+			res = null;
+		}
+
+        
+        var operationPtr;
+        var isRemove = false;
+		//创建更新操作
+        function CreateOperation(){
+
+            if (responseStr == null) {
+                alert("pick point is null!"); 
+            }
+            var tlo = map.CreateOperationOptions("FindModelOptions"); //创建配置类型,操作类型的配置
+
+            tlo.AddConfig("OptionsTypeName", "FindModelOptions");
+            tlo.AddConfig("FindLayerIdList", "-1"); 				//添加需要拾取相交的图层id，以分号分隔,如果传-1代表对所有模型图层查找
+            tlo.AddConfig("ModelName", PickName); 					//模型名称 //OSGBID628
+            tlo.AddConfig("Point", responseStr); 					//模型坐标（经纬高程） 110.523077105,26.9025233956,273.004930137;
+
+            operationPtr = map.CreateOperation("FindModelOperation", tlo);  //根据配置创建模型查找操作，第一个参数为模型查找操作的类名
+            operationPtr.AddObserver();                               	//回调事件添加
+	        map.AddOperation(operationPtr);                             //加入操作并执行
+
+	    }
+
+	    function UpdateOperation() {//更新操作
+	        var tlo = map.CreateOperationOptions("FindModelOptions"); //创建配置类型,操作类型的配置
+	        tlo.AddConfig("OptionsTypeName", "FindModelOptions");   //第二个参数为配置类名
+            tlo.AddConfig("FindLayerIdList", "-1"); 				//添加需要拾取相交的图层id，以分号分隔
+            tlo.AddConfig("ModelName", PickName); 					//模型名称
+            tlo.AddConfig("Point", responseStr); 					//模型坐标（经纬高程）
+			operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+	    }
+		
+	    function RemoveOperation() { //移除操作
+	        map.RemoveOperation(operationPtr);
+        }
+    </script>
+</head>
+<body onload="InitScene()">
+    <input id="Button1" type="button" value="加载(CPM)" onclick="LoadCPM()" />
+    <input id="Button2" type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input id="Button3" type="button" value="卸载(GMS)" onclick="RemoveGMS()" />
+    <input id="Button4" type="button" value="加载C3S"   onclick="LoadC3S()" />
+    <input id="Button5" type="button" value="卸载(C3s)" onclick="RemoveC3s()" />
+    <input id="Button6" type="button" value="打开响应器" onclick ="PickLineOpen()" />
+    <input id="Button7" type="button" value="移除响应器" onclick ="ClosePick()" />
+    <input id="Button8" type="button" value="创建查找操作"  onclick="CreateOperation()" />
+    <input id="Button9" type="button" value="更新查找操作"  onclick="UpdateOperation()" />
+    <input id="Button10" type="button" value="移除查找操作"  onclick="RemoveOperation()" />
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

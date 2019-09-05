@@ -1,0 +1,299 @@
+<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<title>5.0球面版本测试用例3 矢量</title>
+   
+    <script language="javascript" type="text/javascript" event="FireOnLButtonDblClk(tx,ty)"
+        for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+		
+		
+		if(addState)
+		{
+			if(shpLayer)
+			{
+				map.RemoveLayer(shpLayer);
+			}
+			CreatePointTextEditLayer();
+			var j = 0;
+			for(var i = 0; i< 1; i++) {		
+				var str = "哈哈哈";
+				str=prompt("请输入您的名字？","")
+				var addFeature = map.CreateFeature();								//创建要素对象
+				addFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+				addFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）
+				var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+				//alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+				if(i % 5 == 0 && i != 0) {
+					j = j + 0.00004;
+					addFeature.AddPoint(pos.GetX() + j, pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+				}else{
+					j = j + 0.00002;
+					addFeature.AddPoint(pos.GetX() + j, pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+				}
+				addFeature.AddAttribute("Height", "43.5", 4);			//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)
+				addFeature.AddAttribute("Name", str, 5);				//添加属性值
+				addFeature.AddAttribute("Width", "54", 3);				//添加属性值
+				var featureId = polygoneditLayer.GetMaxFeatureID();		//获取矢量图层要素最大ID
+				addFeature.SetFeatureId(featureId + 1); 				//设置FeatureID
+				polygoneditLayer.AddFeature(addFeature);				//添加到矢量图层
+			}
+			//addState = false;
+		}
+    </script>
+    <script language="javascript" type="text/javascript">
+	var addState = false;
+	var map;
+	var count = 0;
+	var addFeature;
+	
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+        map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+        transformate = map.CreateTransformation();
+    }
+	function LoadDOMDEM()
+	{
+		LoadDOMMTDS();
+	}
+	
+	function LoadCPM() {
+	    /*var tlo = map.CreateLayerOptions("球面模型");
+	    tlo.AddConfig("LayerOptionsName", "ModelLayerOptions");
+	    tlo.AddConfig("DataSourceTypeName", "cpm");
+	    tlo.AddConfig("Url", "F:\\大华演示\\大华数据\\大华模型\\sceneName.L000_000.wrl");
+	    cpmLayer = map.CreateLayer("ModelLayer", tlo);
+	    map.AddLayer(cpmLayer);
+	    cpmLayer.Locate();*/
+		//CreatePointTextEditLayer();
+		//CreatePointModelEditLayer();
+		var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "ZBJCYLOD1028_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.80:8089/kelan/淄博检察院/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+	}
+	//************************
+	//矢量编辑 以点模型符号化为例：
+    //***********************
+    //首先创建待编辑图层：
+    var polygoneditLayer;
+	var shpLayer;
+    function CreatePointModelEditLayer() {
+        var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "5"); ////点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+        var tSymbol = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串 
+        tSymbol.AddConfig("Heading", "0"); ////绕Z轴(世界坐标系方向相同 far->near)旋转,从far(-Z)向near(+Z)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Pitch", "-3.14"); //////绕Y轴(世界坐标系方向相同 down(-Y)向up(Y))旋转,从down(-Y)向up(+Y)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Roll", "0"); ////绕X轴(世界坐标系方向相同 left->right)旋转,从left(-X)向right(+X)看去,逆时针为正，弧度表示
+
+        tSymbol.AddConfig("XScale", "10"); ////模型x方向放大比例
+        tSymbol.AddConfig("YScale", "10"); ////模型y方向放大比例
+        tSymbol.AddConfig("ZScale", "10"); ////模型z方向放大比例
+        tSymbol.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向
+		tSymbol.AddConfig("FeatureLiftUp", "1"); 				//接地线抬升值(配置该项接地线将是文字到点之间，否则是文字、点到地底)
+        tSymbol.AddConfig("LineColor", "1,1,1,1"); ////接地线颜色
+        tSymbol.AddConfig("IsAddGroundLine", "true"); ////是否开启接地线
+        tSymbol.AddConfig("Url", "F:\\大华演示\\大华数据\\kakou\\gun.wrl"); ////模型资源路径
+        tSymbol.AddConfig("LibraryName", "reslib"); ////资源名称
+
+        var res = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol
+        res.AddConfig("Uri", "F:\\大华演示\\大华数据\\kakou\\gun.wrl"); ////模型资源路径
+        var reslib = map.CreateResourceLibrary("reslib"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); ////将资源添加至资源库
+
+        var pStyle = map.CreateStyle("Pointmm"); ////创建名称为Point的样式，名称任意
+        pStyle.SetName("pointmm"); ////设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将点符号配置添加到该样式
+        pStyle.AddFilterName("BuildGeometryFilter"); //设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+        pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为ModelSymbol字符串
+        pStyle.AddFilterName("SubstituteModelFilter"); ////设置构建器符号为SubstituteModelFilter，必须为SubstituteModelFilter字符串，此为图标符号化和模型符号化共有
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+        styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "F:\\zhumh\\testPoint3.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+	
+        //addState = true;//事件响应器
+    }
+
+	function CreatePointTextEditLayer() {
+		var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "10"); ////点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+        /////////////////////此部分是文字在场景中显示的配置/////////////////
+        var tSymbol = map.CreateSymbol("TextSymbol"); ////创建类型为TextSymbol的符号，必须为TextSymbol字符串
+        tSymbol.AddConfig("FillingColor", "0.82, 0.36, 0.0, 1.0"); ////文字颜色（RGBA），颜色值0-1，最后一位代表透明度，0为透明，1为不透
+        tSymbol.AddConfig("Font", "C:\\Program Files\\浙江科澜信息技术有限公司\\CooGis SDK 6.0\\data\\Fonts\\msyh.ttf"); ////文字字体，从系统字体目录中取，字体文件必须存在，配置一些参数时，如果没生效可能与字体文件相关，例如中文
+        tSymbol.AddConfig("Size", "40"); ////字体精度大小
+        tSymbol.AddConfig("CharacterSize", "0.5"); ////文字大小
+        tSymbol.AddConfig("CharacterMode", "0"); ////字符大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值
+        tSymbol.AddConfig("AlignmentMode", "5"); ////设置文字位于要素的位置
+        tSymbol.AddConfig("AxisAlignment", "6"); ////设置文字旋转模式0 - 7 ， 6: 自动
+        tSymbol.AddConfig("RemoveDuplicateLabels", "false"); ////是否移除重复的多重标注
+        tSymbol.AddConfig("IsEmbolden", "false"); ////是否加粗
+        tSymbol.AddConfig("IsTransform", "false"); ////是否斜体
+        tSymbol.AddConfig("IsUnderline", "false"); ////是否加下划线
+        tSymbol.AddConfig("IsBack", "true"); 					//是否有背景
+        tSymbol.AddConfig("BackColor", "0.88,0.87,0.76,1.0"); 	//设置文字背景色
+        tSymbol.AddConfig("LineColor", "0.6,0.6,0.6,1.0"); 		//接地线颜色
+        tSymbol.AddConfig("IsAddGroundLine", "true"); 			//是否开启接地线
+		tSymbol.AddConfig("FeatureLiftUp", "2"); 				//接地线抬升值(配置该项接地线将是文字到点之间，否则是文字、点到地底)
+       tSymbol.AddConfig("Content", "[NAME]"); 				//[]里代表矢量的某字段名称
+ 		//***********如果需要配置背景图片，则需要添加图片资源库*********/
+        tSymbol.AddConfig("ImageURL", "F:\\AlarmCarPhoto\\aa.jpg"); //背景图片地址
+        tSymbol.AddConfig("LibraryName", "Library"); 			//设置资源库名称
+        tSymbol.AddConfig("BackdropMarginLeft", "4.0"); 		//背景边框左边大小
+        tSymbol.AddConfig("BackdropMarginRight", "4.0"); 		//背景边框右边大小
+        tSymbol.AddConfig("BackdropMarginUp", "2.0"); 			//背景边框上边大小
+        tSymbol.AddConfig("BackdropMarginDown", "2.0"); 		//背景边框下边大小
+
+		//*图片资源库配置信息*/
+				
+		var res = map.CreateResource("TextSymbol"); ////创建图标资源，此处必须为TextSymbol
+        res.AddConfig("Uri", "F:\\AlarmCarPhoto\\aa.jpg"); ////图标资源路径
+        var reslib = map.CreateResourceLibrary("Library"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); ////将资源添加至资源库
+		
+        var pStyle = map.CreateStyle("Point"); 					//创建名称为Point的样式，名称任意
+        pStyle.AddSymbol("TextSymbol", tSymbol.GetConfig()); 	//将符号配置添加到该样式，第一参必须为TextSymbol字符串
+        pStyle.AddFilterName("BuildTextFilter"); 				//设置文字构建器符号为BuildTextFilter，必须为BuildGeometryFilter字符串
+        /////////////////////此部分是文字在场景中显示的配置/////////////////
+
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+        pStyle.SetName("point"); 								//设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 	//将符号配置添加到该样式
+        //pStyle.AddFilterName("BuildGeometryFilter");  			//设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+
+        var styleSheet = map.CreateStyleSheet(); 				//创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 				//将样式配置添加至样式表
+        //styleSheet.AddResLib(reslib.GetConfig()); 				//将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Ddfriver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "F:\\zhumh\\testPoint1.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "0"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "80000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+				
+        addState = true;//事件响应器
+	}
+    
+	////编辑后保存图层或者另存为：
+    function polygonLayerSave() {
+        polygoneditLayer.SaveLayer(); ////编辑面图层保存，一般用于首次创建保存
+    }
+    function polygonLayerAsSave() {
+        polygoneditLayer.SaveAsLayer("F:\\Zhumh\\polygontest.shp"); ////编辑面图层另保存。用于多次打开后保存
+    }
+	
+	//关闭标注创建
+	function CloseTextEditLayer() {
+		addState = false;
+	}
+	//开启标注创建
+	function OpenTextEditLayer() {
+		addState = true;
+		//CreatePointTextEditLayer();
+		//CreatePointModelEditLayer();
+	}
+	
+	function AddFeature(x, y, z)
+	{
+		var addFeature = map.CreateFeature(); 							//创建要素对象
+		addFeature.SetGeometryType(1); 								//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+		addFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）
+		addFeature.AddAttribute("Height", "43.5", 4);			//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)
+		addFeature.AddAttribute("Name", "大华楼", 5);			//添加属性值
+		addFeature.AddAttribute("Width", "54", 3);				//添加属性值
+		addFeature.AddPoint(x, y, z);////向编辑图层添加坐标点信息
+		var featureId = polygoneditLayer.GetMaxFeatureID();		//获取矢量图层要素最大ID
+		addFeature.SetFeatureId(featureId + 1); 				//设置FeatureID
+		polygoneditLayer.AddFeature(addFeature);				//添加到矢量图层
+	}
+	//清除标注
+	function ClearEditLayer() {
+		if(shpLayer)
+		{
+			map.RemoveLayer(shpLayer);
+		}
+	}
+	
+    var mtdsdomlayer;
+    //////加载DOM数据
+    function LoadDOMMTDS() {
+        var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+        tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+        tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+        tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+        tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+        mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+        map.AddLayer(mtdsdomlayer); ///添加DOM图层
+        mtdsdomlayer.Locate(); ////DOM图层定位
+    }
+    </script>
+</head>
+<body onload="InitScene()">
+	标注:
+	<input id="Button1"  type="button" value="加载影像" 		onclick="LoadDOMDEM()" />
+    <input id="Button7" type="button" value="加载模型" onclick="LoadCPM()" />
+    <input id="Button16" type="button" value="开启标注创建" onclick="OpenTextEditLayer()" />
+    <input id="Button16" type="button" value="关闭标注创建" onclick="CloseTextEditLayer()" />
+    <input id="Button16" type="button" value="清除标注创建" onclick="ClearEditLayer()" />
+    <input id="Button16" type="button" value="保存标注" onclick="polygonLayerAsSave()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</script>
+</html>

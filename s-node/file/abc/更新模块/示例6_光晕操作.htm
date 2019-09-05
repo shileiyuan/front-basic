@@ -1,0 +1,134 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>光晕操作</title>
+    <script language="javascript" type="text/javascript">
+
+        var MouseX = "";
+        var MouseY = "";
+        /**
+         @brief 鼠标左键触发事件
+         @param [in] x 鼠标点击位置x轴坐标
+         @param [in] y 鼠标点击位置y轴坐标
+        */
+        function LButtonDown(x, y) {
+
+           
+            MouseX = x;
+            MouseY = y;
+            //window.alert("X: " + MouseX + "Y: " + MouseY);
+        }
+          /**
+         @brief 操作事件
+         @param [in] type   操作类型
+         @param [in] result 操作结果
+        */
+        function FireOnOperationNotify(type, result)
+        {
+            window.alert( "ViewPoint: " + " type: " + type + " result: " + result ); 
+        }
+
+  
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            obj.attachEvent("FireOnLButtonDown", LButtonDown);
+            obj.attachEvent("FireOnOperationNotify", FireOnOperationNotify);
+
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+ 
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+
+            var tlo = map.CreateLayerOptions("HaiKang2_Compressed"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8080/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+
+    
+        var operationPtr;
+        var isRemove = false;
+        function CreateHaloOperation(){//启动光晕操作
+   
+            var tlo = map.CreateOperationOptions("Halo"); //创建配置类型,操作类型的配置
+
+            tlo.AddConfig("OptionsTypeName", "AtmosphereOptions");
+
+            operationPtr = map.CreateOperation("AtmosphereOperation", tlo); //根据配置创建模型调整操作
+            map.AddOperation(operationPtr);                                      //加入操作并执行
+            if (isRemove) {
+                isRemove = false; 
+            }
+
+	    }
+
+
+       
+
+        function UpdateAddHalo(){//添加光晕
+
+             var tlo = map.CreateOperationOptions("Halo"); //创建配置类型,操作类型的配置
+             tlo.AddConfig("OptionsTypeName", "AtmosphereOptions");
+             tlo.AddConfig("Operation", "Add");//添加操作类型
+           
+             if(!isRemove)
+             operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+        
+        }
+
+
+        function UpdateRemove() {//删除光晕
+
+             var tlo = map.CreateOperationOptions("Halo"); //创建配置类型,操作类型的配置
+             tlo.AddConfig("OptionsTypeName", "AtmosphereOptions");
+             tlo.AddConfig("Operation", "Remove"); //添加操作类型
+             if(!isRemove)
+             operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+        
+        }
+
+        function RemoveOperation() { //结束光晕操作
+            if (!isRemove) {
+                isRemove = true;
+                map.RemoveOperation(operationPtr);
+            }
+	    }
+
+
+    </script>
+</head>
+<body onload="InitScene()">
+  
+    <input id="Button17" type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input id="Button18" type="button" value="卸载(GMS)" onclick="RemoveGMS()" />
+
+ 
+    <input id ="Button20" type="button" value="启动光晕操作"  onclick="CreateHaloOperation()" />
+    <input id = "Button21" type = "button" value = "添加光晕操作" onclick = "UpdateAddHalo()">
+    <input id = "Button22" type = "button" value = "移除光晕操作" onclick = "UpdateRemove()">
+    <input id="Button23" type="button" value="移除操作"  onclick="RemoveOperation()" />
+
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

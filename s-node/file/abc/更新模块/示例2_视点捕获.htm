@@ -1,0 +1,263 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>视点捕获操作</title>
+    <script language="javascript" type="text/javascript">
+
+        var MouseX = "";
+        var MouseY = "";
+        /**
+         @brief 鼠标左键触发事件
+         @param [in] x 鼠标点击位置x轴坐标
+         @param [in] y 鼠标点击位置y轴坐标
+        */
+        function LButtonDown(x, y) {
+
+           
+            MouseX = x;
+            MouseY = y;
+            //window.alert("X: " + MouseX + "Y: " + MouseY);
+        }
+          /**
+         @brief 操作事件
+         @param [in] type   操作类型
+         @param [in] result 操作结果
+        */
+        function FireOnOperationNotify(type, result)
+        {
+            //window.alert("ViewPoint: " + " type: " + type + " result: " + result);
+            if (null != operationPtr) {
+                var  iCount = operationPtr.GetOperationResult().GetConfigSetCount();
+                if( iCount > 0 ) {
+
+                    var keyValue = "";
+                    for (var i = 0; i < iCount; ++i) {
+
+                        var key   = operationPtr.GetOperationResult().GetConfigKeyByIndex(i);
+                        var value = operationPtr.GetOperationResult().GetConfigValueByKey(key);
+                        keyValue += key + "," + value + ";";
+                    }
+
+                    alert("keyValue: " +  keyValue );
+                }
+            }
+        }
+
+  
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            obj.attachEvent("FireOnLButtonDown", LButtonDown);
+            obj.attachEvent("FireOnOperationNotify", FireOnOperationNotify);
+
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+        var gmsLayer;
+        //////加载模型数据
+        function LoadGMS() {
+
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "C:\\Users\\hsy\\Desktop\\海康球面数据\\Out\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+        }
+
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+
+     
+
+
+        ///加载矢量面
+        var polygonshpLayer1;
+        function LoadPolygonShp1() {
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+            pSymbol.AddConfig("Color", "0.5,0.1,0.1,0.3"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+            var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+            pStyle.SetName("polygon"); ////设置别名polygon
+            pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+            pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "F:\\Zhumh\\演示测试数据\\general.shp"); ////数据存放位置，注意双斜杠
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "1000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+            polygonshpLayer1 = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(polygonshpLayer1); ////添加矢量图层
+            polygonshpLayer1.Locate(); ////矢量图层定位（不建议，不精准）
+        }
+
+        ///加载矢量面
+        var polygonshpLayer2;
+        function LoadPolygonShp2() {
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+            pSymbol.AddConfig("Color", "0.5,0.1,0.1,0.3"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+            var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+            pStyle.SetName("polygon"); ////设置别名polygon
+            pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+            pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "C:\\Users\\hsy\\Desktop\\海康球面数据\\shp\\hys.shp"); ////数据存放位置，注意双斜杠
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "1000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+            polygonshpLayer2 = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(polygonshpLayer2); ////添加矢量图层
+            polygonshpLayer2.Locate(); ////矢量图层定位（不建议，不精准）
+        }
+
+        ///加载矢量面
+        var polygonshpLayer3;
+        function LoadPolygonShp3() {
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+            pSymbol.AddConfig("Color", "0.5,0.1,0.1,0.3"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+            var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+            pStyle.SetName("polygon"); ////设置别名polygon
+            pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+            pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "C:\\Users\\hsy\\Desktop\\海康球面数据\\shp\\dxec.shp"); ////数据存放位置，注意双斜杠
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "1000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+            polygonshpLayer3 = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(polygonshpLayer3); ////添加矢量图层
+            polygonshpLayer3.Locate(); ////矢量图层定位（不建议，不精准）
+        }
+
+        ///加载矢量面
+        var polygonshpLayer4;
+        function LoadPolygonShp4() {
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+            pSymbol.AddConfig("Color", "0.5,0.1,0.1,0.3"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+            var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+            pStyle.SetName("polygon"); ////设置别名polygon
+            pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+            pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "C:\\Users\\hsy\\Desktop\\海康球面数据\\shp\\zt.shp"); ////数据存放位置，注意双斜杠
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "1000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+            polygonshpLayer4 = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(polygonshpLayer4); ////添加矢量图层
+            polygonshpLayer4.Locate(); ////矢量图层定位（不建议，不精准）
+        }
+
+
+
+
+
+        function LoadPolygonShp() 
+        {
+            LoadPolygonShp1(); //加载矢量面图层一
+            LoadPolygonShp2(); //加载矢量面图层二
+            LoadPolygonShp3(); //加载矢量面图层三
+            LoadPolygonShp4(); //加载矢量面图层三
+        }
+
+
+        
+        var operationPtr;
+        var isInit = false;
+        function CreateUpdateOperation(){//创建更新操作
+
+            if (isInit) {
+                window.alert("please user updateOption!"); 
+            }
+            
+            isInit = true;
+            var tlo = map.CreateOperationOptions("ViewPoint"); //创建配置类型,操作类型的配置
+
+            window.alert("Start To Create Update Operation!");
+
+            tlo.AddConfig("LayersID", polygonshpLayer1.GetLayerID() + "," + polygonshpLayer2.GetLayerID() + "," + polygonshpLayer3.GetLayerID());        //添加需要拾取相交的图层id，以分号分隔
+            tlo.AddConfig("OptionsTypeName", "ViewPointIntersectOptions");
+
+            operationPtr = map.CreateOperation("ViewPointIntersectOperation", tlo); //根据配置创建模型调整操作
+            operationPtr.AddObserver(); 
+           
+	        map.AddOperation(operationPtr);                                      //加入操作并执行
+
+	    }
+
+
+	    function RemoveOperation() { //移除操作
+	        map.RemoveOperation(operationPtr);
+        }
+
+    </script>
+</head>
+<body onload="InitScene()">
+   
+    <input id="Button1" type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input id="Button2" type="button" value="卸载(GMS)" onclick="RemoveGMS()" />
+
+    <input id="Button3" type = "button" value ="加载矢量面" onclick = "LoadPolygonShp()" />
+    <input id="Button4" type="button" value="开启视点捕获"  onclick="CreateUpdateOperation()" />
+    <input id="Button5" type="button" value="关闭视点捕获"  onclick="RemoveOperation()" />
+
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

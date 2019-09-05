@@ -1,0 +1,1572 @@
+<html>
+<head>
+<title>6.0试用例3 矢量</title>
+	<script language="javascript" type="text/javascript" event="FireOnLButtonUp(tx,ty)" for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+		if(addState)
+		{
+			 var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+			//alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+			addFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+			
+			responseStr = pos.GetX() + ";" + pos.GetY() + ";" + pos.GetZ();
+			//alert(responseStr);
+		}
+	</script>
+	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(str,id)" for="VPSDKCtrl">
+		var str2 = str.split("|");
+		if(str2[1] == "PickVectorResponser" || str == "PickVectorResponser")
+		{
+			responseStr = pickResp.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+			var PickLayerList = pickResp.GetResponserResult().GetConfigValueByKey("PickLayerList"); //获取图层ID			alert("Point:" + responseStr + "; PickLayerList:" + PickLayerList);				var FeatureSchema = pickResp.GetResponserResult().GetConfigValueByKey("FeatureSchema"); //获取要素属性表头			var bz = pickResp.GetResponserResult().GetConfigValueByKey("jzxg"); //获取要素属性表头			//alert("FeatureSchema=" + FeatureSchema);			var attTable = FeatureSchema.split(";");			for(var i = 0; i < attTable.length; i++)			{				var Value = pickResp.GetResponserResult().GetConfigValueByKey(attTable[i]); //获取要素属性值				//alert(attTable[i] + "=" + Value);			}
+		}
+	</script>
+    <script language="javascript" type="text/javascript">
+	var addState = false;
+	var map;
+	var obj;
+	var count = 0;
+	var addFeature;
+	var Datapath="F:\\演示测试数据";
+	var mtdsdemlayer;
+	var mtdsdomlayer;
+	
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+		obj.InitLic("192.168.1.50@8088@");	// 授权
+		map = obj.GetIMapMgrPtr();
+        transformate = map.CreateTransformation();
+    }
+
+	function LoadDOMDEM()
+	{
+		LoadDOMMTDS();
+        LoadDEMMTDS();
+	}
+	
+	var cpmLayer;
+	function LoadCPM() {
+	    var tlo = map.CreateLayerOptions("球面模型");
+	    tlo.AddConfig("LayerOptionsName", "ModelLayerOptions");
+	    tlo.AddConfig("DataSourceTypeName", "cpm");
+	    tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl");
+	    cpmLayer = map.CreateLayer("ModelLayer", tlo);
+	    map.AddLayer(cpmLayer);
+	    cpmLayer.Locate();
+	}
+	
+	var state = false;
+	function Hide() {
+	    mtdsdomlayer.SetVisible(state);
+		mtdsdemlayer.SetVisible(state);
+		state = !state;
+	}
+	
+	//********************************
+	// 点矢量加载
+	//********************************
+    var pointshpLayer;
+    function LoadPointShp() {
+        var pSymbol = map.CreateSymbol("PointSymbol");							//// 创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "5");											//// 点的大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0");							//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+		
+		var symbolType = pSymbol.GetType();	//获取符号类型
+		
+        var pStyle = map.CreateStyle("Point");									//// 创建名称为Point的样式，名称任意
+        pStyle.SetName("point");												//// 设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 					//// 将符号配置添加到该样式，第一参必须为PointSymbol字符串
+        pStyle.AddFilterName("BuildGeometryFilter"); 							//// 设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+		
+        var tlo = map.CreateLayerOptions("shp");								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions");			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom");							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile，对于SDE和WFS没有此配置项
+        tlo.AddConfig("Url",Datapath+ "\\point.shp"); 							//// 数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "1000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "10"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "50000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        pointshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer字符串
+        map.AddLayer(pointshpLayer); 											//// 添加矢量图层
+        pointshpLayer.Locate(); 												//// 矢量图层定位（不建议，不精准）
+        var id = pointshpLayer.GetLayerID(); 									//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //********************************
+    // 线矢量加载
+    //********************************
+    var lineshpLayer;
+    function LoadLineShp() {
+        var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+        lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+        lSymbol.AddConfig("Width", "10"); 										//// 线宽 0-10
+        lSymbol.AddConfig("Color", "0.82, 0.48, 0, 1.0"); 						//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+	
+		var lStyle = map.CreateStyle("Line"); 									//// 创建名称为Line的样式，名称任意
+        lStyle.SetName("line"); 												//// 设置别名line
+        lStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 					//// 将符号配置添加到该样式，第一参必须为LineSymbol字符串
+        lStyle.AddFilterName("BuildGeometryFilter"); 							//// 设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+		
+		var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(lStyle.GetConfig()); 								//// 将样式配置添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url",Datapath+ "\\road.shp"); 							//// 数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+		
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "20"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+		tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+        lineshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(lineshpLayer); 											//// 添加矢量图层
+        
+		lineshpLayer.Locate(); 													//// 矢量图层定位（不建议，不精准）
+        var id = lineshpLayer.GetLayerID(); 									//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //********************************
+    // 面矢量加载
+    //********************************
+    var polygonshpLayer;
+    function LoadPolygonShp() {
+        var pSymbol = map.CreateSymbol("PolygonSymbol"); 						//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        pSymbol.AddConfig("Color", "0.64, 0.01, 0.97, 0.6");					//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+        pSymbol.AddConfig("SurfaceStyleName", "Surface");					//// 
+
+        var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+        lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+        lSymbol.AddConfig("Width", "2");										//// 线宽 0-10
+        lSymbol.AddConfig("Color", "0.42, 0.65, 0.96, 1.0"); 					//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+		
+        var pStyle = map.CreateStyle("Polygon"); 								//// 创建名称为Polygon的样式，名称任意
+        pStyle.SetName("polygon");												//// 设置别名polygon
+        pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); 				//// 将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+        pStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 					//// 配置面边框，第一参必须为LineSymbol字符串
+        pStyle.AddFilterName("BuildGeometryFilter"); 							//// 设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+		
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\general.shp"); 					////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "30"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+		tlo.AddConfig("IsAutoTileSize", "true");								//// 是否自动计算瓦片大小,默认为true
+
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+        polygonshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 			//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(polygonshpLayer); 											//// 添加矢量图层
+        polygonshpLayer.Locate(); 												//// 矢量图层定位（不建议，不精准）
+        var id = polygonshpLayer.GetLayerID(); 									//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //********************************
+    // 文字符号化加载
+    //********************************
+   //以矢量点数据为例：
+    var textshpLayer;
+    function LoadPointAndText() {
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+        var pSymbol = map.CreateSymbol("PointSymbol"); 							//// 创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "5"); 										//// 点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); 							//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+        /////////////////////此部分是文字在场景中显示的配置/////////////////
+        var tSymbol = map.CreateSymbol("TextSymbol"); 							//// 创建类型为TextSymbol的符号，必须为TextSymbol字符串
+        tSymbol.AddConfig("FillingColor", "0.82, 0.36, 0.0, 1.0"); 				//// 文字颜色（RGBA），颜色值0-1，最后一位代表透明度，0为透明，1为不透
+        tSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\msyh.ttf");  			//// 文字字体，从系统字体目录中取，字体文件必须存在，配置一些参数时，如果没生效可能与字体文件相关，例如中文
+        tSymbol.AddConfig("Size", "40"); 										//// 字体精度大小
+        tSymbol.AddConfig("CharacterSize", "8"); 								//// 文字大小
+        tSymbol.AddConfig("FieldPrecision", "20"); 								//// 字段精度
+        tSymbol.AddConfig("CharacterMode", "1");  								//// 字符大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值
+        tSymbol.AddConfig("AlignmentMode", "5"); 								//// 设置文字位于要素的位置
+        tSymbol.AddConfig("AxisAlignment", "6"); 								//// 设置文字旋转模式0 - 7 ， 6: 自动
+        tSymbol.AddConfig("RemoveDuplicateLabels", "false"); 					//// 是否移除重复的多重标注
+        tSymbol.AddConfig("IsEmbolden", "false"); 								//// 是否加粗
+        tSymbol.AddConfig("IsTransform", "false"); 								//// 是否斜体
+        tSymbol.AddConfig("IsUnderline", "false"); 								//// 是否加下划线
+        tSymbol.AddConfig("IsHorizontal", "true"); 								//// 是否水平排列
+        tSymbol.AddConfig("HorizonSpacingSize", "1.0"); 						//// 字符水平间隔距离
+        tSymbol.AddConfig("IsBack", "true"); 									//// 是否有背景
+        tSymbol.AddConfig("BackColor", "1.0,0.0,0.0,0.5");	 					//// 设置文字背景色
+        tSymbol.AddConfig("LineColor", "0.6,0.6,0.6,1.0"); 						//// 接地线颜色
+        tSymbol.AddConfig("IsAddGroundLine", "1"); 								//// 是否开启接地线
+		tSymbol.AddConfig("FeatureLiftUp", "10"); 				//接地线抬升值(配置该项接地线将是文字到点之间，否则是文字、点到地底)
+        tSymbol.AddConfig("Content", "[NAME]"); 								//// []里代表矢量的某字段名称
+		//***********如果需要配置背景图片，则需要添加图片资源库*********/
+        tSymbol.AddConfig("ImageURL", "http://192.168.1.50:8088/test/TextureGif.gif"); //背景图片地址F:\\演示测试数据\\water.jpg
+		//http://192.168.1.50:8088/test/TextureGif.gif
+        tSymbol.AddConfig("LibraryName", "Library"); 							//// 设置资源库名称
+        tSymbol.AddConfig("BackdropMarginLeft", "10"); 							//// 背景边框左边大小
+        tSymbol.AddConfig("BackdropMarginRight", "10"); 						//// 背景边框右边大小
+        tSymbol.AddConfig("BackdropMarginUp", "10"); 							//// 背景边框上边大小
+        tSymbol.AddConfig("BackdropMarginDown", "10"); 							//// 背景边框下边大小
+
+		//*图片资源库配置信息*/
+		var res = map.CreateResource("TextSymbol"); 							//// 创建图标资源，此处必须为TextSymbol
+        res.AddConfig("Uri", "http://192.168.1.50:8088/test/TextureGif.gif"); 									////图标资源路径
+        var reslib = map.CreateResourceLibrary("Library"); 						//// 创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); 												//// 将资源添加至资源库
+				
+        var pStyle = map.CreateStyle("Point"); 									//// 创建名称为Point的样式，名称任意
+		pStyle.SetName("point"); 												//// 设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 					//// 将点符号配置添加到该样式
+        pStyle.AddFilterName("BuildGeometryFilter"); 							//// 设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+        pStyle.AddSymbol("TextSymbol", tSymbol.GetConfig()); 					//// 将符号配置添加到该样式，第一参必须为TextSymbol字符串
+        pStyle.AddFilterName("BuildTextFilter"); 								//// 设置文字构建器符号为BuildTextFilter，必须为BuildGeometryFilter字符串
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddResLib(reslib.GetConfig()); 								//// 将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型,FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url",Datapath+"\\point.shp"); //数据存放位置，注意双斜杠
+        //tlo.AddConfig("Url","F:\\项目相关\\浦东机场\\data\\textLabelAnchorpoint.shp"); //数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "30"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+		//tlo.AddConfig("RenderOrder", "-100");									//// 绘制顺序
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        textshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(textshpLayer); 											//// 添加矢量图层
+        textshpLayer.Locate(); 													//// 矢量图层定位（不建议，不精准）
+        var id = textshpLayer.GetLayerID(); 									//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+
+    //********************************
+    // 图标符号加载
+    //********************************
+    //以矢量点数据为例：
+    var iconshpLayer;
+    function LoadPointAndIcon() {
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+        var pSymbol = map.CreateSymbol("PointSymbol"); 							//// 创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "3"); 										//// 点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); 							//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+
+        /////////////////////此部分是图片在场景中显示的配置/////////////////
+        var tSymbol = map.CreateSymbol("IconSymbol"); 							//// 创建类型为IconSymbol的符号，必须为IconSymbol字符串
+        tSymbol.AddConfig("Align", "5"); 										//// 设置图片与要素的相对位置
+        tSymbol.AddConfig("AxisAlignmentType", "0"); 							//// 设置图片旋转模式
+        tSymbol.AddConfig("CharacterMode", "1"); 								//// 图片大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值Scale
+        tSymbol.AddConfig("Scale", "0.2"); 										//// 图片大小变化上限值
+        tSymbol.AddConfig("XScale", "1"); 									//// 图片x方向放大比例
+        tSymbol.AddConfig("YScale", "1"); 									//// 图片y方向放大比例
+        tSymbol.AddConfig("ZScale", "1"); 									//// 图片z方向放大比例
+        tSymbol.AddConfig("LineColor", "1,0,1,1"); 								//// 接地线颜色
+        tSymbol.AddConfig("FeatureLiftUp", "0"); 								//// 要素抬升值
+        tSymbol.AddConfig("IsAddGroundLine", "true"); 							//// 是否开启接地线
+        tSymbol.AddConfig("Url",Datapath+"\\pine.png"); ////图标资源路径
+        tSymbol.AddConfig("LibraryName", "reslib"); 							//// 资源名称
+
+        var res = map.CreateResource("IconSymbol"); 							//// 创建图标资源，此处必须为IconSymbol
+        res.AddConfig("Uri", Datapath+"\\pine.png"); ////图标资源路径
+        var reslib = map.CreateResourceLibrary("reslib"); 						//// 创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); 												//// 将资源添加至资源库
+        /////////////////////此部分是图片在场景中显示的配置/////////////////
+        var pStyle = map.CreateStyle("Point"); 									//// 创建名称为Point的样式，名称任意
+        pStyle.SetName("point"); 												//// 设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 					//// 将点符号配置添加到该样式，第一参必须为PointSymbol字符串
+        pStyle.AddFilterName("BuildGeometryFilter"); 							//// 设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+        pStyle.AddSymbol("IconSymbol", tSymbol.GetConfig()); 					//// 将图片符号配置添加到该样式，第一参必须为IconSymbol字符串
+        pStyle.AddFilterName("SubstituteModelFilter"); 							//// 设置图片构建器符号为SubstituteModelFilter，此为图标符号化和模型符号化共有
+
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddResLib(reslib.GetConfig()); 								//// 将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+		tlo.AddConfig("Fields", "Name:String:100:0"); 							//// 创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        tlo.AddConfig("Url", Datapath+"\\point.shp"); ////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "30"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "50000"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        iconshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(iconshpLayer); 											//// 添加矢量图层
+        iconshpLayer.Locate(); 													//// 矢量图层定位（不建议，不精准）
+    }
+
+    //********************************
+    // 模型符号加载
+    //********************************
+    //以矢量点数据为例：
+    var modelshpLayer;
+    function LoadPointAndModel() {
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+        var pSymbol = map.CreateSymbol("PointSymbol"); 							//// 创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "10"); 										//// 点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); 							//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+
+	   /////////////////////此部分是模型在场景中显示的配置/////////////////
+        var tSymbol = map.CreateSymbol("ModelSymbol"); 							//// 创建类型为ModelSymbol的符号，必须为ModelSymbol字符串
+        tSymbol.AddConfig("Heading", "0");	 									//// 绕Z轴(世界坐标系方向相同 far->near)旋转,从far(-Z)向near(+Z)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Pitch", "0"); 										//// 绕Y轴(世界坐标系方向相同 down(-Y)向up(Y))旋转,从down(-Y)向up(+Y)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("Roll", "0"); 										//// 绕X轴(世界坐标系方向相同 left->right)旋转,从left(-X)向right(+X)看去,逆时针为正，弧度表示
+        tSymbol.AddConfig("XScale", "10"); 										//// 模型x方向放大比例
+        tSymbol.AddConfig("YScale", "10"); 										//// 模型y方向放大比例
+        tSymbol.AddConfig("ZScale", "10"); 										//// 模型z方向放大比例
+        tSymbol.AddConfig("ModelOriginDir", "0,0,1"); 							//// 模型原始轴向
+        tSymbol.AddConfig("FeatureLiftUp", "10"); 								//// 要素抬升值
+        tSymbol.AddConfig("IsLocalRotation", "false"); 							//// 是否在局地进行旋转，以保持模型原始的朝向(默认为否)
+        tSymbol.AddConfig("Url", "F:\\演示测试数据\\杆球.wrl"); 				////模型资源路径F:\\演示测试数据\\杆球.wrl
+        tSymbol.AddConfig("LibraryName", "reslib"); 							//// 资源名称
+
+        var res = map.CreateResource("ModelSymbol"); 							//// 创建模型资源，此处必须为ModelSymbol
+        res.AddConfig("Uri", "F:\\演示测试数据\\杆球.wrl"); 					////图标资源路径http://192.168.1.50:8088/test/004.wrl
+        var reslib = map.CreateResourceLibrary("reslib"); 						//// 创建资源库，名称和图层配置LibraryName设置的名称对应
+        reslib.AddResource(res); 												//// 将资源添加至资源库
+        /////////////////////此部分是模型在场景中显示的配置/////////////////
+		
+        var pStyle = map.CreateStyle("Point"); 									//// 创建名称为Point的样式，名称任意
+        pStyle.SetName("point"); 												//// 设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 					//// 将点符号配置添加到该样式，第一参必须为PointSymbol字符串
+        pStyle.AddFilterName("BuildGeometryFilter"); 							//// 设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+        pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); 					//// 将模型符号配置添加到该样式，第一参必须为ModelSymbol字符串
+        pStyle.AddFilterName("SubstituteModelFilter"); 							//// 设置图片构建器符号为SubstituteModelFilter，此为图标符号化和模型符号化共有
+		
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddResLib(reslib.GetConfig()); 								//// 将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\point.shp"); 							//// 数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+		tlo.AddConfig("BuildSpatialIndex","true");								//// 是否对读入的shp数据创建空间索引
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        modelshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(modelshpLayer); 											//// 添加矢量图层
+        modelshpLayer.Locate(); 												//// 矢量图层定位（不建议，不精准）
+    }
+
+	//********************************
+    // 点挤出符号化
+    //********************************
+	var expshpLayer;
+	function LoadExtruPointShp(){
+		/////////////////////此部分是点在场景中显示的配置/////////////////
+        var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "5"); ////点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+        /////////////////////此部分是点在场景中显示的配置/////////////////
+
+        /////////////////////此部分是模型在场景中显示的配置/////////////////
+        var tSymbol = map.CreateSymbol("PointExtrusionSymbol"); ////创建类型为PointExtrusionSymbol的符号，必须为PointExtrusionSymbol字符串
+        tSymbol.AddConfig("ExtrudeType", "0"); ////挤出类型，0-圆 1-方
+        tSymbol.AddConfig("Radius", "[Y]"); //////半径，单位m
+        tSymbol.AddConfig("DrawMode", "2"); ////绘制模式，0-正面；1-反面；2-双面
+        tSymbol.AddConfig("SurfaceColor", "1,0,0,0.5"); ////显示颜色
+        tSymbol.AddConfig("SplitPointNum", "64"); ////构成圆定点数
+
+        var pStyle = map.CreateStyle("Point"); ////创建名称为Point的样式，名称任意
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将点符号配置添加到该样式，第一参必须为PointSymbol字符串
+		pStyle.AddSymbol("PointExtrusionSymbol", tSymbol.GetConfig()); ////将模型符号配置添加到该样式，第一参必须为PointExtrusionSymbol字符串
+        pStyle.AddFilterName("ExtrudeGeometryFilter"); ////设置构建器符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\exp.shp"); ////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+		tlo.AddConfig("BuildSpatialIndex","true");///< 是否对读入的shp数据创建空间索引
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "10"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        expshpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(expshpLayer); ////添加矢量图层
+        expshpLayer.Locate(); ////矢量图层定位（不建议，不精准）
+	}
+	
+	//********************************
+    // 专题配置点挤出符号化
+    //********************************
+	var themePointLayer;
+	function LoadThemeExtruPointShp(){
+		var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        for (var i = 0; i < result.length; i++)/////result 存储了很多不同颜色值（RGBA（0-255）），如 var result = new Array(new Array("A33", "120,15,15,70"),new Array("A5", "120,15,15,70"),new Array("B1", "120,15,15,70");
+        {
+            var tSymbol = map.CreateSymbol("PointExtrusionSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串
+			tSymbol.AddConfig("ExtrudeType", "0"); ////挤出类型，0-圆 1-方
+			tSymbol.AddConfig("Radius", "[Y]"); //////半径，单位m
+			tSymbol.AddConfig("DrawMode", "2"); ////绘制模式，0-正面；1-反面；2-双面
+			/////获取不同值的颜色////
+            var a1 = new Array(4);
+            a1 = result[i][1].split(",");
+            var str = a1[0] / 255.0 + ", " + a1[1] / 255.0 + ", " + a1[2] / 255.0 + "," + a1[3] / 255.0;
+            /////获取不同值的颜色////
+			tSymbol.AddConfig("SurfaceColor", str); ////显示颜色
+			tSymbol.AddConfig("SplitPointNum", "64"); ////构成圆定点数
+
+            var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+			pSymbol.AddConfig("Size", "5"); ////点大小，范围0-10
+			pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+            var tmpStyle = map.CreateStyle(result[i][0]); ///创建名称为result[i][0]的样式
+            tmpStyle.AddSymbol("PointExtrusionSymbol", tSymbol.GetConfig()); ////将面挤出符号配置添加到该样式，第一参必须为PolygonExtrusionSymbol字符串
+            tmpStyle.AddFilterName("ExtrudeGeometryFilter"); ///设置挤出构建器符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+            styleSheet.AddStyle(tmpStyle.GetConfig()); ////将挤出面样式配置添加至样式表
+            styleSheet.AddStyleSelector(result[i][0]); /////添加样式选择器，其名称必须与创建名称为result[i][0]的样式的名称一致,专题配置必须有此项
+        }
+        styleSheet.SetStrExpression("[LABEL_NMAE]"); /////专题配置的字段,以此字段中不同的值创建样式，也就是result[i][0]的值就是此字段中不同的值
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+		tlo.AddConfig("Fields", "LABEL_NMAE:String:100:0,Y:Double:100:3,C:String:100:0");
+        tlo.AddConfig("Url", Datapath+"\\exp.shp"); ////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        themePointLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(themePointLayer); ////添加矢量图层
+        themePointLayer.Locate(); ////矢量图层定位（不建议，不精准）
+		var id = themePointLayer.GetLayerID(); ////获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+	}
+    //********************************
+    // 面挤出-roof/wall符号化
+    //********************************
+    //////此种符号顶面和侧面是不同颜色
+    var exdshpLayer;
+    function LoadExtruDiffPolygonShp() {
+	
+		var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+        lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+        lSymbol.AddConfig("Width", "5"); 										//// 线宽 0-10
+        lSymbol.AddConfig("Color", "0.82, 0.48, 0, 1.0"); 						//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+	
+        ////////墙体颜色配置
+        var wallpolygonSymbol = map.CreateSymbol("PolygonSymbol"); 				//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        wallpolygonSymbol.AddConfig("Color", "0.98, 0.51, 0.27, 1"); 			//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+		
+		/////创建墙体样式，并添加墙体面符号
+        var pwallStyle = map.CreateStyle("WallPolygonStyle"); 					//// 创建名称为"WallPolygonStyle的样式，名称任意
+        pwallStyle.AddSymbol("PolygonSymbol", wallpolygonSymbol.GetConfig()); 	//// 将Wall面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+        pwallStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 					//// 将线框符号配置添加到该样式，第一参必须为LineSymbol字符串
+		
+        ////////屋顶颜色配置
+        var roofpolygonSymbol = map.CreateSymbol("PolygonSymbol"); 				//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        roofpolygonSymbol.AddConfig("Color", "0.86, 0.92, 0.33, 0.8");			//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+		
+		/////创建屋顶样式，并添加屋顶面符号
+        var proofStyle = map.CreateStyle("RoofPolygonStyle"); 					//// 创建名称为"RoofPolygonStyle的样式，名称任意
+        proofStyle.AddSymbol("PolygonSymbol",roofpolygonSymbol.GetConfig()); 	//// 将Roof面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+        var extruSymbol = map.CreateSymbol("PolygonExtrusionSymbol"); 			//// 创建类型为PolygonExtrusionSymbol的符号,为面挤出符号，必须为PolygonExtrusionSymbol字符串
+        extruSymbol.AddConfig("HeightExpression", "[JZXG]"); 					//// 挤出面的高度，可以直接传值，也可以[]中设置相应的属性字段，会根据属性字段进行拉伸高度
+        
+        extruSymbol.AddConfig("WallStyleName", "WallPolygonStyle"); 			//// 拉伸体块墙体颜色，通过此关键字WallStyleName关联墙体面符号，第二参必须与墙体面符号所在样式名称一致
+        extruSymbol.AddConfig("RoofStyleName", "RoofPolygonStyle"); 			//// 拉伸体块屋顶颜色，通过此关键字RoofStyleName关联屋顶面符号，第二参必须与屋顶面符号所在样式名称一致
+
+        var eStyle = map.CreateStyle("ExtruStyle"); 							//// 创建名称为ExtruStyle的样式，名称任意
+        eStyle.AddSymbol("PolygonExtrusionSymbol", extruSymbol.GetConfig()); 	//// 将面挤出符号配置添加到该样式，第一参必须为PolygonExtrusionSymbol字符串
+        eStyle.AddFilterName("ExtrudeGeometryFilter"); 							//// 设置挤出构建器符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+		
+        eStyle.AddSymbol("AltitudeSymbol", aSymbol.GetConfig());				//// 矢量贴地配置添加至样式
+		
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pwallStyle.GetConfig()); 							//// 将墙体样式配置添加至样式表
+        styleSheet.AddStyle(proofStyle.GetConfig()); 							//// 将屋顶样式配置添加至样式表
+        styleSheet.AddStyle(eStyle.GetConfig()); 								//// 将挤出面样式配置添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\general.shp"); 						////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "50000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        exdshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(exdshpLayer); 												//// 添加矢量图层
+        exdshpLayer.Locate(); 													//// 矢量图层定位（不建议，不精准）
+    	var id = exdshpLayer.GetLayerID(); 									//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //********************************
+    // 面挤出-无线框模式符号化加载
+    //********************************
+    //此种符号整体一个颜色
+    var exshpLayer;
+    function LoadGeometryFilterShp() {
+        var polygonSymbol = map.CreateSymbol("PolygonSymbol"); 					//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        polygonSymbol.AddConfig("Color", "0.13, 0.77, 0.93, 0.5");				//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+		var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+        lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+        lSymbol.AddConfig("Width", "5"); 										//// 线宽 0-10
+        lSymbol.AddConfig("Color", "0.82, 0.48, 0, 1.0"); 						//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+	
+        var pStyle = map.CreateStyle("PolygonStyle"); 							//// 创建名称为PolygonStyle的样式，名称任意
+        pStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); 			//// 将面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+        pStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 					//// 将线框符号配置添加到该样式，第一参必须为LineSymbol字符串
+        
+        var extruSymbol = map.CreateSymbol("PolygonExtrusionSymbol"); 			//// 创建类型为PolygonExtrusionSymbol的符号,为面挤出符号，必须为PolygonExtrusionSymbol字符串
+        extruSymbol.AddConfig("HeightExpression", "[JZXG]"); 					//// 挤出面的高度，可以直接传值，也可以[]中设置相应的属性字段，会根据属性字段进行拉伸高度
+		extruSymbol.AddConfig("BuildingStyleName", "PolygonStyle"); 			//// 拉伸体块整体一个颜色，通过此关键字关联面符号，第二参必须与面符号所在样式名称一致
+
+        var eStyle = map.CreateStyle("ExtruStyle"); 							//// 创建名称为ExtruStyle的样式，名称任意
+        eStyle.AddSymbol("PolygonExtrusionSymbol", extruSymbol.GetConfig()); 	//// 将面挤出符号配置添加到该样式，第一参必须为PolygonExtrusionSymbol字符串
+        eStyle.AddFilterName("ExtrudeGeometryFilter"); 							//// 设置挤出构建器符号为ExtrudeGeometryFilter(无线框模式)，ExtrudeBuildingsFilter(线框模式)
+		
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddStyle(eStyle.GetConfig()); 								//// 将样式配置添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+		tlo.AddConfig("Url", Datapath+"\\general.shp");		 					//// 数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "1000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "20"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000000.0"); 								//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("BuildSpatialIndex", "true");								//// 是否创建空间索引
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        exshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(exshpLayer); 												//// 添加矢量图层
+        exshpLayer.Locate(); 													//// 矢量图层定位（不建议，不精准）
+        var id = exshpLayer.GetLayerID(); 										//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //********************************
+    // 面挤出-线框模式符号化加载
+    //********************************
+    //此种符号整体一个颜色
+    var exshpLayer;
+    function LoadBuildingsFilterShp() {
+        var polygonSymbol = map.CreateSymbol("PolygonSymbol"); 					//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        polygonSymbol.AddConfig("Color", "0.13, 0.77, 0.93, 0.9");				//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+        var pStyle = map.CreateStyle("PolygonStyle"); 							//// 创建名称为PolygonStyle的样式，名称任意
+        pStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); 			//// 将面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+      
+		var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+        lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+        lSymbol.AddConfig("Width", "5"); 										//// 线宽 0-10
+        lSymbol.AddConfig("Color", "0.82, 0.48, 0, 1.0"); 						//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+	
+        var extruSymbol = map.CreateSymbol("PolygonExtrusionSymbol"); 			//// 创建类型为PolygonExtrusionSymbol的符号,为面挤出符号，必须为PolygonExtrusionSymbol字符串
+        extruSymbol.AddConfig("HeightExpression", "[JZXG]"); 					//// 挤出面的高度，可以直接传值，也可以[]中设置相应的属性字段，会根据属性字段进行拉伸高度
+		extruSymbol.AddConfig("RoofStyleName", "PolygonStyle"); 				//// 拉伸体块整体一个颜色，通过此关键字关联面符号，第二参必须与面符号所在样式名称一致
+ 
+        var eStyle = map.CreateStyle("ExtruStyle"); 							//// 创建名称为ExtruStyle的样式，名称任意
+        eStyle.AddSymbol("PolygonExtrusionSymbol", extruSymbol.GetConfig()); 	//// 将面挤出符号配置添加到该样式，第一参必须为PolygonExtrusionSymbol字符串
+        eStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 					//// 将线框符号配置添加到该样式，第一参必须为LineSymbol字符串
+		eStyle.AddFilterName("ExtrudeBuildingsFilter"); 						//// 设置挤出构建器符号为ExtrudeGeometryFilter(无线框模式)，ExtrudeBuildingsFilter(线框模式)
+		
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddStyle(eStyle.GetConfig()); 								//// 将样式配置添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+		tlo.AddConfig("Url",Datapath+"\\theme.shp");		 			//// 数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "1000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "20"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000000.0"); 								//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("BuildSpatialIndex", "true");								//// 是否创建空间索引
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        exshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(exshpLayer); 												//// 添加矢量图层
+        exshpLayer.Locate(); 													//// 矢量图层定位（不建议，不精准）
+        var id = exshpLayer.GetLayerID(); 										//// 获取图层id
+        polygoneditLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //********************************
+    // 管线挤出符号化加载
+    //********************************
+    var exlineshpLayer;
+    function LoadExtruLineShp() {
+        var polygonSymbol = map.CreateSymbol("PolygonSymbol"); 					//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        polygonSymbol.AddConfig("Color", "1, 0.2, 0.2, 1.0");				//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+        var lStyle = map.CreateStyle("polygonStyle"); 							//// 创建名称为PolygonStyle的样式，名称任意
+        lStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); 			//// 将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+		
+        var extruSymbol = map.CreateSymbol("LineExtrusionSymbol"); 				//// 创建类型为LineExtrusionSymbol的符号,为线挤出符号，必须为LineExtrusionSymbol字符串
+        extruSymbol.AddConfig("Casing", "false"); 								//// 是否使用套接样式
+        extruSymbol.AddConfig("SplitPointNum", "16"); 							//// 剖面多边形的顶点数,近似圆周circular(8 or 16，set nlExtrusion->Casing() = true),正方形rectangular(4);
+        extruSymbol.AddConfig("Angle", 0); 										//// 剖面多边形的起点顶点的旋转角度(与局部x轴)，radian
+        extruSymbol.AddConfig("Radius", "1000");	 							//// 管线半径，单位mm
+        extruSymbol.AddConfig("SurfaceStyle", "polygonStyle"); 					//// 配置样式至表面样式，第二参与前面创建的样式名称要一致
+		
+        var eStyle = map.CreateStyle("ExtruStyle"); 							//// 创建名称为ExtruStyle的样式，名称任意
+        eStyle.AddSymbol("LineExtrusionSymbol", extruSymbol.GetConfig()); 		//// 将符号配置添加到该样式
+        eStyle.AddFilterName("ExtrudeGeometryFilter"); 							//// 设置挤出符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+		
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(lStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddStyle(eStyle.GetConfig()); 								//// 将样式配置添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\pipeLine.shp"); 						////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "20"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "30000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        //tlo.AddConfig("RenderOrder", "-100");									//// 绘制顺序
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+		tlo.AddConfig("BuildSpatialIndex", "true"); 							//// 是否对读入的shp数据创建空间索引
+
+        exlineshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 			//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(exlineshpLayer); 											//// 添加矢量图层
+        exlineshpLayer.Locate(); 												//// 矢量图层定位（不建议，不精准）
+    }
+
+	//********************************
+    // 纹理管线符号化加载
+    //********************************
+    function LoadTextureExtruLineShp() {
+        var polygonSymbol = map.CreateSymbol("PolygonSymbol"); 					//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        polygonSymbol.AddConfig("Color", "1,0.1,0.1,1.0"); 						//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+        polygonSymbol.AddConfig("SurfaceStyleName", "skinStyle");				//// 样式名称
+        
+		var skinSymbol = map.CreateSymbol("SkinSymbol");						//// 创建符号化类型
+        skinSymbol.AddConfig("SkinType", "SkinSymbol");							//// 符号化类型
+        skinSymbol.AddConfig("LibraryName", "reslib");							//// 资源库名称
+        skinSymbol.AddConfig("ObjectHeight", "256");							//// 对象高度
+        skinSymbol.AddConfig("MinObjectHeight", "64");							//// 对象最小高度
+        skinSymbol.AddConfig("MaxObjectHeight", "256");							//// 对象最大高度
+        skinSymbol.AddConfig("IsTile", "true");									//// 纹理贴图是否瓦片化显示
+		
+		var skinRes = map.CreateResource("SkinSymbol");							//// 创建资源
+        skinRes.AddConfig("image_url", Datapath+"\\arrow.png");
+		skinRes.AddConfig("image_width", "256");								//// 纹理宽度
+		skinRes.AddConfig("image_height", "256");								//// 纹理高度
+		skinRes.AddConfig("tiled", "true");										//// 纹理贴图是否瓦片化显示
+		var reslib = map.CreateResourceLibrary("reslib");
+		reslib.AddResource(skinRes);
+
+        var skinStyle = map.CreateStyle("skinStyle");							//// 创建样式
+        skinStyle.AddSymbol("SkinSymbol", skinSymbol.GetConfig());				//// 添加管线纹理样式
+        skinStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig());		//// 添加面样式
+        skinStyle.AddFilterName("BuildGeometryFilter");							//// 配置构建器
+
+        var lStyle = map.CreateStyle("polygonStyle"); 							//// 创建名称为PolygonStyle的样式，名称任意
+        lStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); 			//// 将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+        var extruSymbol = map.CreateSymbol("LineExtrusionSymbol"); 				//// 创建类型为LineExtrusionSymbol的符号,为线挤出符号，必须为LineExtrusionSymbol字符串
+        extruSymbol.AddConfig("Casing", "false"); 								//// 是否使用套接样式
+        extruSymbol.AddConfig("SplitPointNum", "8"); 							//// 剖面多边形的顶点数,近似圆周circular(8 or 16，set nlExtrusion->Casing() = true),正方形rectangular(4),带有方向纹理(2);
+        extruSymbol.AddConfig("Angle", 0); 										//// 剖面多边形的起点顶点的旋转角度(与局部x轴)，radian
+        extruSymbol.AddConfig("Radius", "1200"); 								//// 管线半径，单位mm		extruSymbol.AddConfig("TextureHeightScale", "0.3");                      //纹理坐标高度缩放系数,控制纹理在挤出面上的稀疏程度
+        extruSymbol.AddConfig("SurfaceStyle", "skinStyle"); 					//// 配置样式至表面样式，第二参与前面创建的样式名称要一致
+
+        var eStyle = map.CreateStyle("ExtruStyle"); 							//// 创建名称为ExtruStyle的样式，名称任意
+        eStyle.AddSymbol("LineExtrusionSymbol", extruSymbol.GetConfig()); 		//// 将符号配置添加到该样式
+        eStyle.AddFilterName("ExtrudeGeometryFilter"); 							//// 设置挤出符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+	
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(lStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddStyle(eStyle.GetConfig()); 								//// 将样式配置添加至样式表
+        styleSheet.AddStyle(skinStyle.GetConfig());
+        styleSheet.AddResLib(reslib.GetConfig());
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\road.shp"); 				////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "5000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "10"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "300000.0");									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("RenderOrder", "-100"); 									//// 绘制顺序
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        exlineshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 			//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(exlineshpLayer); 											//// 添加矢量图层
+        exlineshpLayer.Locate(); 												//// 矢量图层定位（不建议，不精准）
+        var id = exlineshpLayer.GetLayerID(); 									//// 获取图层id
+        exeditlineLayer = map.GetFeatureModelLayer(id); 						//// 获取矢量图层
+    }
+
+    //********************************
+    // 专题配置
+    //********************************
+    var themeExtru;
+    function Theme3DExtruShp() {
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        for (var i = 0; i < result.length; i++)									//// result 存储了很多不同颜色值（RGBA（0-255）），如 var result = new Array(new Array("A33", "120,15,15,70")
+        {
+            var tmpSymbol = map.CreateSymbol("PolygonExtrusionSymbol"); 		//// 创建类型为PolygonExtrusionSymbol的符号,为面挤出符号，必须为PolygonExtrusionSymbol字符串
+            tmpSymbol.AddConfig("HeightExpression", "[JZXG]"); 					//// 以属性字段JZXG作为专题配置不同字段，让不同要素有不同高度
+            tmpSymbol.AddConfig("RoofStyleName", "RoofStyle" + result[i][0]); 	//// 拉伸体块屋顶颜色，通过此关键字RoofStyleName关联屋顶面符号，第二参必须与屋顶面符号所在样式名称一致
+            tmpSymbol.AddConfig("WallStyleName", "WallStyle" + result[i][0]); 	//// 拉伸体块墙体颜色，通过此关键字WallStyleName关联墙体面符号，第二参必须与墙体面符号所在样式名称一致
+
+            /////获取不同值的颜色////
+            var colorArray = result[i][1].split(",");
+            var str = colorArray[0] / 255.0 + ", " + colorArray[1] / 255.0 + ", " + colorArray[2] / 255.0 + "," + 1;
+            /////获取不同值的颜色////
+
+            var polygonSymbol = map.CreateSymbol("PolygonSymbol"); 				//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串，屋顶和墙体一个颜色
+            polygonSymbol.AddConfig("Color", str); 								//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+			var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+			lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+			lSymbol.AddConfig("Width", "5"); 										//// 线宽 0-10
+			lSymbol.AddConfig("Color", "0.82, 0.48, 0, 1.0"); 						//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+	
+            /////创建屋顶样式，并添加屋顶面符号
+            var roofStyle = map.CreateStyle("RoofStyle" + result[i][0]); 		//// 创建名称为""RoofStyle" + result[i][0]的样式
+            roofStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); 	//// 将Roof面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+			roofStyle.AddSymbol("LineSymbol", lSymbol.GetConfig());
+			
+            /////创建墙体样式，并添加墙体面符号
+            var wallStyle = map.CreateStyle("WallStyle" + result[i][0]); 		//// 创建名称为"WallStyle" + result[i][0]
+            wallStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); 	//// 将Wall面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+			wallStyle.AddSymbol("LineSymbol", lSymbol.GetConfig());
+			
+            var tmpStyle = map.CreateStyle(result[i][0]); 						//// 创建名称为result[i][0]的样式
+            tmpStyle.AddSymbol("PolygonExtrusionSymbol", tmpSymbol.GetConfig());//// 将面挤出符号配置添加到该样式，第一参必须为PolygonExtrusionSymbol字符串
+            tmpStyle.AddFilterName("ExtrudeGeometryFilter"); 					//// 设置挤出构建器符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+            styleSheet.AddStyle(tmpStyle.GetConfig()); 							//// 将挤出面样式配置添加至样式表
+            styleSheet.AddStyle(roofStyle.GetConfig()); 						//// 将屋顶样式配置添加至样式表
+            styleSheet.AddStyle(wallStyle.GetConfig()); 						//// 将墙体样式配置添加至样式表
+            styleSheet.AddStyleSelector(result[i][0]); 							//// 添加样式选择器，其名称必须与创建名称为result[i][0]的样式的名称一致,专题配置必须有此项
+        }
+        styleSheet.SetStrExpression("[YDXZ]"); 									//// 专题配置的字段,以此字段中不同的值创建样式，也就是result[i][0]的值就是此字段中不同的值
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\theme.shp"); 							////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "10"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        themeExtru = map.CreateLayer("FeatureModelLayer", tlo); 						//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(themeExtru); 													//// 添加矢量图层
+        themeExtru.Locate(); 														//// 矢量图层定位（不建议，不精准）
+
+    }
+
+	//专题配置面
+	var theme;
+    function Theme3DShp() {
+        var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        for (var i = 0; i < result.length; i++)									//// result 存储了很多不同颜色值（RGBA（0-255）），如 var result = new Array(new Array("A33", "120,15,15,70")
+        {
+            /////获取不同值的颜色////
+            var colorArray = result[i][1].split(",");
+            var str = colorArray[0] / 255.0 + ", " + colorArray[1] / 255.0 + ", " + colorArray[2] / 255.0 + "," + 1;
+            /////获取不同值的颜色////
+
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); 				//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串，屋顶和墙体一个颜色
+            pSymbol.AddConfig("Color", str); 								//// 颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+			var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+			lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+			lSymbol.AddConfig("Width", "5"); 										//// 线宽 0-10
+			lSymbol.AddConfig("Color", "0.82, 0.48, 0, 1.0"); 						//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+	
+			var pStyle = map.CreateStyle(result[i][0]); 								//// 创建名称为Polygon的样式，名称任意
+			//pStyle.SetName("polygon");												//// 设置别名polygon
+			pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); 				//// 将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+			pStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 					//// 配置面边框，第一参必须为LineSymbol字符串
+			pStyle.AddFilterName("BuildGeometryFilter"); 							//// 设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+		
+            styleSheet.AddStyle(pStyle.GetConfig()); 							//// 将挤出面样式配置添加至样式表
+            styleSheet.AddStyleSelector(result[i][0]); 							//// 添加样式选择器，其名称必须与创建名称为result[i][0]的样式的名称一致,专题配置必须有此项
+        }
+        styleSheet.SetStrExpression("[YDXZ]"); 									//// 专题配置的字段,以此字段中不同的值创建样式，也就是result[i][0]的值就是此字段中不同的值
+
+        var tlo = map.CreateLayerOptions("shp"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); 								//// 数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", Datapath+"\\theme.shp"); 			////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); 								//// 要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "10"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        theme = map.CreateLayer("FeatureModelLayer", tlo); 						//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(theme); 													//// 添加矢量图层
+        theme.Locate(); 														//// 矢量图层定位（不建议，不精准）
+
+    }
+    //********************************
+    // WFS数据面符号化加载
+    //********************************
+    var wfsshpLayer;
+    function LoadPolygonWFS() {
+        var pSymbol = map.CreateSymbol("PolygonSymbol"); 						//// 创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        pSymbol.AddConfig("Color", "0.64, 0.01, 0.97, 1.0");					//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+        var lSymbol = map.CreateSymbol("LineSymbol"); 							//// 创建类型为LineSymbol的符号，必须为LineSymbol字符串
+        lSymbol.AddConfig("Stipple", "-1"); 									//// 线条类型，-1 实线 1 虚线
+        lSymbol.AddConfig("Width", "2");										//// 线宽 0-10
+        lSymbol.AddConfig("Color", "0.42, 0.65, 0.96, 1.0"); 					//// 颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+		
+		var aSymbol = map.CreateSymbol("AltitudeSymbol");						//// 创建矢量贴地配置项
+        aSymbol.AddConfig("Clamping", "CLAMP_TO_TERRAIN");						//// CLAMP_NONE:不贴地; CLAMP_TO_TERRAIN:仅贴地形; CLAM_RELATIVE_TO_TERRAIN:相对地形抬高
+        aSymbol.AddConfig("Technique", "TECHNIQUE_MAP");						//// TECHNIQUE_MAP:修改要素几何z值; TECHNIQUE_DRAPE:纹理映射贴地; TECHNIQUE_DRAPE_WITH_MAP:纹理映射贴地抬高
+		aSymbol.AddConfig("Binding", "BINDING_VERTEX");							//// 仅用于TechniqueMode为TECHNIQUE_MAP时 BINDING_VERTEX:逐顶点修改几何; BINDING_CENTROID:将所有几何顶点置为几何中心的位置
+
+        var pStyle = map.CreateStyle("Polygon");								//// 创建名称为Polygon的样式，名称任意
+        pStyle.SetName("Polygon"); 												//// 设置别名polygon
+        pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); 				//// 将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+		pStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 					//// 配置面边框，第一参必须为LineSymbol字符串
+        pStyle.AddFilterName("BuildGeometryFilter");  							//// 设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+		//pStyle.AddSymbol("AltitudeSymbol", aSymbol.GetConfig());				//// 矢量贴地配置添加至样式
+		
+		var styleSheet = map.CreateStyleSheet(); 								//// 创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); 								//// 将样式配置添加至样式表
+
+        var tlo = map.CreateLayerOptions("wfs"); 								//// 创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); 			//// 创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); 							//// 数据源类型,代表fmgeom插件，必须是此键值对
+
+        //////////////////////////////////////此部分有别于OGR数据源///////////////////////////////////////////////////
+        tlo.AddConfig("Url", "http://192.168.1.71:6080/arcgis/services/hangzhou/points/MapServer/WFSServer"); ////数据存放位置，此为网络路径，在浏览器中查看，
+        tlo.AddConfig("FeatureSourceType", "wfs");								//// 要素数据源类型，针对wfs数据源wfs
+        tlo.AddConfig("LayerName", "hangzhou_points:hzpoi"); 					//// wfs图层名称，可通过图层信息获取接口获得到
+        //tlo.AddConfig("DefaultSRS", "EPSG:4326"); 					//// 默认参考系，需要杭规局测试
+        //////////////////////////////////////此部分有别于OGR数据源///////////////////////////////////////////////////
+
+        tlo.AddConfig("TileSizeFactor", "1.0"); 								//// 瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "2000"); 										//// 瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "100"); 											//// 抬升高度，任意值
+        tlo.AddConfig("MaxRange", "50000.0"); 									//// 最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); 										//// 最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); 					//// 将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        wfsshpLayer = map.CreateLayer("FeatureModelLayer", tlo); 				//// 创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(wfsshpLayer); 												//// 添加矢量图层
+        wfsshpLayer.Locate(); 													//// 矢量图层定位（不建议，不精准）
+    }
+	
+    var mtdsdemlayer;
+    //////加载DEM数据
+    function LoadDEMMTDS() {
+        var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+        tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+        tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+        tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+        tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "17"); /////数据显示的最大层级
+
+        mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+        map.AddLayer(mtdsdemlayer); ///添加DEM图层
+        mtdsdemlayer.Locate(); ////DEM图层定位
+    }
+
+    var mtdsdomlayer;
+    //////加载DOM数据
+    function LoadDOMMTDS() {
+        var tlo = map.CreateLayerOptions("domlayer"); 							//// 创建dom图层，给配置起个名称，任意名称
+        tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); 				//// 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "mtds"); 							//// 数据源类型,代表MTDS插件，必须是此键值对
+        tlo.AddConfig("Driver", "terrainquadtree"); 							//// 代表地形驱动，必须是此键值对
+
+        //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+        tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); 			//// 要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+        tlo.AddConfig("Format", "png"); 										//// 切割形成的数据格式
+        tlo.AddConfig("Srs", "EPSG:4326"); 										//// 数据的坐标参考
+        tlo.AddConfig("MaxX", " 120.714010586176"); 							//// 数据的范围X向最大值
+        tlo.AddConfig("MinX", " 118.339686018686"); 							//// 数据的范围X向最小值
+        tlo.AddConfig("MaxY", " 30.5651224875501"); 							//// 数据的范围Y向最大值
+        tlo.AddConfig("MinY", " 29.188584444612"); 								//// 数据的范围Y向最小值
+        tlo.AddConfig("TileSize", "256"); 										//// 切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+        tlo.AddConfig("MinLevel", "0"); 										//// 数据显示的最小层级
+        tlo.AddConfig("MaxLevel", "16"); 										//// 数据显示的最大层级
+		//tlo.AddConfig("RenderOrder", "100");									//// 绘制顺序
+
+        mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); 						//// 创建DEM图层，第一项参数必须为ImageLayer
+        map.AddLayer(mtdsdomlayer); 											//// 添加DOM图层
+        mtdsdomlayer.Locate(); 													//// DOM图层定位
+    }
+	
+    function TTest() {
+	
+	 var result = new Array(new Array("50.000", "255,15,15,70"),
+                       new Array("70.000", "120,255,15,70"),
+                       new Array("90", "120,15,255,70"),
+                       new Array("110", "120,120,15,70"),
+                       new Array("130", "120,15,15,70"))
+	
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        for (var i = 0; i < result.length; i++)/////result 存储了很多不同颜色值（RGBA（0-255）），如 var result = new Array(new Array("A33", "120,15,15,70"),new Array("A5", "120,15,15,70"),new Array("B1", "120,15,15,70");
+        {
+			            /////获取不同值的颜色////
+            var a1 = new Array(4);
+            a1 = result[i][1].split(",");
+            var str = a1[0] / 255.0 + ", " + a1[1] / 255.0 + ", " + a1[2] / 255.0 + "," + a1[3] / 255.0;
+		
+            var tmpSymbol = map.CreateSymbol("PolygonExtrusionSymbol"); ////创建类型为PolygonExtrusionSymbol的符号,为面挤出符号，必须为PolygonExtrusionSymbol字符串
+            tmpSymbol.AddConfig("HeightExpression", "[机场控高] * 10"); /////以属性字段JZXG作为专题配置不同字段，让不同要素有不同高度
+            tmpSymbol.AddConfig("RoofStyleName", "RoofStyle" + result[i][0]); ///拉伸体块屋顶颜色，通过此关键字RoofStyleName关联屋顶面符号，第二参必须与屋顶面符号所在样式名称一致
+            tmpSymbol.AddConfig("WallStyleName", "WallStyle" + result[i][0]); ////拉伸体块墙体颜色，通过此关键字WallStyleName关联墙体面符号，第二参必须与墙体面符号所在样式名称一致
+
+
+            /////获取不同值的颜色////
+
+            var polygonSymbol = map.CreateSymbol("PolygonSymbol"); ///创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串，屋顶和墙体一个颜色
+            polygonSymbol.AddConfig("Color", str); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+            /////创建屋顶样式，并添加屋顶面符号
+            var roofStyle = map.CreateStyle("RoofStyle" + result[i][0]); ////创建名称为""RoofStyle" + result[i][0]的样式
+            roofStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); ////将Roof面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+            /////创建墙体样式，并添加墙体面符号
+            var wallStyle = map.CreateStyle("WallStyle" + result[i][0]); ////创建名称为"WallStyle" + result[i][0]
+            wallStyle.AddSymbol("PolygonSymbol", polygonSymbol.GetConfig()); ////将Wall面符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+
+            var tmpStyle = map.CreateStyle(result[i][0]); ///创建名称为result[i][0]的样式
+            tmpStyle.AddSymbol("PolygonExtrusionSymbol", tmpSymbol.GetConfig()); ////将面挤出符号配置添加到该样式，第一参必须为PolygonExtrusionSymbol字符串
+            tmpStyle.AddFilterName("ExtrudeGeometryFilter"); ///设置挤出构建器符号为ExtrudeGeometryFilter，必须为ExtrudeGeometryFilter字符串
+            styleSheet.AddStyle(tmpStyle.GetConfig()); ////将挤出面样式配置添加至样式表
+            styleSheet.AddStyle(roofStyle.GetConfig()); ////将屋顶样式配置添加至样式表
+            styleSheet.AddStyle(wallStyle.GetConfig()); ////将墙体样式配置添加至样式表
+            styleSheet.AddStyleSelector(result[i][0]); /////添加样式选择器，其名称必须与创建名称为result[i][0]的样式的名称一致,专题配置必须有此项
+        }
+		styleSheet.SetStrExpression("[KG]"); /////专题配置的字段,以此字段中不同的值创建样式，也就是result[i][0]的值就是此字段中不同的值
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "E:\\TestData\\jichang\\jc6.shp"); ////数据存放位置，注意双斜杠
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "10"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+        theme = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(theme); ////添加矢量图层
+        theme.Locate(); ////矢量图层定位（不建议，不精准）
+    }
+
+	
+    //创建面要素拾取
+	var pickResp;
+    function CreatePickPolygon() {
+        var pOption = map.CreateResponserOptions("123"); 				     //创建响应器配置，参数任意名称
+        pOption.AddConfig("PickLayerIdList", -1); //拾取图层id
+        pOption.AddConfig("PickColor", "1.0,0,0,0.5");					     //拾取颜色
+        pOption.AddConfig("IsChangeColor", "true");						     //是否变色
+        pickResp = map.CreateResponser("PickVectorResponser", pOption);      //创建矢量拾取响应器，第一参必须为PickVectorResponser字符串
+        pickResp.AddObserver();
+        map.AddResponser(pickResp); 									     //添加响应器
+    }
+	
+	//移除面要素拾取
+    function RemovePickPolygon() {
+        map.RemoveResponser("PickVectorResponser");						    //移除响应器
+    }
+    </script>
+</head>
+<body onload="InitScene()">
+    OGR矢量符号化:
+	 <input id="Button1"  type="button" value="加载地形影像" 		onclick="LoadDOMDEM()" />
+    <input id="Button7" type="button" value="加载模型" onclick="LoadCPM()" />
+	<input type="button" value="地形显示隐藏" onclick="Hide()" />
+    <input id="Button1" type="button" value="点矢量加载" onclick="LoadPointShp()" />
+    <input id="Button2" type="button" value="线矢量加载" onclick="LoadLineShp()" />
+    <input id="Button3" type="button" value="面矢量加载" onclick="LoadPolygonShp()" />
+    <input id="Button4" type="button" value="文字符号化加载" onclick="LoadPointAndText()" />
+    <input id="Button5" type="button" value="图片符号化加载" onclick="LoadPointAndIcon()" />
+    <input id="Button6" type="button" value="模型符号化加载" onclick="LoadPointAndModel()" />
+	<input id="Button6" type="button" value="点挤出符号化加载" onclick="LoadExtruPointShp()" />
+	<input id="Button6" type="button" value="专题配置点符号化加载" onclick="LoadThemeExtruPointShp()" />
+    <input id="Button7" type="button" value="面挤出-roof/wall符号化" onclick="LoadExtruDiffPolygonShp()" />
+    <input id="Button8" type="button" value="面挤出-无线框模式加载" onclick="LoadGeometryFilterShp()" />
+    <input id="Button8" type="button" value="面挤出-线框模式加载" onclick="LoadBuildingsFilterShp()" />
+    <input id="Button9" type="button" value="管线挤出符号化加载" onclick="LoadExtruLineShp()" />
+    <input id="Button26" type="button" value="纹理管线加载" onclick="LoadTextureExtruLineShp()" />
+    <input id="Button10" type="button" value="专题配置" onclick="Theme3DExtruShp()" />
+    &nbsp;
+    <input id="Button11" type="button" value="加载wfs" onclick="LoadPolygonWFS()" />
+    &nbsp;	
+    <input id="Button21" type="button" value="创建矢量拾取" onclick="CreatePickPolygon()" />
+    <input id="Button22" type="button" value="删除矢量拾取" onclick="RemovePickPolygon()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+<script>
+    var result = new Array(new Array("A33", "120,15,15,70"),
+                       new Array("A5", "120,15,15,70"),
+                       new Array("B1", "120,15,15,70"),
+                       new Array("B1/B2", "120,120,15,70"),
+                       new Array("B1/B2/B3", "120,15,15,70"),
+                       new Array("B1/B2/R2", "120,15,15,70"),
+                       new Array("B1/B2/S41", "120,15,15,70"),
+                       new Array("R/C/U21/S3", "120,120,15,70"),
+                       new Array("C/R", "120,15,15,70"),
+                       new Array("C", "120,15,15,70"),
+                       new Array("C1", "120,15,15,70"),
+                       new Array("C2", "120,15,15,70"),
+                       new Array("C3", "120,15,15,70"),
+                       new Array("C2/C1", "120,15,15,70"),
+                       new Array("C1/C2", "120,15,15,70"),
+                       new Array("C4", "120,15,15,70"),
+                       new Array("C5", "120,15,15,70"),
+                       new Array("C6", "120,15,15,70"),
+                       new Array("C62", "120,15,15,70"),
+                       new Array("C11", "120,15,15,70"),
+                       new Array("C1C2", "120,15,15,70"),
+                       new Array("C1/R22", "120,15,15,70"),
+                       new Array("C2/U21", "120,15,15,70"),
+                       new Array("C2/C6", "120,120,15,70"),
+                       new Array("C2/C6/C3", "120,15,15,70"),
+                       new Array("C2/C6/R", "120,15,15,70"),
+                       new Array("C2/S3/U21", "120,15,15,70"),
+                       new Array("C9", "120,120,15,70"),
+                       new Array("G1", "0,255,0,70"),
+                       new Array("G11", "0,255,0,70"),
+                       new Array("G1/A2", "120,15,15,70"),
+                       new Array("G12", "0,255,0,70"),
+                       new Array("G2", "0,153,0,70"),
+                       new Array("G2/S42", "0,153,0,70"),
+                       new Array("G22", "0,153,0,70"),
+                       new Array("G11/S2", "120,15,15,70"),
+                       new Array("G11/U21/C2", "120,15,15,70"),
+                       new Array("G3/B1/B2", "120,15,15,70"),
+                       new Array("R/C", "120,120,15,70"),
+                       new Array("R21", "120,120,15,70"),
+                       new Array("R21/B1", "120,15,15,70"),
+                       new Array("R22", "120,120,15,70"),
+                       new Array("R24/S3", "120,120,15,70"),
+                       new Array("R24/S3/U21", "120,120,15,70"),
+                       new Array("R24", "120,120,15,70"),
+                       new Array("R22/B1/B2", "120,15,15,70"),
+                       new Array("MU", "120,15,15,70"),
+                       new Array("U12", "0,114,153,70"),
+                       new Array("U11", "0,114,153,70"),
+                       new Array("U2", "0,114,153,70"),
+                       new Array("U29", "0,114,153,70"),
+                       new Array("U3", "0,114,153,70"),
+                       new Array("U4", "0,114,153,70"),
+                       new Array("U9", "0,114,153,70"),
+                       new Array("U41", "0,114,153,70"),
+                       new Array("D1", "47,76,38,70"),
+                       new Array("E1", "127,149,255,70"),
+                       new Array("S", "128,128,128,70"),
+                       new Array("S2", "128,128,128,70"),
+                       new Array("S3", "120,15,15,70"),
+                       new Array("T1", "128,128,128,70"),
+                       new Array("C2/C3/R", "128,128,128,70"),
+                       new Array("U21", "120,15,15,70"),
+                       new Array("D3", "120,15,15,70"),
+                       new Array("U15", "120,15,15,70"),
+                       new Array("R24/G22", "120,15,15,70"),
+                       new Array("U24", "120,15,15,70"),
+                       new Array("U10", "120,15,15,70"),
+                       new Array("S22", "120,15,15,70"),
+                       new Array("U1", "120,15,15,70"),
+                       new Array("G1/G3/S42", "120,15,15,70"),
+                       new Array("G1/G3", "120,15,15,70"),
+                       new Array("U21/G1", "120,15,15,70"),
+                       new Array("H2", "120,15,15,70"),
+                       new Array("S19", "120,15,15,70"),
+                       new Array("02", "255,0,255,70"),
+                       new Array("05", "128,0,0,70"),
+                       new Array("2", "255,0,0,70"),
+                       new Array("22", "128,0,128,70"),
+                       new Array("5", "192,192,192,70"),
+                       new Array("A", "128,128,0,70"),
+                       new Array("A1", "120,123,23,70"),
+                       new Array("A1/A35", "120,123,23,70"),
+                       new Array("A2", "0,0,0,70"),
+                       new Array("A2/A4", "0,0,0,70"),
+                       new Array("A3", "0,0,0,70"),
+                       new Array("A33/S42", "120,15,15,70"),
+                       new Array("A51", "0,0,0,70"),
+                       new Array("A9", "0,0,0,70"),
+                       new Array("B", "0,0,0,70"),
+                       new Array("B1/B2/S42", "120,15,15,70"),
+                       new Array("B2", "120,15,15,70"),
+                       new Array("C/2", "120,15,15,70"),
+                       new Array("C/M", "120,15,15,70"),
+                       new Array("C/R/U21", "120,15,15,70"),
+                       new Array("C/T/W", "120,15,15,70"),
+                       new Array("C/U", "120,15,15,70"),
+                       new Array("C1/C2/C3", "120,15,15,70"),
+                       new Array("C1/C2/C5", "120,15,15,70"),
+                       new Array("C1/C2/C6", "120,15,15,70"),
+                       new Array("C1/C2/R21", "120,15,15,70"),
+                       new Array("C1/C2/U21", "120,15,15,70"),
+                       new Array("C1/C3", "120,15,15,70"),
+                       new Array("C1/C6", "120,15,15,70"),
+                       new Array("C1/C65", "120,15,15,70"),
+                       new Array("C1/S3", "120,15,15,70"),
+                       new Array("C1/U1", "120,15,15,70"),
+                       new Array("C1/U13", "120,15,15,70"),
+                       new Array("C1/U3", "120,15,15,70"),
+                       new Array("C1/U4", "120,15,15,70"),
+                       new Array("C1/U9", "120,15,15,70"),
+                       new Array("C1/W", "120,15,15,70"),
+                       new Array("C12", "0,0,0,70"),
+                       new Array("C1C2/U21", "120,15,15,70"),
+                       new Array("C1C2C3", "0,0,0,70"),
+                       new Array("C1\65", "0,0,0,70"),
+                       new Array("C1\C2", "0,0,0,70"),
+                       new Array("C1\C2\C65", "0,0,0,70"),
+                       new Array("C1\65", "0,0,0,70"),
+                       new Array("C1\C6\U3", "0,0,0,70"),
+                       new Array("C2/C", "120,15,15,70"),
+                       new Array("C2/C1/C6", "120,15,15,70"),
+                       new Array("C2/C3", "120,15,15,70"),
+                       new Array("C2/C3/C4", "120,15,15,70"),
+                       new Array("C2/C3/C6", "120,15,15,70"),
+                       new Array("C2/C5", "120,15,15,70"),
+                       new Array("C2/C6/M1", "120,15,15,70"),
+                       new Array("C2/C65", "120,15,15,70"),
+                       new Array("C2/E6", "120,15,15,70"),
+                       new Array("C2/G1", "120,15,15,70"),
+                       new Array("C2/M1", "120,15,15,70"),
+                       new Array("C2/R1", "120,15,15,70"),
+                       new Array("C2/R2", "120,15,15,70"),
+                       new Array("C2/R21", "120,15,15,70"),
+                       new Array("C2/R21/S31", "120,15,15,70"),
+					   new Array("C2/R22", "120,15,15,70"),
+					   new Array("C2/S1", "120,15,15,70"),
+                       new Array("C2/S2", "120,15,15,70"),
+                       new Array("C2/S2/S3", "120,15,15,70"),
+                       new Array("C2/S3", "120,15,15,70"),
+                       new Array("C2/S3/U2", "120,15,15,70"),
+                       new Array("C2/S31", "120,15,15,70"),
+                       new Array("C2/U2", "120,15,15,70"),
+                       new Array("C2/U2/S3", "120,15,15,70"),
+                       new Array("C2/U3", "120,15,15,70"),
+                       new Array("C2/U41", "120,15,15,70"),
+                       new Array("C2/U41/S31", "120,15,15,70"),
+                       new Array("C2/W1", "120,15,15,70"),
+                       new Array("C21", "0,0,0,70"),
+                       new Array("C21/26", "0,0,0,70"),
+                       new Array("C21/C22/C36/C34", "0,0,0,70"),
+                       new Array("C21/C25", "0,0,0,70"),
+                       new Array("C21/C26", "0,0,0,70"),
+                       new Array("C21/C3", "0,0,0,70"),
+                       new Array("C22", "0,0,0,70"),
+                       new Array("C23", "0,0,0,70"),
+                       new Array("C24", "0,0,0,70"),
+                       new Array("C24/M1", "0,0,0,70"),
+                       new Array("C25", "0,0,0,70"),
+                       new Array("C26", "0,0,0,70"),
+                       new Array("C26/W1", "0,0,0,70"),
+                       new Array("C2\C1", "0,0,0,70"),
+                       new Array("C2\C6", "0,0,0,70"),
+                       new Array("C2\C65", "0,0,0,70"),
+                       new Array("C3/C1", "120,15,15,70"),
+                       new Array("C3/C2", "120,15,15,70"),
+                       new Array("C3/C2/C6", "120,15,15,70"),
+                       new Array("C3/C2/S3", "120,15,15,70"),
+                       new Array("C3/C4", "120,15,15,70"),
+                       new Array("C3/C4/D", "120,15,15,70"),
+                       new Array("C3/D", "120,15,15,70"),
+                       new Array("C3/G1", "120,15,15,70"),
+                       new Array("C3/R22", "120,15,15,70"),
+                       new Array("C31", "0,0,0,70"),
+                       new Array("C31/C12", "0,0,0,70"),
+                       new Array("C32", "0,0,0,70"),
+                       new Array("C33", "0,0,0,70"),
+                       new Array("C34", "0,0,0,70"),
+                       new Array("C34/C2", "0,0,0,70"),
+                       new Array("C35", "0,0,0,70"),
+                       new Array("C36", "0,0,0,70"),
+                       new Array("C3C2", "0,0,0,70"),
+                       new Array("C3\C2", "0,0,0,70"),
+                       new Array("C4/C3", "120,15,15,70"),
+                       new Array("C4/C36", "120,15,15,70"),
+                       new Array("C4/G1", "120,15,15,70"),
+                       new Array("C41", "0,0,0,70"),
+                       new Array("C41/C25/C36", "0,0,0,70"),
+                       new Array("C41/C42", "0,0,0,70"),
+                       new Array("C42", "0,0,0,70"),
+                       new Array("C5/C6", "120,15,15,70"),
+                       new Array("C5/R22", "120,15,15,70"),
+                       new Array("C5/S3", "120,15,15,70"),
+                       new Array("C51", "0,0,0,70"),
+                       new Array("C52", "0,0,0,70"),
+                       new Array("C53", "0,0,0,70"),
+                       new Array("C6/C", "120,15,15,70"),
+                       new Array("C6/C1", "120,15,15,70"),
+                       new Array("C6/C1/C2", "120,15,15,70"),
+                       new Array("C6/C2", "120,15,15,70"),
+                       new Array("C6/C2/C1", "120,15,15,70"),
+                       new Array("C6/C2/M1", "120,15,15,70"),
+                       new Array("C6/C2/R21", "120,15,15,70"),
+                       new Array("C6/C3", "120,15,15,70"),
+                       new Array("C6/M1", "120,15,15,70"),
+                       new Array("C6/S3", "120,15,15,70"),
+                       new Array("C61", "0,0,0,70"),
+                       new Array("C61/C2", "0,0,0,70"),
+                       new Array("C61/C61", "0,0,0,70"),
+                       new Array("C61f", "0,0,0,70"),
+                       new Array("C63", "0,0,0,70"),
+                       new Array("C64", "0,0,0,70"),
+                       new Array("C65", "0,0,0,70"),
+                       new Array("C65/M1/C25", "0,0,0,70"),
+                       new Array("C6\C2", "0,0,0,70"),
+                       new Array("C7", "0,0,0,70"),
+                       new Array("C8", "0,0,0,70"),
+                       new Array("C8/U2/S3", "0,0,0,70"),
+                       new Array("D", "0,0,0,70"),
+                       new Array("D/C", "0,0,0,70"),
+                       new Array("E", "0,0,0,70"),
+                       new Array("E2", "0,0,0,70"),
+                       new Array("E3", "0,0,0,70"),
+                       new Array("E3/E4", "0,0,0,70"),
+                       new Array("E3/G1", "0,0,0,70"),
+                       new Array("E4", "0,0,0,70"),
+                       new Array("E6", "0,0,0,70"),
+                       new Array("E61", "0,0,0,70"),
+                       new Array("E61(R21)", "0,0,0,70"),
+                       new Array("E61/C1", "0,0,0,70"),
+                       new Array("E61/C2", "0,0,0,70"),
+                       new Array("E62", "0,0,0,70"),
+                       new Array("E62M1", "0,0,0,70"),
+                       new Array("E62W1", "0,0,0,70"),
+                       new Array("E69", "0,0,0,70"),
+                       new Array("E69C1", "0,0,0,70"),
+                       new Array("E69C2", "0,0,0,70"),
+                       new Array("E69C3", "0,0,0,70"),
+                       new Array("E69C4", "0,0,0,70"),
+                       new Array("E69C5", "0,0,0,70"),
+                       new Array("E69C6", "0,0,0,70"),
+                       new Array("E69G1", "0,0,0,70"),
+                       new Array("E69S2", "0,0,0,70"),
+                       new Array("E69U1", "0,0,0,70"),
+                       new Array("E69U2", "0,0,0,70"),
+                       new Array("E9", "0,0,0,70"),
+                       new Array("F", "0,0,0,70"),
+                       new Array("G", "0,0,0,70"),
+                       new Array("G/S/R22", "0,0,0,70"),
+                       new Array("G1/C2", "0,255,0,70"),
+                       new Array("G1/C3", "0,255,0,70"),
+                       new Array("G1/C4", "0,255,0,70"),
+                       new Array("G1/S2", "0,255,0,70"),
+                       new Array("G1/S2/S3", "0,255,0,70"),
+                       new Array("G1/S3", "0,255,0,70"),
+                       new Array("G1/S31", "0,255,0,70"),
+                       new Array("G1/S42", "0,255,0,70"),
+                       new Array("G1/U1", "0,255,0,70"),
+                       new Array("G1/U41", "0,255,0,70"),
+                       new Array("G11/C1", "0,255,0,70"),
+                       new Array("G11/C1/C2", "0,255,0,70"),
+                       new Array("G11/C2", "0,255,0,70"),
+                       new Array("G11/C25/C36", "0,255,0,70"),
+                       new Array("G11/C3/C4", "0,255,0,70"),
+                       new Array("G11/C36/C2", "0,255,0,70"),
+                       new Array("G11/C4", "0,255,0,70"),
+                       new Array("G11/S2/S3", "0,255,0,70"),
+                       new Array("G11/S3", "0,255,0,70"),
+                       new Array("G11/S31", "0,255,0,70"),
+                       new Array("G11\S31", "0,0,0,70"),
+                       new Array("G12/R24", "0,255,0,70"),
+                       new Array("G12/S2", "0,255,0,70"),
+                       new Array("G12/S3", "0,255,0,70"),
+                       new Array("G12/S3/U4", "0,255,0,70"),
+                       new Array("G12/S31", "0,255,0,70"),
+                       new Array("G122", "0,0,0,70"),
+                       new Array("G21", "0,0,0,70"),
+                       new Array("G21(C36)", "0,0,0,70"),
+                       new Array("G22/S3", "0,153,0,70"),
+                       new Array("G24", "0,0,0,70"),
+                       new Array("G3/S42", "0,0,0,70"),
+                       new Array("H41", "0,0,0,70"),
+                       new Array("M", "0,0,0,70"),
+                       new Array("M/C", "0,0,0,70"),
+                       new Array("M/C6", "0,0,0,70"),
+                       new Array("M1", "0,0,0,70"),
+                       new Array("M1/C2", "0,0,0,70"),
+                       new Array("M1/C6", "0,0,0,70"),
+                       new Array("M1/C65", "0,0,0,70"),
+                       new Array("M1/R", "0,0,0,70"),
+                       new Array("M1/W1", "0,0,0,70"),
+                       new Array("M2", "0,0,0,70"),
+                       new Array("M2/M3", "0,0,0,70"),
+                       new Array("M3", "0,0,0,70"),
+                       new Array("R", "0,0,0,70"),
+                       new Array("R1", "0,0,0,70"),
+                       new Array("R1/C2", "0,0,0,70"),
+                       new Array("R11", "0,0,0,70"),
+                       new Array("R12", "0,0,0,70"),
+                       new Array("R12/C36", "0,0,0,70"),
+                       new Array("R14", "0,0,0,70"),
+                       new Array("R2", "0,0,0,70"),
+                       new Array("R2+C2", "0,0,0,70"),
+                       new Array("R2/C2", "0,0,0,70"),
+                       new Array("R2/C3", "0,0,0,70"),
+                       new Array("R20", "0,0,0,70"),
+                       new Array("R21(E61)", "0,0,0,70"),
+                       new Array("R21(R22)", "0,0,0,70"),
+                       new Array("R21(S3)", "0,0,0,70"),
+                       new Array("R21/C", "120,120,15,70"),
+                       new Array("R21/C2", "120,120,15,70"),
+                       new Array("R21/C21", "120,120,15,70"),
+                       new Array("R21/C61", "120,120,15,70"),
+                       new Array("R21/R22", "120,120,15,70"),
+                       new Array("R21/S1", "120,120,15,70"),
+                       new Array("R21/C1", "120,120,15,70"),
+                       new Array("R22/C2", "120,120,15,70"),
+                       new Array("R22/C2/S3", "120,120,15,70"),
+                       new Array("R22/C22", "120,120,15,70"),
+                       new Array("R22/C3/U", "120,120,15,70"),
+                       new Array("R22/C6", "120,120,15,70"),
+                       new Array("R22/S3", "120,120,15,70"),
+                       new Array("R24/S", "120,120,15,70"),
+                       new Array("R24/S2", "120,120,15,70"),
+                       new Array("R24/S31", "120,120,15,70"),
+                       new Array("R24/U12", "120,120,15,70"),
+                       new Array("R24\S3", "0,0,0,70"),
+                       new Array("R2\C2", "0,0,0,70"),
+                       new Array("R31", "0,0,0,70"),
+                       new Array("R\C", "0,0,0,70"),
+                       new Array("Rx", "0,0,0,70"),
+                       new Array("R安", "0,0,0,70"),
+                       new Array("R安/C21", "0,0,0,70"),
+                       new Array("S1", "0,0,0,70"),
+                       new Array("S1/S41", "0,0,0,70"),
+                       new Array("S1/S42", "0,0,0,70"),
+                       new Array("S2/G1", "128,128,128,70"),
+                       new Array("S2/S3", "128,128,128,70"),
+                       new Array("S2/S3/G12", "128,128,128,70"),
+                       new Array("S2/S31", "128,128,128,70"),
+                       new Array("S21", "0,0,0,70"),
+                       new Array("S22\G1", "0,0,0,70"),
+                       new Array("S3/C1", "120,15,15,70"),
+                       new Array("S3/S22", "120,15,15,70"),
+                       new Array("S3/U2", "120,15,15,70"),
+                       new Array("S3/U21", "120,15,15,70"),
+                       new Array("S3/U21/C2", "120,15,15,70"),
+                       new Array("S31", "0,0,0,70"),
+                       new Array("S32", "0,0,0,70"),
+                       new Array("S33", "0,0,0,70"),
+                       new Array("S4", "0,0,0,70"),
+                       new Array("S41", "0,0,0,70"),
+                       new Array("S41/S42", "0,0,0,70"),
+                       new Array("S42", "0,0,0,70"),
+                       new Array("T", "0,0,0,70"),
+                       new Array("T2", "0,0,0,70"),
+                       new Array("T2/S3", "0,0,0,70"),
+                       new Array("T21", "0,0,0,70"),
+                       new Array("T23", "0,0,0,70"),
+                       new Array("T23/U21/C2", "0,0,0,70"),
+                       new Array("T4", "0,0,0,70"),
+                       new Array("T42", "0,0,0,70"),
+                       new Array("T42/C1/C2", "0,0,0,70"),
+                       new Array("T5", "0,0,0,70"),
+                       new Array("U", "0,0,0,70"),
+                       new Array("U/C", "0,0,0,70"),
+                       new Array("U/C1", "0,0,0,70"),
+                       new Array("U/G", "0,0,0,70"),
+                       new Array("U/G11", "0,0,0,70"),
+                       new Array("U/G12", "0,0,0,70"),
+                       new Array("U/G12/C2", "0,0,0,70"),
+                       new Array("U/R", "0,0,0,70"),
+                       new Array("U0", "0,0,0,70"),
+                       new Array("U12/C1", "0,114,153,70"),
+                       new Array("U12/C2", "0,114,153,70"),
+                       new Array("U13", "0,0,0,70"),
+                       new Array("U13/C12", "0,0,0,70"),
+                       new Array("U14", "0,0,0,70"),
+                       new Array("U2/S3", "0,114,153,70"),
+                       new Array("U21/C", "120,15,15,70"),
+                       new Array("U21/C1", "120,15,15,70"),
+                       new Array("U21/C1/C2", "120,15,15,70"),
+                       new Array("U21/C2", "120,15,15,70"),
+                       new Array("U21/C2/S31", "120,15,15,70"),
+                       new Array("U21/R22/S3", "120,15,15,70"),
+                       new Array("U21/S3", "120,15,15,70"),
+                       new Array("U21/S3/C2", "120,15,15,70"),
+                       new Array("U21/S31", "120,15,15,70"),
+                       new Array("U21/U12", "120,15,15,70"),
+                       new Array("U21S31", "0,0,0,70"),
+                       new Array("U23", "0,0,0,70"),
+                       new Array("U3/C1", "0,114,153,70"),
+                       new Array("U3/C2", "0,114,153,70"),
+                       new Array("U31", "0,0,0,70"),
+                       new Array("U4/C3", "0,114,153,70"),
+                       new Array("U4/U21/S3", "0,114,153,70"),
+                       new Array("U42", "0,0,0,70"),
+                       new Array("U42/U41", "0,0,0,70"),
+                       new Array("U5", "0,0,0,70"),
+                       new Array("U5/M2", "0,0,0,70"),
+                       new Array("U6", "0,0,0,70"),
+                       new Array("U9/S31", "114,153,70"),
+                       new Array("U12", "0,0,0,70"),
+                       new Array("W", "0,0,0,70"),
+                       new Array("W/C", "0,0,0,70"),
+                       new Array("W/M2", "0,0,0,70"),
+                       new Array("W/U9", "0,0,0,70"),
+                       new Array("W1", "0,0,0,70"),
+                       new Array("W1/M1", "0,0,0,70"),
+                       new Array("W2", "0,0,0,70"),
+                       new Array("Wa/M1", "0,0,0,70"),
+                       new Array("丙1", "0,0,0,70"),
+                       new Array("丙1-04", "0,0,0,70"),
+                       new Array("丙11", "0,0,0,70"),
+                       new Array("丙12", "0,0,0,70"),
+                       new Array("丙2", "0,0,0,70"),
+                       new Array("丙21", "0,0,0,70"),
+                       new Array("丙22", "0,0,0,70"),
+                       new Array("丙3", "0,0,0,70"),
+                       new Array("丙4", "0,0,0,70"),
+                       new Array("丙5", "0,0,0,70"),
+                       new Array("初", "0,0,0,70"),
+                       new Array("丁", "0,0,0,70"),
+                       new Array("丁1", "0,0,0,70"),
+                       new Array("丁2", "0,0,0,70"),
+                       new Array("丁22", "0,0,0,70"),
+                       new Array("丁23", "0,0,0,70"),
+                       new Array("丁3", "0,0,0,70"),
+                       new Array("丁4", "0,0,0,70"),
+                       new Array("丁5", "0,0,0,70"),
+                       new Array("癸2", "0,0,0,70"),
+                       new Array("癸3", "0,0,0,70"),
+                       new Array("癸5", "0,0,0,70"),
+                       new Array("己3", "0,0,0,70"),
+                       new Array("己5", "0,0,0,70"),
+                       new Array("甲/乙", "0,0,0,70"),
+                       new Array("甲1", "0,0,0,70"),
+                       new Array("甲2", "0,0,0,70"),
+                       new Array("甲21", "0,0,0,70"),
+                       new Array("甲22", "0,0,0,70"),
+                       new Array("甲22-", "0,0,0,70"),
+                       new Array("甲3", "0,0,0,70"),
+                       new Array("甲5", "0,0,0,70"),
+                       new Array("葵", "0,0,0,70"),
+                       new Array("葵2", "0,0,0,70"),
+                       new Array("葵5", "0,0,0,70"),
+                       new Array("旅", "0,0,0,70"),
+                       new Array("壬1", "0,0,0,70"),
+                       new Array("壬2", "0,0,0,70"),
+                       new Array("体", "0,0,0,70"),
+                       new Array("卫", "0,0,0,70"),
+                       new Array("戊", "0,0,0,70"),
+                       new Array("戊1", "0,0,0,70"),
+                       new Array("小", "0,0,0,70"),
+                       new Array("辛4", "0,0,0,70"),
+                       new Array("已3", "0,0,0,70"),
+                       new Array("乙", "0,0,0,70"),
+                       new Array("乙/丁", "0,0,0,70"),
+                       new Array("乙1", "0,0,0,70"),
+                       new Array("乙2", "0,0,0,70"),
+                       new Array("乙3", "0,0,0,70"),
+                       new Array("乙4", "0,0,0,70"),
+                       new Array("乙41", "0,255,0,70"),
+                       new Array("乙42", "0,0,0,70"),
+                       new Array("乙5", "0,0,0,70"),
+                       new Array("幼", "0,0,0,70")
+);
+
+</script>
+</html>

@@ -1,0 +1,288 @@
+﻿<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+	<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+	<meta http-equiv="X-UA-Compatible" content="IE=8">
+    <title>5.0球面版本测试用例2 模型</title>
+	<script language="javascript" type="text/javascript" event="FireOnLButtonUp(x , y)" for="VPSDKCtrl">
+		if(OpenState)
+		{
+			var pos = transformate.ScreenPosToWorldPos(x, y);////将屏幕坐标点转换成经纬度坐标
+			alert("x:" + pos.GetX() + ";y:" + pos.GetY() + "Z:" + pos.GetZ());
+		}
+	</script>
+	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+		var str = res.GetResponserResult().GetConfigValueByKey("PickPointList");
+        var PickName = res.GetResponserResult().GetConfigValueByKey("PickName");
+        PickLayerId = res.GetResponserResult().GetConfigValueByKey("PickLayerList");
+		alert("PickPoint:" + str + " PickName: " +  PickName + " PickLayerId: " +  PickLayerId);
+	</script>
+	
+    <script language="javascript" type="text/javascript">
+
+        var obj;
+        var map;
+		var OpenState = false;
+        var transformate;
+		var PickLayerId = -1;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("http://127.0.0.1@9095@");
+            transformate = map.CreateTransformation();
+        }
+		function OpenOnLButtonUp()
+		{
+			if(OpenState)
+			{
+				OpenState = false;
+			}
+			else
+			{
+				OpenState = true;
+			};
+		}
+        var cpmLayer;
+        //加载模型数据
+        function LoadCPM() {
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "G:\\黑马\\试用平台及用例\\样例数据\\独立设备模型\\car.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");		//结点调度优先级的缩放值PriorityScale,默认为1
+			tlo.AddConfig("PriorityOffset","1.0");		//结点调度优先级的偏移值PriorityOffset,
+			tlo.AddConfig("Compress","false");			//支持压缩和未压缩数据(根据数据实际情况设置)
+			tlo.AddConfig("RenderOrder", "-100"); 		//绘制顺序(越小越先绘制)
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+        }
+
+        //删除模型数据
+        function RemoveCPM() {
+            map.RemoveLayer(cpmLayer); ////删除模型数据
+        }
+
+        //显隐模型数据
+        var cpmVisble = true;
+        function VisibleCPM() {
+            if (cpmVisble) {
+                cpmVisble = false;
+            } else {
+                cpmVisble = true;
+            }
+            cpmLayer.SetVisible(cpmVisble); /////显隐模型数据
+        }
+
+        var gmsLayer;
+        //加载模型数据
+        function LoadGMS() {
+		
+			alert('123');
+             var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+			tlo.AddConfig("Compress","true");			//支持压缩和未压缩数据(根据数据实际情况设置)
+            tlo.AddConfig("Url", "http://127.0.0.1:9095/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+
+        //删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(gmsLayer); ////删除模型数据
+        }
+
+        //显隐模型数据
+        var gmsVisble = true;
+        function VisibleGMS() {
+            if (gmsVisble) {
+                gmsVisble = false;
+            } else {
+                gmsVisble = true;
+            }
+            gmsLayer.SetVisible(gmsVisble); /////显隐模型数据
+        }
+
+
+        var singleModelLayer;
+        //加载模型数据
+        function LoadSingleModel() {
+            var tlo = map.CreateLayerOptions("singlemodel"); // 创建singlemodel图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "singlemodel"); // 数据源类型,代表SINGLEMODEL插件，必须是此键值对
+            tlo.AddConfig("Url", "G:\\DE_tags\\DynamicEarth-2.1.0\\testdata\\model\\singlemodel\\3318495DX40005.wrl"); //要加载的数据路径，此数据需为但wrl数据
+			//调度优先级 = priority * PriorityScale + PriorityOffset;
+			//其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到
+			//调度优先级越大，优先调度并显示
+			tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+            singleModelLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(singleModelLayer); ///添加模型图层
+            singleModelLayer.Locate(); ////模型图层定位
+        }
+
+        //删除模型数据
+        function RemoveSingleModel() {
+            map.RemoveLayer(singleModelLayer); ////删除模型数据
+        }
+
+        /////显隐模型数据
+        var singleModelVisble = true;
+        function VisibleSingleModel() {
+            if (singleModelVisble) {
+                singleModelVisble = false;
+            } else {
+                singleModelVisble = true;
+            }
+            singleModelLayer.SetVisible(singleModelVisble); /////显隐模型数据
+        }
+		
+		var c3ssLayer;
+        //加载服务C3S模型数据
+        function LoadC3SS() {     
+            var tlo = map.CreateLayerOptions("c3s"); 	//创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "c3ss");//数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Compress","true");			//支持压缩和未压缩数据(根据数据实际情况设置)
+			tlo.AddConfig("PriorityScale","1.0");		//结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");		//结点调度优先级的偏移值PriorityOffset,
+            //tlo.AddConfig("Url", "http://192.168.1.67:9015/coo-server/dataLoad/C3SNJ/T050000/320101/nanjingModel/cehui1compressed/1jzdc_Compressed/0.c3s.zip"); //要加载的数据路径"
+			 tlo.AddConfig("Url", "G:\Out1c3s\330100\T0500555\00000\Lod1\0.c3s"); //要加载的数据路径"http://192.168.1.34:9095/coo-server/tomcatfile/ModelTest/out-QK_Compressed/cehui/01/0.c3s.zip"
+            c3ssLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(c3ssLayer); 			//添加模型图层
+            c3ssLayer.Locate(); 				//模型图层定位
+        }
+
+        //显隐服务C3S模型数据
+        var c3ssVisble = true;
+        function Visiblec3ss() {
+            if (c3ssVisble) {
+                c3ssVisble = false;
+            } else {
+                c3ssVisble = true;
+            }
+            c3ssLayer.SetVisible(c3ssVisble); /////显隐模型数据
+        }
+        //删除服务C3S模型数据
+        function RemoveC3SS() {
+            map.RemoveLayer(c3ssLayer); 		//删除C3S模型数据
+        }
+		
+		var c3sLayer;
+        //加载本地C3S模型数据
+        function LoadC3S() {        
+            var tlo = map.CreateLayerOptions("c3s"); 	//创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "c3s");//数据源类型,代表CPM插件，必须是此键值对
+			tlo.AddConfig("PriorityScale","1.0");		//结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");		//结点调度优先级的偏移值PriorityOffset,
+            tlo.AddConfig("Compress", "true");			//是否压缩
+
+			//C3S和C3SA 都是用此类方法加载
+            //tlo.AddConfig("Url", "F:\\项目相关\\天尊\\ok\\model\\0.c3s"); //要加载的数据路径
+            //tlo.AddConfig("Url", "F:\\项目相关\\湖南双排\\gsOutPut\\0.c3s"); //要加载的数据路径
+            tlo.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\样例数据osgb+c3s（解压一次使用）\\out1_Compressed\\LAYER05\\0"); //要加载的数据路径
+            c3sLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(c3sLayer); 		//添加模型图层
+            c3sLayer.Locate(); 				//模型图层定位    
+				 
+        }
+
+        //删除本地C3S模型数据
+        function RemoveC3S() {
+            map.RemoveLayer(c3sLayer); 		//删除C3S模型数据
+        }
+		
+		//打开模型拾取响应器
+		var res;
+		function OpenPick() 
+		{
+			var resp = map.CreateResponserOptions("123"); 	//创建响应器配置，参数任意名称
+			resp.AddConfig("PickLayerIdList", -1); 			//拾取图层id //c3sLayer.GetLayerID() 
+			resp.AddConfig("PickColor", "1.0,0.0,0.0,0.5"); //拾取颜色
+			resp.AddConfig("IsChangeColor", "true"); 		//是否变色
+			resp.AddConfig("IsGetLayerID", "true"); 		//是否需要获取节点所在图层ID
+			res = map.CreateResponser("PickModelResponser", resp); //创建模型拾取响应器，第一参必须为PickModelResponser字符串
+			res.AddObserver();	//添加监听
+			map.AddResponser(res); //添加响应器
+		}
+		
+		//关闭模型拾取响应器
+		function ClosePick() 
+		{
+			map.RemoveResponser("PickModelResponser");						//移除响应器 
+			res = null;
+		}
+	
+		//顶点捕捉
+		var SnappingResp = null;
+		function Snapping() 
+		{
+			if(SnappingResp)
+			{
+				map.RemoveResponser("SnappingModelResponser");
+				SnappingResp = null;
+			}
+			else{
+				var resp = map.CreateResponserOptions("123"); 
+				resp.AddConfig("Tolerance", "2"); 						// 捕捉公差值
+				SnappingResp = map.CreateResponser("SnappingModelResponser", resp);
+				map.AddResponser(SnappingResp); 
+			}
+			
+		}
+		
+		//获取图层配置信息
+		function GetPickLayerAtt()
+		{
+			if(PickLayerId != -1)
+			{
+				var Layer = map.GetLayerObject(PickLayerId);
+				if(Layer)
+				{
+					var LayerOpt = Layer.GetLayerOption();
+					var TypeName = LayerOpt.GetConfigValueByKey("DataSourceTypeName");
+				}
+			}
+		}
+    </script>
+</head>
+<body onload="InitScene()">
+    <input id="Button1" type="button" value="加载CPM" onclick="LoadCPM()" />
+    <input id="Button2" type="button" value="卸载CPM" onclick="RemoveCPM()" />
+    <input id="Button3" type="button" value="显隐CPM" onclick="VisibleCPM()" />
+&nbsp;&nbsp;
+    <input id="Button4" type="button" value="加载GMS" onclick="LoadGMS()" />
+    <input id="Button5" type="button" value="卸载GMS" onclick="RemoveGMS()" />
+    <input id="Button6" type="button" value="显隐GMS" onclick="VisibleGMS()" />
+&nbsp;&nbsp;
+    <input id="Button8" type="button" value="加载单个模型数据" onclick="LoadSingleModel()" />
+    <input id="Button9" type="button" value="卸载单个模型数据" onclick="RemoveSingleModel()" />
+    <input id="Button10" type="button" value="显隐单个模型数据" onclick="VisibleSingleModel()" />
+&nbsp;&nbsp;
+    <input id="Button11" type="button" value="加载服务C3S" onclick="LoadC3SS()" />
+    <input id="Button15" type="button" value="显隐服务C3S" onclick="Visiblec3ss()" />
+    <input id="Button12" type="button" value="移除服务C3S" onclick="RemoveC3SS()" />
+    <input id="Button13" type="button" value="加载本地C3S" onclick="LoadC3S()" />
+    <input id="Button14" type="button" value="移除本地C3S" onclick="RemoveC3S()" />
+    <input id="Button16" type="button" value="鼠标左键事件" onclick="OpenOnLButtonUp()" />
+	<input type="button" value="顶点捕捉" onclick="Snapping()" />
+	<input id="Button7" type="button" value="打开模型拾取" onclick="OpenPick()" />
+	<input id="Button7" type="button" value="关闭模型拾取" onclick="ClosePick()" />
+	<input id="Button7" type="button" value="获取图层配置信息" onclick="GetPickLayerAtt()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 980px">
+    </object>
+</body>
+</html>

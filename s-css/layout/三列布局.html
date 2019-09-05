@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>三列布局</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0
+    }
+    .layout-container {
+      overflow: hidden;
+    }
+    .left {
+      float: left;
+      width: 100px;
+      background-color: #ccc;
+    }
+    .right {
+      float: right;
+      width: 100px;
+      background-color: #ccc;
+    }
+    .main {
+      margin-left: 100px;
+      margin-right: 100px;
+      background-color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class='layout-container'>
+    <div class='left'>left</div>
+    <div class='right'>right</div>
+    <div class='main'>main</div>
+  </div>
+</body>
+</html>

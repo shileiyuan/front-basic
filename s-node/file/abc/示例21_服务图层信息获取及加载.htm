@@ -1,0 +1,150 @@
+<HTML>
+<HEAD>
+<META NAME="GENERATOR" Content="Microsoft Visual Studio 8.0">
+<TITLE>5.0球面版本测试用例7 其他</TITLE>
+<script language="javascript" type="text/javascript">
+
+	var obj;
+	var map;
+
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+        map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("192.168.1.50@8088@");
+	}
+		
+	//网络倾斜摄影数据加载
+	var osgbsLayer = new Array();
+	function LoadOSGBS() {
+	    var dataSourceOptions = map.CreateDataSourceOptions("smeshs");	//创建数据源配置项,名称必须与数据源类型匹配
+	    dataSourceOptions.AddConfig("Url", "http://192.168.1.47:9090/files/xihu_Compressed/LAYER00/metadata_.xml"); //设置数据源配置路径
+        var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		var i = 0;
+		for(i = 0; i < count; i++)
+		{
+			//获取数据源图层配置项
+			var Srs = dataSource.GetLayerInfo(i, "Srs");
+			var Url = dataSource.GetLayerInfo(i, "Url") || "http://192.168.1.47:9090/files/xihu_Compressed/LAYER00/PRIFIXION_L00_0.osgb.zip";
+			var BasePath = dataSource.GetLayerInfo(i, "BasePath") || "http://192.168.1.47:9090/files/xihu_Compressed";
+			var OriginPoint = dataSource.GetLayerInfo(i, "OriginPoint");
+			var Compress = dataSource.GetLayerInfo(i, "Compress") || "true";
+			var Scale = dataSource.GetLayerInfo(i, "Scale") || "1.0";
+			var tlo = map.CreateLayerOptions("osgbs"); 				//创建osgbs图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "smeshs");			//数据源类型,代表SMESHS插件，必须是此键值对
+            tlo.AddConfig("Url", Url); 						//要加载的数据路径
+            tlo.AddConfig("BasePath", BasePath); 			//层级数据的路径，最后面没有斜线
+            tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+            tlo.AddConfig("OriginPoint", OriginPoint); 		//数据的坐标偏移值
+			tlo.AddConfig("Scale", Scale);					//节点调度方位放大比例
+			tlo.AddConfig("Compress", Compress);			//数据是否压缩
+
+            osgbsLayer[i] = map.CreateLayer("ModelLayer", tlo); //创建倾斜摄影图层，第一项参数必须为ModelLayer
+            map.AddLayer(osgbsLayer[i]); //添加倾斜摄影图层
+			if(i == count -1)
+			{
+				osgbsLayer[i].Locate(); 		//倾斜摄影图层定位
+			}
+		}
+    }
+	
+	//网络倾斜摄影数据移除
+    function RemoveOSGBS() {
+		var i;
+		for(i in osgbsLayer)
+		{
+			map.RemoveLayer(osgbsLayer[i]); //删除倾斜摄影数据
+		}
+    }
+	
+	//本地倾斜摄影数据加载
+	var osgbLayer = new Array();
+	function LoadOSGB() {
+	    var dataSourceOptions = map.CreateDataSourceOptions("smesh");	//创建数据源配置项,名称必须与数据源类型匹配
+	    dataSourceOptions.AddConfig("Url", "F:\\大华演示\\大华数据\\迭部\\metadata.xml"); //设置数据源配置路径
+        var dataSource = map.CreateDataSource(dataSourceOptions);		//创建数据源
+		var count = dataSource.GetLayerCount();							//获取数据源包含图层数量
+		if(count == 0)
+		{
+			alert("没有找到服务数据配置");
+			return;
+		}
+		var i = 0;
+		for(i = 0; i < count; i++)
+		{
+			//获取数据源图层配置项
+			var Srs = dataSource.GetLayerInfo(i, "Srs");
+			var Url = dataSource.GetLayerInfo(i, "Url") || "F:\\大华演示\\大华数据\\迭部\\index.osgb";
+			var BasePath = dataSource.GetLayerInfo(i, "BasePath") || "F:\\大华演示\\大华数据\\迭部\\Data";
+			var OriginPoint = dataSource.GetLayerInfo(i, "OriginPoint");
+			var Compress = dataSource.GetLayerInfo(i, "Compress") || "false";
+			var Scale = dataSource.GetLayerInfo(i, "Scale") || "1.0";
+			var tlo = map.CreateLayerOptions("osgb"); 				//创建osgbs图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "smesh");			//数据源类型,代表SMESH插件，必须是此键值对
+            tlo.AddConfig("Url", Url); 						//要加载的数据路径
+            tlo.AddConfig("BasePath", BasePath);  			//层级数据的路径，最后面没有斜线
+            tlo.AddConfig("Srs", Srs); 						//数据的坐标参考
+            tlo.AddConfig("OriginPoint", OriginPoint); 		//数据的坐标偏移值
+			tlo.AddConfig("Scale", Scale);					//节点调度方位放大比例
+			tlo.AddConfig("Compress", Compress);			//数据是否压缩
+
+            osgbLayer[i] = map.CreateLayer("ModelLayer", tlo); //创建倾斜摄影图层，第一项参数必须为ModelLayer
+            map.AddLayer(osgbLayer[i]); //添加倾斜摄影图层
+			if(i == count -1)
+			{
+				osgbLayer[i].Locate(); 		//倾斜摄影图层定位
+			}
+		}
+    }
+	
+	//本地倾斜摄影数据移除
+    function RemoveOSGB() {
+		var i;
+		for(i in osgbLayer)
+		{
+			map.RemoveLayer(osgbLayer[i]); ////删除倾斜摄影数据
+		}
+    }
+	var mtdsdomlayer;
+	//加载DOM数据
+	function LoadDOMMTDS() {
+		var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+		//////////////以下部分可以通过图层信息获取获得相应的配置////////////
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+		tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+		tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+		tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+		tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdsdomlayer); ///添加DOM图层
+		mtdsdomlayer.Locate(); ////DOM图层定位
+	}
+
+</script>
+</HEAD>
+<BODY onload="InitScene()">
+	<input id="Button62" type="button" value="网络倾斜摄影数据加载" onclick="LoadOSGBS()" /> 
+	<input id="Button62" type="button" value="网络倾斜摄影数据移除" onclick="RemoveOSGBS()" /> 
+	<input id="Button62" type="button" value="本地倾斜摄影数据加载" onclick="LoadOSGB()" /> 
+	<input id="Button62" type="button" value="本地倾斜摄影数据移除" onclick="RemoveOSGB()" /> 
+	<input id="Button62" type="button" value="网络地形数据加载" onclick="LoadDOMMTDS()" /> 
+	<OBJECT id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 100%"></OBJECT>
+</BODY>
+</HTML>

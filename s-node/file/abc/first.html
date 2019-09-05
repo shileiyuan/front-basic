@@ -1,0 +1,128 @@
+<html>
+<head>
+    <title>3DVPSDK 开发入门教程</title>
+    <script language="javascript" type="text/javascript">
+     
+        var distanceMesure;
+ 
+ 
+ function refresh (){
+ obj = document.getElementById("VPSDKCtrl");
+ //obj. GetSDKPath( );
+ console.log(obj.GetSDKPath);
+ }
+        function CreateDistanceMeasure() {
+		obj = document.getElementById("VPSDKCtrl");
+		
+		
+		
+            map = obj.GetIMapMgrPtr();
+ //创建图层配置信息
+            var tlo = map.CreateLayerOptions("distanceMesure"); //创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions 代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_distance");//数据源类型,代表距离测量，必须是此键值对
+            tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); //设置点击点的颜色透明度（RGBA） 1 为不透明 0 为透明
+            tlo.AddConfig("PointSize", "5"); //设置点击点的大小
+            tlo.AddConfig("DistanceMeasureLineColor", "1.0,0.0,0.0,1.0"); //设置线的颜色（RGBA）
+            tlo.AddConfig("LineWidth", "5"); //线宽
+            tlo.AddConfig("MeasureUnit", "0"); //0-米； 1-公里；2-海里
+            tlo.AddConfig("MeasureUnitLanguage", "1"); //0-英文； 1-中文
+            tlo.AddConfig("IsDepthTest", "false"); //是否开启深度测试。false 不开启，结果会浮在场景上，true实际显示位置
+//创建文字符号
+            var pSymbol = map.CreateSymbol("TextSymbol");//创建文字符号，必须为 TextSymbol 字符串
+            pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+            pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+            pSymbol.AddConfig("Size", "40"); //字体精度大小
+            pSymbol.AddConfig("CharacterSize", "20"); //文字大小
+            pSymbol.AddConfig("CharacterMode", "1"); //取值 1 -- 始终朝向相机
+            pSymbol.AddConfig("AlignmentMode", "5"); //文字对齐方式
+            pSymbol.AddConfig("AxisAlignment", "6"); //旋转轴 0 - 7 ， 6: 自动
+            pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复
+            pSymbol.AddConfig("IsEmbolden", "false"); //字体是否加粗
+            pSymbol.AddConfig("IsTransform", "true"); //字体是否为斜体
+            pSymbol.AddConfig("IsUnderline", "false"); //字体是否有下划线
+            pSymbol.AddConfig("IsBack", "false"); //是否设置背景色
+            pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为 true 有效
+//tlo.AddConfig("IsLoad","true" ); //是否加载点坐标
+//tlo.AddConfig("Points","120.215667656,30.2136383941,-1.10956306104;120.215749997,30.2133926474,-1.11031961534;120.
+//             214122717, 30.2124231319, -1.11372030433;
+//             120.213973507, 30.2126992441, -1.11202969588;
+//             "); //点坐标
+//tlo.AddConfig("IsActive","true" ); //是否激活测量
+//创建样式
+            var pStyle = map.CreateStyle("Text"); //创建 Style，名字可以任意pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到 Style 里，第一参必须为 TextSymbol 字符串，第二参为上面创建的文字符号的配置信息，通过pSymbol.GetConfig()获取
+//将样式添加到图层配置里
+            tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为 Style 字符串，第二参为上面创建的 Style 的配置信息，通过pStyle.GetConfig()获取
+            distanceMesure = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为 AnalysisLayer
+            map.AddLayer(distanceMesure); //添加分析图层
+        }
+
+        //更新三维距离测量
+        function UpdateDistanceMeasure() {
+            if (null != distanceMesure) {
+                var tlo = map.CreateLayerOptions("distanceMesure"); //创建分析图层配置，给配置起个名称，任意名称
+                tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions 代表分析图层数据配置，必须是此键值对
+                tlo.AddConfig("DataSourceTypeName", "as_distance");//数据源类型,代表距离测量，必须是此键值对
+                tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); //设置点击点的颜色透明度（RGBA） 1 为不透明 0 为透明
+                tlo.AddConfig("PointSize", "10"); //设置点击点的大小
+                tlo.AddConfig("DistanceMeasureLineColor", "0.0,1.0,0.0,1.0"); //设置线的颜色（RGBA）
+                tlo.AddConfig("LineWidth", "10"); //线宽
+                tlo.AddConfig("MeasureUnit", "0"); //0-米； 1-公里；2-海里
+                tlo.AddConfig("MeasureUnitLanguage", "1"); //0-英文； 1-中文
+                tlo.AddConfig("IsDepthTest", "false"); //是否开启深度测试。false 不开启，结果会浮在场景上，true实际显示位置
+//下列三个配置可选
+//tlo.AddConfig("IsLoad","true" ); //是否加载点坐标
+//tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;"); //点坐标
+//tlo.AddConfig("IsActive","false" ); //是否激活测量
+//创建文字符号
+                var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为 TextSymbol 字符串
+                pSymbol.AddConfig("FillingColor", "1.0, 1.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+                pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+                pSymbol.AddConfig("Size", "40"); //字体精度大小
+                pSymbol.AddConfig("CharacterSize", "20"); //文字大小
+                pSymbol.AddConfig("CharacterMode", "1"); //取值 1 -- 始终朝向相机
+                pSymbol.AddConfig("AlignmentMode", "5"); //文字对齐方式
+                pSymbol.AddConfig("AxisAlignment", "6"); //旋转轴 0 - 7 ， 6: 自动
+                pSymbol.AddConfig("RemoveDuplicateLabels", "false"); // 去重复
+                pSymbol.AddConfig("IsEmbolden", "false"); //字体是否加粗
+                pSymbol.AddConfig("IsTransform", "true"); //字体是否为斜体
+                pSymbol.AddConfig("IsUnderline", "false"); //字体是否有下划线
+                pSymbol.AddConfig("IsBack", "ture"); //是否设置背景色
+                pSymbol.AddConfig("BackColor", "1.0,0,1.0,1"); //背景颜色，是否设置背景色为 true 有效
+//创建样式
+                var pStyle = map.CreateStyle("Text");//创建 Style，名字可以任意
+                pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到 Style 里，第一参必须为 TextSymbol 字符串，第二参为上面创建的文字符号的配置信息，通过pSymbol.GetConfig()获取
+//将样式添加到图层配置里
+                tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为 Style 字符串，第二参为上面创建的 Style 的配置信息，通过pStyle.GetConfig()获取
+                distanceMesure.UpdateLayerOptions(tlo); //更新参数设置项
+            }
+        }
+
+        //获取三维距离测量结果
+        function GetDistanceMeasure() {
+            var opt = distanceMesure.GetLayerResult(); //获取图层结果
+//判断当前图层数据源类型
+            if (opt.GetConfigValueByKey("DataSourceTypeName") == "as_distance") {
+                var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+                alert("ClickPoints:" + points);
+                var DistanceResult = opt.GetConfigValueByKey("DistanceResult"); //获取测量结果
+                alert("DistanceResult:" + DistanceResult);
+            }
+        }
+
+        //删除三维距离测量
+        function RemoveDistanceMeasure() {
+            map.RemoveLayer(distanceMesure);//删除三维距离测量
+        }
+		
+		 
+    </script>
+</head>
+<body>
+<object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width:100%;height:100%;"></object>
+
+<button	 onclick=CreateDistanceMeasure()> 三维测量</button>
+<button	 onclick=GetDistanceMeasure()> 获取测量结果</button>
+<button	 onclick=RemoveDistanceMeasure()> 获取测量结果</button>
+ </body>
+</html>

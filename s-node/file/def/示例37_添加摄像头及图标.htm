@@ -1,0 +1,145 @@
+<html>
+<head>
+<title>6.0试用例3 矢量</title>
+	<script language="javascript" type="text/javascript" event="FireOnLButtonUp(tx,ty)" for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+		if(addState)
+		{
+			var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+			//alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+			addModelFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+			addIconFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+			responseStr = pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";";
+			//alert(responseStr);
+		}		if(addState1)		{			var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标			//alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");			crossbarFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息			poleFeature.AddPoint(pos.GetX(), pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息			responseStr = pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";";			//alert(responseStr);		}
+	</script>	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(str,id)" for="VPSDKCtrl">		{			var xstr = resAxis.GetResponserResult().GetConfigValueByKey("OXAngle");//红轴欧拉角			var ystr = resAxis.GetResponserResult().GetConfigValueByKey("OYAngle");//绿轴欧拉角			var zstr = resAxis.GetResponserResult().GetConfigValueByKey("OZAngle");//蓝轴欧拉角			var xScale = resAxis.GetResponserResult().GetConfigValueByKey("OXScale");//红轴欧拉角			var yScale = resAxis.GetResponserResult().GetConfigValueByKey("OYScale");//绿轴欧拉角			var zScale = resAxis.GetResponserResult().GetConfigValueByKey("OZScale");//蓝轴欧拉角			var pos = resAxis.GetResponserResult().GetConfigValueByKey("LonLatPoint");//经纬度点坐标			/*var fs = resAxis.GetResponserResult().GetConfigValueByKey("FeatureSchema");			var fa = resAxis.GetResponserResult().GetConfigValueByKey("FeatureAttributePos");			alert("FeatureSchema:" + fs);			alert("FeatureAttributePos:" + fa);*/			//alert("xAngle:" + xstr + " yAngle:" + ystr + " zAngle:" + zstr + "xScale:" + xScale + " yScale:" + yScale + " zScale:" + zScale + "Point:" + pos);			/*var feature2 = map.CreateFeature();								//创建要素对象			crossbarLayer.GetFeatureByPick(feature2);					//通过ID获取要素对象值			var type = feature2.GetGeometryType();							//获取要素的几何类型			var Ctype = feature2.GetComponentType();						//获取要素的子几何类型			var points = feature2.GetPoints();								//获取要素的几何点集			var SchemaTop = poleLayer.GetFeatureSchema();			//获取要素属性表头			var id = feature2.GetFeatureId();								//获取要素ID			var Name = feature2.GetAttributeValueByName("ID");			//获取要素属性值			var XRotate = feature2.GetAttributeValueByName("XRotate");			var XScale = feature2.GetAttributeValueByName("XScale"); 			alert("id=" + id + " | type=" + type  + " | Ctype=" + Ctype + " | points=" + points);			alert("SchemaTop=" + SchemaTop);			alert("ID=" + Name + ";XRotate=" + XRotate + ";XScale=" + XScale);//*/		}	</script>
+    <script language="javascript" type="text/javascript">
+	var addState = false;
+	var map;
+	var obj;
+	var count = 0;
+	var addModelFeature;	var addIconFeature;    var responseStr;	var Datapath="F:\\演示测试数据";
+	var mtdsdemlayer;
+	var mtdsdomlayer;
+	
+    function InitScene() {
+        obj = document.getElementById("VPSDKCtrl");
+		//obj.InitLic("192.168.1.50@8088@");	// 授权		 obj.InitLic("http://127.0.0.1@9095@");
+		map = obj.GetIMapMgrPtr();
+        transformate = map.CreateTransformation();
+    }
+	var gmsLayer;
+	function LoadGMS() {
+	    var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    		//tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对		//tlo.AddConfig("Name", "华家池_Compressed"); /////图层数据名称		tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对		//tlo.AddConfig("Url", "http://192.168.1.50:8088/files/dahua/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据		  //调度优先级 = priority * PriorityScale + PriorityOffset;		  //其中priority由vp根据PagedNode结点的范围(minExtent, maxExtent)、其距离视点的距离、LOD层级mLODScale计算得到		  //调度优先级越大，优先调度并显示		//tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,		//tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,					tlo.AddConfig("Url", "192.168.1.105"); 		//服务ip 67				tlo.AddConfig("Port", 9091); 				//服务端口 9015				tlo.AddConfig("Type", "gms"); 				//服务类型				tlo.AddConfig("Name", "admin"); 			//服务用户名				tlo.AddConfig("Password", "admin"); 		//服务密码				tlo.AddConfig("Version", "6.4"); 			//服务版本标示，6.3为老服务，6.4为新服务.默认6.3				tlo.AddConfig("ServerName", "三维地图");		//服务名称  nanjingmodel 南京C3S数据 杭州wrl				tlo.AddConfig("LocateState", "1"); 			//服务定位状态		gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer		map.AddLayer(gmsLayer); ///添加模型图层		gmsLayer.Locate(); ////模型图层定位*/
+	}
+
+    var modelLayer;	var iconLayer;
+    function CreateModelLayer() {
+        var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+        pSymbol.AddConfig("Size", "10"); ////点大小，范围0-10
+        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+       var tSymbol = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串         tSymbol.AddConfig("Heading", "[ZRotate]"); ////蓝轴		tSymbol.AddConfig("Pitch", "[YRotate]"); //////绿轴		tSymbol.AddConfig("Roll", "[XRotate]"); ////红轴        tSymbol.AddConfig("XScale", "[XScale]"); ////模型x方向放大比例        tSymbol.AddConfig("YScale", "[YScale]"); ////模型y方向放大比例        tSymbol.AddConfig("ZScale", "[ZScale]"); ////模型z方向放大比例        tSymbol.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向        tSymbol.AddConfig("FeatureLiftUp", "0"); 	//// 要素抬升值		tSymbol.AddConfig("IsLocalRotation", "true"); 							//// 是否在局地进行旋转，以保持模型原始的朝向(默认为否)        tSymbol.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\car.wrl"); ////模型资源路径		//tSymbol.AddConfig("Url", "F:\\测试数据\\大华测试\\0823\\横杆.wrl");		        tSymbol.AddConfig("LibraryName", "reslib"); ////资源名称        var res = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol         tSymbol.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\car.wrl"); ////模型资源路径////模型资源路径        var reslib = map.CreateResourceLibrary("reslib"); ////创建资源库，名称和图层配置LibraryName设置的名称对应        reslib.AddResource(res); ////将资源添加至资源库
+
+        var pStyle = map.CreateStyle("Point"); ////创建名称为Point的样式，名称任意
+        pStyle.SetName("point"); ////设置别名point
+        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将点符号配置添加到该样式
+        //pStyle.AddFilterName("BuildGeometryFilter"); //设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+        pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为ModelSymbol字符串
+        pStyle.AddFilterName("SubstituteModelFilter"); ////设置构建器符号为SubstituteModelFilter，必须为SubstituteModelFilter字符串，此为图标符号化和模型符号化共有
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+        styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "G:\\gun.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "ID:String:100:0,XRotate:Double:100:3,YRotate:Double:100:3,ZRotate:Double:100:3,XScale:Double:100:3,YScale:Double:100:3,ZScale:Double:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+       // tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "10000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+		tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,		tlo.AddConfig("PriorityOffset","2.0");// 结点调度优先级的偏移值PriorityOffset,
+        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        modelLayer = map.GetFeatureModelLayer(id); ////获取矢量图层		CreateIconLayer();
+    }
+
+
+    //***********************
+    //首先创建待编辑图层：
+    function CreateIconLayer() {
+        var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+        pSymbol.AddConfig("Color", "0.5,0.5,0.1,0.9"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+		var tSymbol = map.CreateSymbol("IconSymbol"); 							//// 创建类型为IconSymbol的符号，必须为IconSymbol字符串        tSymbol.AddConfig("Align", "5"); 										//// 设置图片与要素的相对位置        tSymbol.AddConfig("AxisAlignmentType", "0"); 							//// 设置图片旋转模式        tSymbol.AddConfig("CharacterMode", "2"); 								//// 图片大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值Scale        tSymbol.AddConfig("Scale", "5"); 										//// 图片大小变化上限值        tSymbol.AddConfig("XScale", "0.1"); 									//// 图片x方向放大比例        tSymbol.AddConfig("YScale", "0.1"); 									//// 图片y方向放大比例        tSymbol.AddConfig("ZScale", "0.1"); 									//// 图片z方向放大比例        tSymbol.AddConfig("LineColor", "1,0,1,1"); 								//// 接地线颜色        tSymbol.AddConfig("FeatureLiftUp", "4"); 								//// 要素抬升值        tSymbol.AddConfig("IsAddGroundLine", "true"); 							//// 是否开启接地线        tSymbol.AddConfig("Url","F:\\AlarmCarPhoto\\aa.jpg"); ////图标资源路径        tSymbol.AddConfig("LibraryName", "reslib"); 							//// 资源名称        var res = map.CreateResource("IconSymbol"); 							//// 创建图标资源，此处必须为IconSymbol        res.AddConfig("Uri", "F:\\AlarmCarPhoto\\aa.jpg"); ////图标资源路径        var reslib = map.CreateResourceLibrary("reslib"); 						//// 创建资源库，名称和图层配置LibraryName设置的名称对应        reslib.AddResource(res); 			
+        var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+        pStyle.SetName("polygon"); ////设置别名polygon
+        pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+        pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串		pStyle.AddSymbol("IconSymbol", tSymbol.GetConfig());
+		pStyle.AddFilterName("SubstituteModelFilter");		
+        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+        tlo.AddConfig("Url", "C:\\testpolygon2.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+        tlo.AddConfig("Fields", "ID:String:100:0,XRotate:Double:100:3,YRotate:Double:100:3,ZRotate:Double:100:3,XScale:Double:100:3,YScale:Double:100:3,ZScale:Double:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+        //tlo.AddConfig("GeometryType", "Polygon"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+        tlo.AddConfig("LiftUp", "2"); ////抬升高度，任意值
+        tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+        var styleSheet = map.CreateStyleSheet(); ////创建样式表
+        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表		styleSheet.AddResLib(reslib.GetConfig()); 	
+        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+        map.AddLayer(shpLayer); ////添加矢量图层
+        var id = shpLayer.GetLayerID(); ////获取图层id
+        iconLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+    }
+
+    //************************
+    //要素编辑 以面符号化为例：
+    //***********************	
+	//创建要素
+	function CreateFeature()
+	{
+		addModelFeature = map.CreateFeature();								//创建要素对象
+		addModelFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+		addModelFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）				addIconFeature = map.CreateFeature();								//创建要素对象		addIconFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)		addIconFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）        addState = true;
+	}
+	
+	//添加要素属性
+	function AddAttribute() {
+	    addModelFeature.AddAttribute("XScale", "1", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		addModelFeature.AddAttribute("YScale", "1", 3);						//添加属性值		addModelFeature.AddAttribute("ZScale", "1", 3);						//添加属性值
+		addModelFeature.AddAttribute("ID", "54", 3);
+	}
+		var featureModelId;	var featureIconId;
+	//添加要素
+	function AddFeature()
+	{
+		featureModelId = modelLayer.GetMaxFeatureID() + 1;			//获取矢量图层要素最大ID
+		addModelFeature.SetFeatureId(featureModelId); 						//设置FeatureID		addModelFeature.AddAttribute("XScale", "1", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		addModelFeature.AddAttribute("YScale", "1", 4);						//添加属性值		addModelFeature.AddAttribute("ZScale", "1", 4);						//添加属性值		addModelFeature.AddAttribute("ID", "54", 3);
+		modelLayer.AddFeature(addModelFeature);					//添加到矢量图层				featureIconId = iconLayer.GetMaxFeatureID() + 1;			//获取矢量图层要素最大ID		addIconFeature.SetFeatureId(featureIconId); 						//设置FeatureID		iconLayer.AddFeature(addIconFeature);					//添加到矢量图层
+        addState = false;
+	}
+	var resAxis;	function AddResAxis() {													//右手坐标系建轴		var resp = map.CreateResponserOptions("AxisEditResponser");		resp.AddConfig("PickLayerIdList", "-1");		resp.AddConfig("PickColor", "1.0,0.0,0,0.8");					    //拾取颜色r g b a		resp.AddConfig("IsChangeColor", "true");						    //是否变色		resp.AddConfig("AxisXVisible", "true");								//x旋转面是否显示（红面）		resp.AddConfig("AxisYVisible", "true");								//y旋转面是否显示（绿面）		resp.AddConfig("AxisZVisible", "true");								//z旋转面是否显示（蓝面）		resp.AddConfig("XRotate", "XRotate");								//x轴关联字段（红轴）		resp.AddConfig("YRotate", "YRotate");								//y轴关联字段（绿轴）		resp.AddConfig("ZRotate", "ZRotate");								//z轴关联字段（蓝轴）		resp.AddConfig("XScale", "XScale");		resp.AddConfig("YScale", "YScale");		resp.AddConfig("ZScale", "ZScale");		resp.AddConfig("Adjustment", "0.1");								//微调部件步进值，默认为0.01		resp.AddConfig("DragSpeed", "0.3");									//拖拽速度系数，默认为1		resAxis = map.CreateResponser("AxisEditResponser", resp); 			//坐标轴响应器，必须为AxisEditResponser		resAxis.AddObserver();		map.AddResponser(resAxis);	}	function RemoveResAxis() {        map.RemoveResponser("AxisEditResponser"); 							//移除辅助坐标系响应器，必须为AxisEditResponser    }		var crossbarLayer;//横杆	var poleLayer;//立杆	function CreateStickLayer(){	 		var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串        pSymbol.AddConfig("Size", "10"); ////点大小，范围0-10        pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透        var tSymbol = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串         tSymbol.AddConfig("Heading", "[ZRotate]"); ////蓝轴		tSymbol.AddConfig("Pitch", "[YRotate]"); //////绿轴		tSymbol.AddConfig("Roll", "[XRotate]"); ////红轴        tSymbol.AddConfig("XScale", "[XScale]"); ////模型x方向放大比例        tSymbol.AddConfig("YScale", "[YScale]"); ////模型y方向放大比例        tSymbol.AddConfig("ZScale", "[ZScale]"); ////模型z方向放大比例        tSymbol.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向        tSymbol.AddConfig("FeatureLiftUp", "0"); 	//// 要素抬升值		tSymbol.AddConfig("IsLocalRotation", "true"); 							//// 是否在局地进行旋转，以保持模型原始的朝向(默认为否)		 tSymbol.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\car.wrl"); ////模型资源路径//		tSymbol.AddConfig("Url", "F:\\测试数据\\大华测试\\0823\\横杆.wrl");		        tSymbol.AddConfig("LibraryName", "reslib"); ////资源名称        var res = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol       // res.AddConfig("Uri", "F:\\测试数据\\大华测试\\0823\\横杆.wrl"); ////模型资源路径		res.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\car.wrl"); ////模型资源路径        var reslib = map.CreateResourceLibrary("reslib"); ////创建资源库，名称和图层配置LibraryName设置的名称对应        reslib.AddResource(res); ////将资源添加至资源库        var pStyle = map.CreateStyle("Point"); ////创建名称为Point的样式，名称任意        pStyle.SetName("point"); ////设置别名point        pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将点符号配置添加到该样式        //pStyle.AddFilterName("BuildGeometryFilter"); //设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串        pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为ModelSymbol字符串        pStyle.AddFilterName("SubstituteModelFilter"); ////设置构建器符号为SubstituteModelFilter，必须为SubstituteModelFilter字符串，此为图标符号化和模型符号化共有        var styleSheet = map.CreateStyleSheet(); ////创建样式表        styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表        styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表        var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象        tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对        tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对        tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile        tlo.AddConfig("Url", "G:\\TestPoint\\testPoint.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在        tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr        tlo.AddConfig("Fields", "Index:String:100:0,XRotate:Double:100:3,YRotate:Double:100:3,ZRotate:Double:100:3,XScale:Double:100:3,YScale:Double:100:3,ZScale:Double:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位        //tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功        tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0        tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大        tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值        tlo.AddConfig("MaxRange", "10000.0"); ////最大显示范围，大于最小显示范围-无穷大        tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大        tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串		tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,		tlo.AddConfig("PriorityOffset","2.0");// 结点调度优先级的偏移值PriorityOffset,        var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer        map.AddLayer(shpLayer); ////添加矢量图层        var id = shpLayer.GetLayerID(); ////获取图层id        crossbarLayer = map.GetFeatureModelLayer(id); ////获取矢量图层		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////		//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////立杆		var pSymbol1 = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串        pSymbol1.AddConfig("Size", "10"); ////点大小，范围0-10        pSymbol1.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透        var tSymbol1 = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串         tSymbol1.AddConfig("Heading", "[ZRotate]"); ////蓝轴		tSymbol1.AddConfig("Pitch", "[YRotate]"); //////绿轴		tSymbol1.AddConfig("Roll", "[XRotate]"); ////红轴        tSymbol1.AddConfig("XScale", "[XScale]"); ////模型x方向放大比例        tSymbol1.AddConfig("YScale", "[YScale]"); ////模型y方向放大比例        tSymbol1.AddConfig("ZScale", "[ZScale]"); ////模型z方向放大比例        tSymbol1.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向        tSymbol1.AddConfig("FeatureLiftUp", "0"); 	//// 要素抬升值		tSymbol1.AddConfig("IsLocalRotation", "true"); 							//// 是否在局地进行旋转，以保持模型原始的朝向(默认为否)		//tSymbol1.AddConfig("Url", "F:\\测试数据\\大华测试\\0823\\立杆.wrl");		tSymbol1.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\police.wrl"); ////模型资源路径		        tSymbol1.AddConfig("LibraryName", "reslib"); ////资源名称        var res1 = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol       // res1.AddConfig("Uri", "F:\\测试数据\\大华测试\\0823\\立杆.wrl"); ////模型资源路径		res1.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\police.wrl");         var reslib1 = map.CreateResourceLibrary("reslib"); ////创建资源库，名称和图层配置LibraryName设置的名称对应        reslib1.AddResource(res1); ////将资源添加至资源库        var pStyle1 = map.CreateStyle("Point"); ////创建名称为Point的样式，名称任意        pStyle1.SetName("point"); ////设置别名point        pStyle1.AddSymbol("PointSymbol", pSymbol1.GetConfig()); ////将点符号配置添加到该样式        //pStyle.AddFilterName("BuildGeometryFilter"); //设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串        pStyle1.AddSymbol("ModelSymbol", tSymbol1.GetConfig()); ////将符号配置添加到该样式，第一参必须为ModelSymbol字符串        pStyle1.AddFilterName("SubstituteModelFilter"); ////设置构建器符号为SubstituteModelFilter，必须为SubstituteModelFilter字符串，此为图标符号化和模型符号化共有        var styleSheet1 = map.CreateStyleSheet(); ////创建样式表        styleSheet1.AddStyle(pStyle1.GetConfig()); ////将样式配置添加至样式表        styleSheet1.AddResLib(reslib1.GetConfig()); ////将资源库添加至样式表        var tlo1 = map.CreateLayerOptions("shp"); ////创建图层配置对象        tlo1.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对        tlo1.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对        tlo1.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile        //tlo1.AddConfig("Url", "F:\\testPoint1.shp"); 		 tlo1.AddConfig("Url", "G:\\TestPoint\\testPoint1.shp"); 		////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在        tlo1.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr        tlo1.AddConfig("Fields", "ID:String:100:0,XRotate:Double:100:3,YRotate:Double:100:3,ZRotate:Double:100:3,XScale:Double:100:3,YScale:Double:100:3,ZScale:Double:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位        //tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功        tlo1.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0        tlo1.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大        tlo1.AddConfig("LiftUp", "0"); ////抬升高度，任意值        tlo1.AddConfig("MaxRange", "10000.0"); ////最大显示范围，大于最小显示范围-无穷大        tlo1.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大        tlo1.AddConfig("StyleSheet", styleSheet1.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串		tlo1.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,		tlo1.AddConfig("PriorityOffset","2.0");// 结点调度优先级的偏移值PriorityOffset,        var shpLayer1 = map.CreateLayer("FeatureModelLayer", tlo1); ////创建矢量图层，第一项参数必须为FeatureModelLayer        map.AddLayer(shpLayer1); ////添加矢量图层        var id1 = shpLayer1.GetLayerID(); ////获取图层id        poleLayer = map.GetFeatureModelLayer(id1); ////获取矢量图层	}		var crossbarFeature;	var poleFeature;	function CreateStick(){		crossbarFeature = map.CreateFeature();								//创建要素对象		crossbarFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)		crossbarFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）				poleFeature = map.CreateFeature();								//创建要素对象		poleFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)		poleFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）        addState1 = true;	}	function CreateStickByParam(){		crossbarFeature = map.CreateFeature();								//创建要素对象		crossbarFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)		crossbarFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）		featureCrossId = crossbarLayer.GetMaxFeatureID() + 1;			//获取矢量图层要素最大ID		crossbarFeature.SetFeatureId(featureCrossId); 						//设置FeatureID		crossbarFeature.AddPoint(120.191085290,30.269123392,2.572194120);		crossbarFeature.AddAttribute("XRotate", "0", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		crossbarFeature.AddAttribute("YRotate", "-1.5133394002914429", 4);						//添加属性值		crossbarFeature.AddAttribute("ZRotate", "-0", 4);						//添加属性值		crossbarFeature.AddAttribute("XScale", "6.9602438619390394", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		crossbarFeature.AddAttribute("YScale", "1", 4);						//添加属性值		crossbarFeature.AddAttribute("ZScale", "1", 4);						//添加属性值		crossbarFeature.AddAttribute("Index", "1", 3);		crossbarLayer.AddFeature(crossbarFeature);					//添加到矢量图层				poleFeature = map.CreateFeature();								//创建要素对象		poleFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)		poleFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）		featurePoleId = poleLayer.GetMaxFeatureID() + 1;			//获取矢量图层要素最大ID		poleFeature.SetFeatureId(featurePoleId); 						//设置FeatureID		poleFeature.AddPoint(120.191085290,30.269123392,2.572194120);		poleFeature.AddAttribute("XRotate", "0", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		poleFeature.AddAttribute("YRotate", "0", 4);						//添加属性值		poleFeature.AddAttribute("ZRotate", "-0", 4);						//添加属性值		poleFeature.AddAttribute("XScale", "1", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		poleFeature.AddAttribute("YScale", "1", 4);						//添加属性值		poleFeature.AddAttribute("ZScale", "1", 4);						//添加属性值		poleFeature.AddAttribute("ID", "2", 3);		poleLayer.AddFeature(poleFeature);					//添加到矢量图层	}	var featureCrossId;	var featurePoleId;	function AddStick(){		featureCrossId = crossbarLayer.GetMaxFeatureID() + 1;			//获取矢量图层要素最大ID		crossbarFeature.SetFeatureId(featureCrossId); 						//设置FeatureID		crossbarFeature.AddAttribute("XScale", "1", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		crossbarFeature.AddAttribute("YScale", "1", 4);						//添加属性值		crossbarFeature.AddAttribute("ZScale", "1", 4);						//添加属性值		crossbarFeature.AddAttribute("Index", "1", 3);		crossbarLayer.AddFeature(crossbarFeature);					//添加到矢量图层				featurePoleId = poleLayer.GetMaxFeatureID() + 1;			//获取矢量图层要素最大ID		poleFeature.SetFeatureId(featurePoleId); 						//设置FeatureID		poleFeature.AddAttribute("XScale", "1", 4);					//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)		poleFeature.AddAttribute("YScale", "1", 4);						//添加属性值		poleFeature.AddAttribute("ZScale", "1", 4);						//添加属性值		poleFeature.AddAttribute("ID", "2", 3);		poleLayer.AddFeature(poleFeature);					//添加到矢量图层	}
+    </script>
+</head>
+<body onload="InitScene()">
+    <input id="Button1" type="button" value="创建图层layer" onclick="CreateIconLayer()" />    <input id="Button1" type="button" value="加载模型" onclick="LoadGMS()" /> 	</br>矢量图层编辑:	<input id="Button13" type="button" value="创建摄像头及图标图层" onclick="CreateModelLayer()" />
+    <input id="Button16" type="button" value="创建摄像头及图标" onclick="CreateFeature()" />
+    <input id="Button19" type="button" value="添加摄像头及图标" onclick="AddFeature()" />	<input id="Button19" type="button" value="创建开启编辑器" onclick="AddResAxis()" />	<input id="Button19" type="button" value="关闭移除编辑器" onclick="RemoveResAxis()" />	</br>电线杆用例:	<input id="Button13" type="button" value="创建立杆及横杆图层" onclick="CreateStickLayer()" />	<input id="Button16" type="button" value="创建电线杆，请在地图上点击" onclick="CreateStick()" />    <input id="Button19" type="button" value="添加电线杆" onclick="AddStick()" />	<input id="Button19" type="button" value="按参数创建电线杆" onclick="CreateStickByParam()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;height: 100%">
+    </object>
+</body>
+</html>

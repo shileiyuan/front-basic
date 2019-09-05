@@ -1,0 +1,308 @@
+
+<html>
+<head>
+    <title>3DVPSDK开发入门教程</title>
+    <script language="javascript" type="text/javascript">
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			Lic();
+        }
+		
+		function LoadGMS(){
+		var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致    
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "HaiKang2_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+			tlo.AddConfig("PriorityScale","1.0");// 结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");// 结点调度优先级的偏移值PriorityOffset,
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\GMS");//缓存路径，模型建议单独配置地址
+			tlo.AddConfig("LimitSize", "2048");//单位MB ，此例中为2*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			
+            var gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+		}
+		function LoadDOM(){
+		var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+            tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+            tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "22"); /////数据显示的最大层级
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\TERRAIN");//缓存路径，影像建议与地形合并配置地址
+			tlo.AddConfig("LimitSize", "3072");//单位MB ，此例中为3*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			
+            var mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtdsdomlayer); ///添加DOM图层
+            mtdsdomlayer.Locate(); ////DOM图层定位
+		}
+		function LoadDEM(){
+		var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+            tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+            tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\TERRAIN");//缓存路径，影像建议与地形合并配置地址
+			tlo.AddConfig("LimitSize", "3072");//单位MB ，此例中为3*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			
+            var mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+            map.AddLayer(mtdsdemlayer);///添加DEM图层
+            mtdsdemlayer.Locate();////DEM图层定位
+		}
+		function LoadC3SS(){
+		var tlo = map.CreateLayerOptions("c3s"); 	//创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); //创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "c3ss");//数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Compress", "true");			//是否压缩
+			tlo.AddConfig("PriorityScale","1.0");		//结点调度优先级的缩放值PriorityScale,
+			tlo.AddConfig("PriorityOffset","1.0");		//结点调度优先级的偏移值PriorityOffset,
+
+            tlo.AddConfig("Url", "http://192.168.1.34:9095/coo-server/tomcatfile/ModelTest/out-QK_Compressed/cehui/01/0.c3s.zip"); //要加载的数据路径
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\C3SS");//缓存路径，模型建议单独配置地址
+			tlo.AddConfig("LimitSize", "2048");//单位MB ，此例中为2*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果
+			
+            var c3ssLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(c3ssLayer); 			//添加模型图层
+            c3ssLayer.Locate(); 				//模型图层定位
+		}
+		function LoadSRCOSGB(){
+		var tlo = map.CreateLayerOptions("osgbs"); 	// 创建osgbs图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "smeshs"); // 数据源类型,代表SMESHS插件，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/dalian/Data01/index.osgb"); /////要加载的数据路径
+            tlo.AddConfig("Srs", "PROJCS[\"Transverse_Mercator\",GEOGCS[\"Geographic Coordinate System\",DATUM[\"WGS84\",SPHEROID[\"WGS84\",6378137,298.257223560493]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"scale_factor\",1],PARAMETER[\"central_meridian\",120],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1]]"); /////数据的坐标参考
+            tlo.AddConfig("OriginPoint", "674134,4329787,0"); /////数据的坐标偏移值
+            tlo.AddConfig("BasePath", "http://192.168.1.50:8088/files/dalian/Data01/Data"); /////层级数据的路径，最后面没有斜线
+			tlo.AddConfig("Scale", "1.0");
+			tlo.AddConfig("Compress","false");
+
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\OSGBSRC");//缓存路径，倾斜摄影建议单独配置地址
+			tlo.AddConfig("LimitSize", "2048");//单位MB ，此例中为2*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果
+            var osgsblayer1 = map.CreateLayer("ModelLayer", tlo); ////创建倾斜摄影图层，第一项参数必须为ModelLayer
+            map.AddLayer(osgsblayer1); ///添加倾斜摄影图层
+            osgsblayer1.Locate(); ////倾斜摄影图层定位
+		}
+		function LoadSIGMAOSGB(){
+		var tlo = map.CreateLayerOptions("osgbs"); 	// 创建osgbs图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "smeshs"); // 数据源类型,代表SMESHS插件，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.47:9090/files/xihu_Compressed/LAYER00/PRIFIXION_L00_0.osgb.zip"); /////要加载的数据路径
+            tlo.AddConfig("Srs", "PROJCS[\"Transverse_Mercator\",GEOGCS[\"Geographic Coordinate System\",DATUM[\"WGS84\",SPHEROID[\"WGS84\",6378137,298.257223560493]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"scale_factor\",1],PARAMETER[\"central_meridian\",120],PARAMETER[\"latitude_of_origin\",0],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",0],UNIT[\"Meter\",1]]"); /////数据的坐标参考
+            tlo.AddConfig("OriginPoint", "519734,3347141,0"); /////数据的坐标偏移值
+            tlo.AddConfig("BasePath", "http://192.168.1.47:9090/files/xihu_Compressed/"); /////层级数据的路径，最后面没有斜线
+			tlo.AddConfig("Scale", "1.0");
+			tlo.AddConfig("Compress","true");
+
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\OSGBSIGMA");//缓存路径，倾斜摄影建议单独配置地址
+			tlo.AddConfig("LimitSize", "2048");//单位MB ，此例中为2*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果
+            var osgsblayer = map.CreateLayer("ModelLayer", tlo); ////创建倾斜摄影图层，第一项参数必须为ModelLayer
+            map.AddLayer(osgsblayer); ///添加倾斜摄影图层
+            osgsblayer.Locate(); ////倾斜摄影图层定位
+		}
+		function LoadWFS(){
+			var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+			pSymbol.AddConfig("Color", "1,0.1,0.1,0.5"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+
+			var lSymbol = map.CreateSymbol("LineSymbol"); ////创建类型为LineSymbol的符号，必须为LineSymbol字符串
+			lSymbol.AddConfig("Stipple", "-1"); ////线条类型，-1 实线 1 虚线
+			lSymbol.AddConfig("Width", "5"); ////线宽 0-10
+			lSymbol.AddConfig("Color", "1,0.1,0.1,0.5"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+			
+			var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+			pStyle.SetName("polygon"); ////设置别名polygon
+			pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); //将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+			pStyle.AddSymbol("LineSymbol", lSymbol.GetConfig()); 	//配置面边框，第一参必须为LineSymbol字符串
+			pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+
+			var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+			tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+			//tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+			//tlo.AddConfig("Url", "F:\\Zhumh\\演示测试数据\\general.shp"); ////数据存放位置，注意双斜杠
+			//tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+			tlo.AddConfig("Driver", "fmquadtree"); ////wfs数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+			tlo.AddConfig("Url", "http://192.168.1.50:8888/geoserver/kelanData/ows"); ////数据存放位置，此为网络路径，在浏览器中查看，
+			tlo.AddConfig("FeatureSourceType", "wfs"); ////要素数据源类型，针对wfs数据源wfs
+			tlo.AddConfig("LayerName", "kelanData:konggui"); ////wfs图层名称，可通过图层信息获取接口获得到
+			tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+			tlo.AddConfig("TileSize", "1000"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+			tlo.AddConfig("LiftUp", "50"); ////抬升高度，任意值
+			tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+			tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\WFS");//缓存路径，WFS建议单独配置地址
+			tlo.AddConfig("LimitSize", "1024");//单位MB ，此例中为1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果
+				
+			var styleSheet = map.CreateStyleSheet(); ////创建样式表
+			styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+			tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+			var polygonshpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+			map.AddLayer(polygonshpLayer); ////添加矢量图层
+			polygonshpLayer.Locate();
+		}
+		function LoadWMS(){
+		var tlo = map.CreateLayerOptions("wms"); 	// 创建wms图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "wms"); // 数据源类型,代表WMS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+            tlo.AddConfig("Transparent", "true"); //设置请求的数据透明通道是否透明
+            tlo.AddConfig("TileSize", "256"); /////数据的瓦片大小，建议设置大小为256
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "19"); /////数据显示的最大层级
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8888/geoserver/ows?"); /////要加载的数据服务路径
+			//tlo.AddConfig("Url", "http://192.168.1.50:8888/geoserver/ows?service=wms&version=1.1.1&request=GetCapabilities"); /////要加载的数据服务路径
+            tlo.AddConfig("LayerName", "kelanData:konggui"); //图层名称  -多个图层，加载其中的一个
+            tlo.AddConfig("Style", "polygon"); /////样式
+            tlo.AddConfig("ImageFormat", "image/png"); /////Image的格式
+            tlo.AddConfig("WmsVersion", "1.3.0"); /////WMS服务版本号
+            tlo.AddConfig("Srs", "EPSG:4490"); /////数据的坐标参考
+
+            //////此部分可以不配置，数据照样可以加载，但图层定位会有问题///////
+            tlo.AddConfig("MaxX", " 120.639296"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", "119.84338399999999"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.419473"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "30.001248999999998"); /////数据的范围Y向最小值
+			
+			/////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\WMS");//缓存路径，WMS建议单独配置地址
+			tlo.AddConfig("LimitSize", "2048");//单位MB ，此例中为2*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果
+            var wmslayer = map.CreateLayer("ImageLayer", tlo); ////创建WMS图层，第一项参数必须为ImageLayer
+            map.AddLayer(wmslayer); ///添加WMS图层
+            wmslayer.Locate(); ////WMS图层定位
+		}
+		function LoadWMTS(){
+		var tlo = map.CreateLayerOptions("wmts"); 	// 创建wmts图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "wmts"); // 数据源类型,代表WMTS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.57:6080/arcgis/rest/services/HG/WMTSMapService/MapServer/WMTS/1.0.0/WMTSCapabilities.xml"); /////要加载的数据服务路径
+            tlo.AddConfig("LayerName", "HG_WMTSMapService"); /////图层名称
+            tlo.AddConfig("ImageFormat", "image/png"); /////Image的格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "19"); /////数据显示的最大层级
+
+            //////此部分可以不配置，数据照样可以加载，但图层定位会有问题///////
+            tlo.AddConfig("MaxX", " 120.639296"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", "119.84338399999999"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.419473"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "30.001248999999998"); /////数据的范围Y向最小值
+
+			////////////////////////////////缓存独立配置项
+			tlo.AddConfig("UseCache", "true");//缓存开关
+			tlo.AddConfig("CachePath", "D:\\ProgramData\\KELANTEC\\WMTS");//缓存路径，WMS建议单独配置地址
+			tlo.AddConfig("LimitSize", "2048");//单位MB ，此例中为2*1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("SizeCheckPeriod", "100");//写入检查周期，默认100，单位次
+			tlo.AddConfig("SizePurgePeriod", "75");//缓存清理周期，默认75，单位次
+			tlo.AddConfig("WriteBufferSize", "4194304");//单位字节 此例中为4 *1024 * 1024，但配置项中不可这么写，需要填入最终计算结果 
+			tlo.AddConfig("MaxOpenFiles", "1000");//最大打开文件数量，默认1000
+			tlo.AddConfig("BlockSize","1048576");///单位字节 此例中为1024 * 1024，但配置项中不可这么写，需要填入最终计算结果
+            //////////////以上部分可以通过图层信息获取获得相应的配置////////////
+
+            var wmtslayer = map.CreateLayer("ImageLayer", tlo); ////创建WMTS图层，第一项参数必须为ImageLayer
+            map.AddLayer(wmtslayer); ///添加WMTS图层
+            wmtslayer.Locate(); ////WMTS图层定位
+		}
+    </script>
+</head>
+<body onload = "InitScene()">
+<input id="Button1" type="button" value="加载Model" onclick="LoadGMS()" />
+<input id="Button2" type="button" value="加载DOM" onclick="LoadDOM()" />
+<input id="Button3" type="button" value="加载DEM" onclick="LoadDEM()" />
+<input id="Button4" type="button" value="加载C3SS" onclick="LoadC3SS()" />
+<input id="Button5" type="button" value="加载原始OSGB" onclick="LoadSRCOSGB()" />
+<input id="Button5" type="button" value="加载压缩OSGB" onclick="LoadSIGMAOSGB()" />
+<input id="Button6" type="button" value="加载WFS" onclick="LoadWFS()" />
+<input id="Button7" type="button" value="加载WMS" onclick="LoadWMS()" />
+<input id="Button8" type="button" value="加载WMTS" onclick="LoadWMTS()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width:100%;
+        height:100%">
+    </object>
+</body>
+</html>

@@ -1,0 +1,598 @@
+﻿<html>
+<head>
+<meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+<meta http-equiv="content-type" content="text/html; charset=UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=8">
+<title>6.0球面版本测试用类视点图层</title>
+<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+	var str = res.GetResponserResult().GetConfigValueByKey("PickPointList");
+    var PickName = res.GetResponserResult().GetConfigValueByKey("PickName");
+    PickLayerId = res.GetResponserResult().GetConfigValueByKey("PickLayerList");
+	alert("PickPoint:" + str + " PickName: " +  PickName + " PickLayerId: " +  PickLayerId);
+ </script>
+<script language="javascript" type="text/javascript">
+	var obj;
+	var map;
+	var tools;
+	var PickLayerId = -1;
+	function InitScene() {
+		obj = document.getElementById("VPSDKCtrl");
+		map = obj.GetIMapMgrPtr();
+		var ret = obj.InitLic("127.0.0.1@9095@");
+		tools = obj.GetIToolsCOMPtr();
+		//LoadDOMMTDS();
+	}
+
+	//********************************
+	// osgb服务加载
+	//********************************
+	//加载osgb服务
+	var parseOsgbTool = null;
+	function LoadOsgbServer() {
+		if (null != parseOsgbTool) {
+			alert("Repeat Load The Same Layer!!!");
+			return;
+		}
+		if (null != tools) {
+			var tlo = tools.CreateToolsOptions("ToolsOption");  //配置对象类名不可任意更改
+			if (null != tlo) {                 
+				tlo.AddConfig("Url", "127.0.0.1");           //服务ip
+				tlo.AddConfig("Port", 9095);                    //服务端口
+				tlo.AddConfig("Type", "osgb");                  //加载的服务类型
+				tlo.AddConfig("Name", "admin");                 //用户名
+				tlo.AddConfig("Password", "admin");             //密码
+				tlo.AddConfig("ServerName", "杭州钱江倾斜");        //服务名
+				tlo.AddConfig("Version", "6.4");		     	//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+				tlo.AddConfig("LocateState", "1");              //服务定位状态
+
+				parseOsgbTool = tools.CreateToolsObject("ParseDemDomOsgbWebData", tlo);   //工具对象类名，不可任意更改
+				if (null != parseOsgbTool) {
+
+					var res = tools.ActiveTools(parseOsgbTool);                               //激活工具对象
+				   // res = tools.DestoryTools(parseModelTool);                               //销毁工具对象
+				}
+			}
+		} else {
+			alert("null tools invalid handle");
+		}
+	}
+
+	//定位osgb服务
+	function SetOsgbLocate() {
+		if (null != parseOsgbTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	 //创建工具配置项，名称不可任意
+			mlo.AddConfig("LocateState", "1");                   //c3s定位 
+			parseOsgbTool.UpdateToolsOption(mlo);                //更新工具配置项
+		}
+	}
+
+	//显影osgb服务
+	var bVisible = 1;
+	var strVisible; 
+	function SetOsgbVisible() {
+		if (null != parseOsgbTool) {
+			bVisible = !bVisible;
+			if (bVisible) {
+				strVisible = "1";
+			} else {
+				strVisible = "0";
+			}
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置配置项
+			mlo.AddConfig("Visible", strVisible); 				//设置图层显隐装台 0,隐藏， 1，显示（使用字符创“0” or "1"）
+			parseOsgbTool.UpdateToolsOption(mlo); 				//更新工具配置项
+		}
+	}
+
+	//卸载osgb服务
+	function SetOsgbUnLoad() {
+		if (null != parseOsgbTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//工具配置项
+			mlo.AddConfig("LoadState", "0"); 					//卸载该服务
+			parseOsgbTool.UpdateToolsOption(mlo); 				//更新配置项
+			tools.DestoryTools(parseOsgbTool);
+			parseOsgbTool = null;
+		}
+	}
+
+	//********************************
+	// 地形服务加载
+	//********************************
+	//加载地形服务
+	var parseDemTool = null;
+	function LoadDemServer() {
+		if (null != parseDemTool) {
+			alert("Repeat Load The Same Layer!!!");
+			return;
+		}
+		if (null != tools) {
+			var tlo = tools.CreateToolsOptions("ToolsOption"); 		//工具配置选项
+			if (null != tlo) {
+				tlo.AddConfig("Url", "127.0.0.1"); 				//服务ip
+				tlo.AddConfig("Port", 9095); 						//服务端口
+				tlo.AddConfig("Type", "dem"); 						//加载的数据类型
+				tlo.AddConfig("Name", "admin"); 					//用户名
+				tlo.AddConfig("Password", "admin"); 				//密码
+				tlo.AddConfig("ServerName", "杭州地形"); 			//服务名 
+				tlo.AddConfig("Version", "6.4");		     		//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+				tlo.AddConfig("LocateState", "1"); 					//服务定位状态
+				parseDemTool = tools.CreateToolsObject("ParseDemDomOsgbWebData", tlo);   //创建的加载对象类名，不可任意更改
+				if (null != parseDemTool) {
+					var res = tools.ActiveTools(parseDemTool); 		//激活加载工具对象
+				}
+			}
+		} else {
+			alert("null tools invalid handle");
+		}
+	}
+	//卸载地形服务
+	function UnLoadDemServer()
+	{
+		if (null != parseDemTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+			mlo.AddConfig("LoadState", "0");                    //设置加载内容显隐状态 0，隐藏， 1，显示（使用字符创“0” or "1"）
+			parseDemTool.UpdateToolsOption(mlo);                //更新工具配置项
+			tools.DestoryTools(parseDemTool); 
+			parseDemTool = null;
+		}
+	}
+
+	//********************************
+	// 影像服务加载
+	//********************************
+	//加载影像
+	var parseDomTool;
+	function LoadDomServer() {
+		if (null != parseDomTool) {
+			alert("Repeat Load The Same Layer!!!");
+			return;
+		}
+		if (null != tools) {
+			var tlo = tools.CreateToolsOptions("ToolsOption"); //工具配置选项
+			if (null != tlo) {
+				tlo.AddConfig("Url", "192.168.1.177"); 			//服务ip
+				tlo.AddConfig("Port", 9095); 					//服务端口 
+				tlo.AddConfig("Type", "dom"); 					//服务数据类型
+				tlo.AddConfig("Name", "admin"); 				//用户名
+				tlo.AddConfig("Password", "admin"); 			//密码  
+				tlo.AddConfig("ServerName", "小田社区"); 		//服务名
+				tlo.AddConfig("Version", "6.4"); 				//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+				tlo.AddConfig("LocateState", "1"); 				//服务定位状态
+				parseDomTool = tools.CreateToolsObject("ParseDemDomOsgbWebData", tlo);  //创建的加载对象类名，不可任意更改
+				if (null != parseDomTool) {
+
+					var res = tools.ActiveTools(parseDomTool); 	//激活加载工具       
+					//res = tools.DestoryTools(parseModelTool);                                 //销毁加载工具,在不使用时记得销毁
+				}
+			}
+		} else {
+			alert("null tools invalid handle");
+		}
+	}
+
+	//定位影像
+	function LocateDomServer() {
+		if (null != parseDomTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	 //创建工具配置项，名称不可任意
+			mlo.AddConfig("LocateState", "1");                   //c3s定位 
+			parseDomTool.UpdateToolsOption(mlo);                 //更新工具配置项
+		}
+	}
+
+	//显隐影像服务
+	var bVisible = 1;
+	var strVisible;
+	function VisibleDomServer() {
+		if (null != parseDomTool) {
+			bVisible = !bVisible;
+			if (bVisible) {
+				strVisible = "1";
+			} else {
+				strVisible = "0";
+			}
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+			mlo.AddConfig("Visible", strVisible);               //设置加载内容显隐状态 0，隐藏， 1，显示（使用字符创“0” or "1"）
+			parseDomTool.UpdateToolsOption(mlo);                //更新工具配置项   
+		}
+	}
+	//卸载影像服务
+	function UnLoadDomServer() {
+		if (null != parseDomTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+			mlo.AddConfig("LoadState", "0");                    //设置加载载状态 0,卸载
+			parseDomTool.UpdateToolsOption(mlo);                //更新工具配置项   
+			tools.DestoryTools(parseDomTool);
+			parseDomTool = null;
+		}
+	}
+
+	//********************************
+	// Model服务加载
+	//********************************
+	//加载Model服务
+	var parseModelTool = null;
+	function LoadModelServer() {
+		if (null != parseModelTool) {
+			alert("Repeat Load The Same Layer!!!");
+			return;
+		}
+		if (null != tools) {
+			var tlo = tools.CreateToolsOptions("ToolsOption");
+			if (null != tlo) {
+				tlo.AddConfig("Url", "192.168.1.177"); 		//服务ip 67
+				tlo.AddConfig("Port", 9091); 				//服务端口 9015
+				tlo.AddConfig("Type", "gms"); 				//服务类型
+				tlo.AddConfig("Name", "admin"); 			//服务用户名
+				tlo.AddConfig("Password", "admin"); 		//服务密码
+				tlo.AddConfig("Version", "6.4"); 			//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+				tlo.AddConfig("ServerName", "小田社区");		//服务名称  nanjingmodel 南京C3S数据 杭州wrl
+				tlo.AddConfig("LocateState", "1"); 			//服务定位状态
+				parseModelTool = tools.CreateToolsObject("ParseModelWebData", tlo); 	//加载服务的工具对象类名
+				if (null != parseModelTool) {
+					var res = tools.ActiveTools(parseModelTool); 		//激活对象工具
+				}
+			}
+		} else {
+			alert("null tools invalid handle");
+		}
+	}
+
+	//显隐Model服务
+	var bVisible = 1;
+	var strVisible;
+	function VisibleModelServer() {
+		if (null != parseModelTool) {
+			bVisible = !bVisible;
+			if (bVisible) {
+				strVisible = "1";
+			} else {
+				strVisible = "0";
+			}
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+			mlo.AddConfig("Visible", strVisible);               //设置加载图层显隐状态0，隐藏 1，显示（使用字符创“0” or "1"）
+			parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项
+		}
+	}
+
+	//定位Model服务
+	function LocateModelServer() {
+		if (null != parseModelTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+			mlo.AddConfig("LocateState", "1");                  //c3s定位 
+			parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项
+		}
+	}
+
+	//卸载Model服务
+	function UnLoadModelServer() {
+		if (null != parseModelTool) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+			mlo.AddConfig("LoadState", "0");                    //设置加载载状态 0,卸载
+			parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项   
+			tools.DestoryTools(parseModelTool);					//销毁工具
+			parseModelTool = null;
+		}
+	}
+
+
+	//********************************
+	// 逻辑树服务加载(6.3版本特有功能)
+	//********************************
+	//添加配置选项
+	function AddOption() {
+		var Option = document.getElementById("SelOption");
+		if ( null != Option ) {
+			var TextNode;
+			var ElementOption;
+			for (var i = 0; i < serverArray.length; ++i) {
+				ElementOption = document.createElement("option");
+				TextNode = document.createTextNode(serverArray[i]);
+				ElementOption.appendChild( TextNode );
+				Option.appendChild(ElementOption);
+			}
+		}
+	}
+
+	function RemoveOption() {
+		var Option = document.getElementById("SelOption");
+		if ( null != Option ) {
+			Option.options.remove(Option.selectedIndex);
+			if ( Option.options.length == 1 ) {
+				Option.options.length = 0;
+				serverArray.length    = 0;
+				if (null != parseLogicTool){
+					tools.DestoryTools(parseLogicTool);                       //销毁加载工具
+					parseLogicTool = null;
+				}
+			}
+		}
+	}
+
+	//加载逻辑树服务
+	var parseLogicTool = null;
+	var serverArray;
+	function LoadLogicTreeNew() {
+		if (null != parseLogicTool) {
+			alert("Repeat Load The Same Layer!!!");
+			return;
+		}
+		if (null != tools) {
+			var tlo = tools.CreateToolsOptions("ToolsOption");
+			if (null != tlo) {
+				tlo.AddConfig("Url", "192.168.1.177");         //服务ip
+				tlo.AddConfig("Port", 9095);                  //服务端口
+				tlo.AddConfig("Type", "logic");               //服务类型
+				tlo.AddConfig("Name", "admin");               //用户名
+				tlo.AddConfig("Password", "admin");           //密码 
+				tlo.AddConfig("ServerName", "LogicTest");     //服务名
+
+				parseLogicTool = tools.CreateToolsObject("ParseLogicTreeWebData", tlo);         //加载服务的对象类名
+				if (null != parseLogicTool) {
+					var res = tools.ActiveTools(parseLogicTool);                               //激活加载工具
+					var serversName = "";
+					var toolResult = parseLogicTool.GetToolsResult();
+					if( null != toolResult )
+					{
+						serversName = toolResult.GetConfigValueByKey("ServersName");           //此处为获取加载的服务名集合
+					}
+					serverArray = serversName.split(";");
+					alert("ServersName: " + serversName);
+					AddOption();
+					//res = tools.DestoryTools(parseModelTool);                               //销毁激活工具,在不使用时记得销毁
+				}
+			}
+		} else {
+			alert("null tools invalid handle");
+		}
+	}
+
+	var bVisible = 1;
+	var strVisible;
+	function SetLogicVisible() {
+		if (null != parseLogicTool) {
+			bVisible = !bVisible;
+			if (bVisible) {
+				strVisible = "1";
+			} else {
+				strVisible = "0";
+			}
+			var mlo = tools.CreateToolsOptions("ToolsOption"); //创建工具配置项，名字不可任意
+			mlo.AddConfig("Visible", strVisible);              //设置显隐状态 0，隐藏， 1，显示（使用字符创“0” or "1"）
+			parseLogicTool.UpdateToolsOption(mlo);             //更新配置项
+		}
+	}
+   
+	//根据服务名定位
+	function LogicTreeLocateByName()
+	{
+		if( serverArray.length <= 0 )
+		{
+			alert("Can,t Find ServerName From serverArray"); 
+			return;
+		}
+		var selOption = document.getElementById("SelOption");
+		var serverName = SelOption.options.item(SelOption.selectedIndex).value;
+
+		if (null != parseLogicTool) {
+
+			alert("serverName:" + serverName );
+
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+			mlo.AddConfig("ServerName", serverName.toString() );      //设置服务名，这里假设取服务数组中第0个元素
+			mlo.AddConfig("LocateState", "1");                        //服务定位状态
+			parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项   
+		}
+	}
+
+	//根据服务名显隐
+	var visibleByName = 1;
+	function LogicTreeVisibleByName()
+	{
+		if (null != parseLogicTool) {
+			if (serverArray.length <= 0) {
+				alert("Can,t Find ServerName From serverArray");
+				return;
+			}
+			visibleByName = !visibleByName;
+			if (visibleByName) {
+				strVisible = "1";
+			} else {
+				strVisible = "0";
+			}
+			var selOption = document.getElementById("SelOption");
+			var serverName = SelOption.options.item(SelOption.selectedIndex).value;
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+			mlo.AddConfig("ServerName", serverName.toString());   //设置服务名，这里假设取服务数组中第0个元素
+			mlo.AddConfig("Visible", strVisible);                     //显隐状态
+			parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项  
+		}
+	}
+
+	//根据服务名卸载
+	function LogicTreeUnLoadByName()
+	{
+		if (null != parseLogicTool) {
+			if (serverArray.length <= 0) {
+				alert("Can,t Find ServerName From serverArray");
+				return;
+			}
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+			var selOption = document.getElementById("SelOption");
+			var serverName = SelOption.options.item(SelOption.selectedIndex).value;
+
+			mlo.AddConfig("ServerName", serverName.toString());       //设置服务名，这里假设取服务数组中第0个元素
+			mlo.AddConfig("LoadState", "0");                          //卸载该服务
+			parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项
+			RemoveOption();           
+		}
+	}
+ 
+	//整体卸载逻辑树服务
+	function SetLogicLoadState()
+	{
+		if ( null != parseLogicTool ) {
+			var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+			mlo.AddConfig("LoadState", "0");                          //卸载该服务
+			parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项
+			tools.DestoryTools(parseLogicTool);                       //销毁加载工具
+			parseLogicTool = null;
+		}
+	}
+	
+	//********************************
+	// 相机透视角更新
+	//********************************
+	//创建更新操作
+	var FovyDegree = null;
+	var operationPtr = null;
+	function CreateUpdateOperation() {
+		var tlo = map.CreateOperationOptions("Camera"); //创建配置类型,操作类型的配置
+		if (null != tlo) {
+			FovyDegree = document.getElementById("FovyID").value;
+			tlo.AddConfig("OptionsTypeName", "CameraOptions");
+			tlo.AddConfig("Operation", "Fovy"); 		//添加操作类型
+			tlo.AddConfig("Fovy", FovyDegree);       	//设置透视角
+			operationPtr = map.CreateOperation("CameraOperation", tlo); //根据配置创建模型调整操作
+			map.AddOperation(operationPtr); 			//加入操作并执行
+		}
+	}
+	//更新透视角
+	function UpdateFovy() {
+		if ( null != operationPtr ) {
+			FovyDegree = document.getElementById("FovyID").value;
+			var tlo = map.CreateOperationOptions("Camera"); //创建配置类型,操作类型的配置
+			tlo.AddConfig("OptionsTypeName", "CameraOptions");
+			tlo.AddConfig("Operation", "Fovy"); 		//添加操作类型
+			tlo.AddConfig("Fovy",FovyDegree); 			//设置透视角
+			operationPtr.UpdateOperationOptions(tlo); //根据配置创建模型调整操作
+		}
+	}
+
+	//设置透视角
+	function SetFovy()
+	{
+		if( null == operationPtr )
+		{
+			CreateUpdateOperation();
+		}else{
+			UpdateFovy();
+		}
+		RemoveOperation();
+	}
+
+	//移除相机操作
+	function RemoveOperation() { //移除操作
+		if (null != operationPtr) {
+			map.RemoveOperation(operationPtr);
+			operationPtr = null;
+		}
+	}
+	
+	
+	//打开模型拾取响应器
+	var res;
+	function OpenPick() 
+	{
+		var resp = map.CreateResponserOptions("123"); 
+		resp.AddConfig("PickLayerIdList", -1); //c3sLayer.GetLayerID() 
+		resp.AddConfig("PickColor", "1.0,0.0,0.0,0.8"); 
+		resp.AddConfig("IsChangeColor", "true"); 
+		resp.AddConfig("IsGetLayerID", "true"); 
+		res = map.CreateResponser("PickModelResponser", resp);
+		res.AddObserver();
+		map.AddResponser(res); 
+	}
+	
+	//关闭模型拾取响应器
+	function ClosePick() 
+	{
+		map.RemoveResponser("PickModelResponser");						//移除响应器 
+		res = null;
+	}
+	
+	//获取图层配置信息
+	function GetPickLayerAtt()
+	{
+		if(PickLayerId != -1)
+		{
+			var Layer = map.GetLayerObject(PickLayerId);
+			if(Layer)
+			{
+				var LayerOpt = Layer.GetLayerOption();
+				var ServerName = LayerOpt.GetConfigValueByKey("ServerName");
+				alert("ServerName:" + ServerName);
+			}
+		}
+	}
+	//********************************
+	// DOM数据加载
+	//********************************
+	var mtdsdomlayer;
+	//加载DOM数据
+	function LoadDOMMTDS() {
+		var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+		tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+		tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+		tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+		//////以下部分可以通过图层信息获取获得相应的配置////
+		tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+		tlo.AddConfig("Format", "png"); ///切割形成的数据格式
+		tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+		tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+		tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+		tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+		tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+		tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+		tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+		tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+		mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+		map.AddLayer(mtdsdomlayer); ///添加DOM图层
+		mtdsdomlayer.Locate(); //DOM图层定位
+	}
+
+	//删除DOM数据
+	function RemoveDOMMTDS() {
+		map.RemoveLayer(mtdsdomlayer); ////删除DOM数据
+	}
+</script>
+</head>
+<body onload="InitScene()">
+    <input id="Button1" 	type="button"   value="设置透视角度" 		onclick  ="SetFovy()"  />
+    <input id="FovyID"      type="text"     value="55"/>
+    </br>倾斜摄影:
+    <input id="Button2"     type="button"   value="加载倾斜摄影" 		onclick="LoadOsgbServer()"  />
+    <input id="Button3"     type="button"   value="倾斜摄影定位" 		onclick="SetOsgbLocate()" />
+    <input id="Button4"     type="button"   value="设置倾斜摄影显隐" 	onclick="SetOsgbVisible()" />
+    <input id="Button5"     type="button"   value="卸载倾斜摄影" 		onclick="SetOsgbUnLoad()" />
+    
+    </br>地形影像：   
+    <input id="Button6"     type="button"   value="加载DEM" 			onclick="LoadDemServer()" />
+    <input id="Button7"     type="button"   value="卸载DEM" 			onclick="UnLoadDemServer()" />
+	&nbsp;
+    <input id="Button8"     type="button"   value="加载DOM"             onclick="LoadDomServer()" />
+    <input id="Button9"     type="button"   value="DOM定位" 			onclick="LocateDomServer()" />
+    <input id="Button10"    type="button"   value="DOM显隐"             onclick="VisibleDomServer()"  />
+    <input id="Button11"    type="button"   value="卸载DOM"             onclick="UnLoadDomServer()" />
+  
+    </br>Model:     
+    <input id="Button12"    type="button"   value="加载模型数据T" 		onclick="LoadModelServer()" />
+    <input id="Button13"    type="button"   value="模型数据定位" 		onclick="LocateModelServer()"    />
+    <input id="Button14"    type="button"   value="模型数据显隐"		onclick="VisibleModelServer()"  />
+    <input id="Button15"    type="button"   value="模型数据卸载" 		onclick="UnLoadModelServer()"  />
+	<input id="Button16"    type="button"   value="打开模型拾取" 		onclick="OpenPick()" />
+	<input id="Button17"    type="button"   value="关闭模型拾取" 		onclick="ClosePick()" />
+	<input id="Button7" 	type="button" 	value="获取图层配置信息" 	onclick="GetPickLayerAtt()" />
+    
+	</br>逻辑树:   
+    <input id="Button18"  type="button"  value="加载逻辑树" 			onclick="LoadLogicTreeNew()" />
+    &nbsp 服务名选择: <select id ="SelOption"  style="width:110px;height= 44px " /> 
+    <input id="Button19"    type="button"   value="根据服务名定位"     onclick="LogicTreeLocateByName()" />
+    <input id="Button20"    type="button"   value="根据服务名显隐"     onclick="LogicTreeVisibleByName()" />
+    <input id="Button21"    type="button"   value="根据服务名卸载"     onclick="LogicTreeUnLoadByName()" />
+    <input id="Button22"    type="button"	value="逻辑树整体显隐"     onclick="SetLogicVisible()" />
+    <input id="Button23"    type="button"	value="逻辑树整体卸载"     onclick="SetLogicLoadState()" />
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 980px">
+	</object>
+</body>
+</html>

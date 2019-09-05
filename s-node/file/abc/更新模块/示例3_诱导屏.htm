@@ -1,0 +1,177 @@
+<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <title>诱导屏操作</title>
+	
+	<script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+		//alert(1);
+        responseStr = res.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+		alert(responseStr);
+	</script>
+    <script language="javascript" type="text/javascript">
+
+        var MouseX = "";
+        var MouseY = "";
+        /**
+         @brief 鼠标左键触发事件
+         @param [in] x 鼠标点击位置x轴坐标
+         @param [in] y 鼠标点击位置y轴坐标
+        */
+        function LButtonDown(x, y) {
+
+           
+            MouseX = x;
+            MouseY = y;
+            //window.alert("X: " + MouseX + "Y: " + MouseY);
+        }
+          /**
+         @brief 操作事件
+         @param [in] type   操作类型
+         @param [in] result 操作结果
+        */
+        function FireOnOperationNotify(type, result)
+        {
+            window.alert( "ViewPoint: " + " type: " + type + " result: " + result );
+        }
+
+
+        var responseStr;
+        function FireOnResponserNotify(x, y) {//拾取响应器触发
+            responseStr = res.GetResponserResult().GetConfigValueByKey("PickPointList"); //获取经纬度列表
+            alert(responseStr);
+        }
+
+  
+        var obj;
+        var map;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            //obj.attachEvent("FireOnLButtonDown", LButtonDown);
+            //obj.attachEvent("FireOnOperationNotify", FireOnOperationNotify);
+            //obj.attachEvent("FireOnResponserNotify", FireOnResponserNotify);
+
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+        }
+
+      
+        
+      
+
+        var res;
+        function PickLineOpen() {
+            var resp = map.CreateResponserOptions("123");
+            resp.AddConfig("PickLayerIdList", cpmLayer.GetLayerID());
+            resp.AddConfig("IsChangeColor", "true");
+			resp.AddConfig("PickColor", "0,0,1,0.3");
+            res = map.CreateResponser("PickModelResponser", resp);
+            res.AddObserver();
+            map.AddResponser(res);
+        }
+
+        
+
+        var cpmLayer;
+        //////加载模型数据
+        function LoadGMS() {
+
+            var tlo = map.CreateLayerOptions("cpm"); // 创建cpm图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "cpm"); // 数据源类型,代表CPM插件，必须是此键值对
+            tlo.AddConfig("Url", "F:\\本地数据\\大华模型\\sceneName.L000_000.wrl");
+            //tlo.AddConfig("Url", "C:\\Users\\hsy\\Desktop\\诱导屏\\sceneName.L000_000.wrl"); /////要加载的数据路径，此数据需为CPM数据，不支持压缩数据
+            cpmLayer = map.CreateLayer("ModelLayer", tlo); ////创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(cpmLayer); ///添加模型图层
+            cpmLayer.Locate(); ////模型图层定位
+        }
+
+        ////删除模型数据
+        function RemoveGMS() {
+            map.RemoveLayer(cpmLayer); ////删除模型数据
+        }
+
+
+      
+        
+        var operationPtr;
+        var isRemove = false;
+        function CreateUpdateOperation() {//创建更新操作
+          
+            var tlo = map.CreateOperationOptions("TextureOperation");                //创建配置类型,操作类型的配置
+
+            if (responseStr == null) {
+                alert("pick point is null!");
+            }
+            var blh = responseStr.split(",;");
+            blh = blh[blh.length - 1];
+            blh = blh.replace(";", "");
+
+            //blh = "120.16811068095600,30.185901211345008,1.1086163483560085";
+            var LonLatH = blh.split(",");
+            alert(LonLatH);
+
+            tlo.AddConfig("ImagePath", "F:\\大华演示\\大华数据\\textures\\1.jpg"); //添加纹理要设置的图片
+            tlo.AddConfig("LonCoord", LonLatH[0]);                                   //经度坐标
+            tlo.AddConfig("LatCoord", LonLatH[1]);                                   //纬度坐标
+            tlo.AddConfig("HCoord", LonLatH[2]);                                     //高度坐标
+            tlo.AddConfig("LayersID", cpmLayer.GetLayerId());                                           //添加需要拾取相交的图层id，以逗号分隔,-1 与场景相机作相交
+            tlo.AddConfig("OptionsTypeName", "TextureOptions");                      //添加配置项类名     
+
+            operationPtr = map.CreateOperation("TextureOperation", tlo);             //根据配置创建模型调整操作
+            //operationPtr.AddObserver();                                              //添加监听鼠标左键,事件在InitScene 设置
+
+            map.AddOperation(operationPtr);                                          //加入操作并执行
+            if (isRemove) {
+                isRemove = false;
+            }
+
+	    }
+
+        var imageArray = ["1.jpg", "2.jpg", "3.jpg", "4.jpg", "5.jpg", "6.jpg"];
+	    function UpdateTextureOption() {
+
+	        if (null != operationPtr) {
+
+	            var tlo = map.CreateOperationOptions("TextureOperation");                //创建配置类型,操作类型的配置
+
+	            var randImg = imageArray[Math.floor(Math.random() * imageArray.length)];
+	            tlo.AddConfig("ImagePath", "F:\\大华演示\\大华数据\\textures\\" + randImg); //添加纹理要设置的图片
+
+	            tlo.AddConfig("LayersID", cpmLayer.GetLayerId());                                           //添加需要拾取相交的图层id，以逗号分隔,-1 与场景相机作相交
+	            tlo.AddConfig("OptionsTypeName", "TextureOptions");                      //添加配置项类名     
+
+	            operationPtr.UpdateOperationOptions(tlo);                                //更新切换图片
+            }
+	      
+         
+        }
+
+
+
+        function RemoveOperation() { //移除操作
+            if (!isRemove) {
+                map.RemoveOperation(operationPtr);
+                isRemove = true;
+            }
+	           
+        }
+
+    </script>
+</head>
+<body onload="InitScene()">
+   
+    <input id="Button15" type="button" value="加载(GMS)" onclick="LoadGMS()" />
+    <input id="Button16" type="button" value="卸载(GMS)" onclick="RemoveGMS()" />
+
+    <input id ="Button17" type = "button" value = "打开响应器" onclick = "PickLineOpen()" />
+    <input id="Button19" type="button" value="开启纹理操作"  onclick="CreateUpdateOperation()" />
+    <input id="Button20" type="button" value="更新纹理"  onclick="UpdateTextureOption()" />
+    <input id="Button21" type="button" value="移除操作"  onclick="RemoveOperation()" />
+
+
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%;
+        height: 100%">
+    </object>
+</body>
+</html>

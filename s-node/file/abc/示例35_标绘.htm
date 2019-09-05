@@ -1,0 +1,198 @@
+
+<html>
+<head>
+    <title>3DVPSDK开发入门教程</title>
+	<script language="javascript" type="text/javascript" event="FireOnLayerNotify(layerid , type)"
+	for="VPSDKCtrl">
+	</script>
+    <script language="javascript" type="text/javascript">
+		/*
+		1000	点
+		2000	圆
+		2001	椭圆
+		2002	弓形
+		2003	扇形
+		2004	曲线面
+		2005	多边形
+		2006	矩形
+		2008	聚集地
+		2100	钳击
+		2101	直箭头
+		2102	细直箭头
+		2103	突击方向
+		2104	进攻方向
+		2105	进攻方向（尾）
+		2106	分队战斗行动
+		2107	分队战斗行动（尾）
+		*/
+		var layermap = new Array();
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+			var ret = obj.InitLic("192.168.1.50@8088@");
+			LoadDom();
+			//LoadDem();
+        }
+		
+		function LoadDom(){
+			var tlo = map.CreateLayerOptions("domlayer"); 	//创建dom图层，给配置起个名称，任意名称
+			tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); //创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+			tlo.AddConfig("DataSourceTypeName", "mtds"); //数据源类型,代表MTDS插件，必须是此键值对
+			tlo.AddConfig("Driver", "terrainquadtree"); //代表地形驱动，必须是此键值对
+
+			////////以下部分可以通过图层信息获取获得相应的配置//////
+			tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); ///要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+			tlo.AddConfig("Format", "png"); //切割形成的数据格式
+			tlo.AddConfig("Srs", "EPSG:4326"); //数据的坐标参考
+			tlo.AddConfig("MaxX", " 120.714010586176"); //数据的范围X向最大值
+			tlo.AddConfig("MinX", " 118.339686018686"); //数据的范围X向最小值
+			tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+			tlo.AddConfig("MinY", " 29.188584444612"); 	//数据的范围Y向最小值
+			tlo.AddConfig("TileSize", "256"); //切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+			tlo.AddConfig("MinLevel", "0"); //数据显示的最小层级
+			tlo.AddConfig("MaxLevel", "16"); //数据显示的最大层级
+
+			mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+			map.AddLayer(mtdsdomlayer); ///添加DOM图层
+			mtdsdomlayer.Locate(); //DOM图层定位
+		}
+		
+		function LoadDem(){
+			var tlo = map.CreateLayerOptions("demlayer"); 				// 创建dem图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ElevationLayerOptions"); // 创建配置类型,ElevationLayerOptions代表高程数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); 				// 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); 				// 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDEM0812/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "tif"); 							///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); 							/////数据的坐标参考
+            tlo.AddConfig("MaxX", "120.71408849655"); 					/////数据的范围X向最大值
+            tlo.AddConfig("MinX", "118.33968849655"); 					/////数据的范围X向最小值
+            tlo.AddConfig("MaxY", "30.5651894750343"); 					////数据的范围Y向最大值
+            tlo.AddConfig("MinY", "29.1885894750343"); 					/////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "16"); /////切割数据的瓦片大小，可以往小于16的方向设置，但绝对不能往大于16的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+            mtdsdemlayer = map.CreateLayer("ElevationLayer", tlo); ////创建DEM图层，第一项参数必须为ElevationLayer
+            map.AddLayer(mtdsdemlayer);///添加DEM图层
+            mtdsdemlayer.Locate();////DEM图层定位
+		}
+		
+		//创建态势标绘
+		var plot;
+		function CreatePlot(){
+			var mySelect = document.getElementById("Select");
+			var index = mySelect.selectedIndex;
+			var value = mySelect.options[index].value;				//从下拉框中获取标绘类型。默认为0-点
+			
+			var mlo = map.CreateLayerOptions("plot");				//创建分析图层配置，给配置起个名称，任意名称
+			mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			mlo.AddConfig("DataSourceTypeName", "as_plot");        /////// 数据源类型,代表缓冲区分析，必须是此键值对
+			mlo.AddConfig("PointColor","1,0,0,0.6");				//点颜色
+			mlo.AddConfig("PointSize","6");							//点大小
+			mlo.AddConfig("LineColor", "0,1,0,0.5");				//线框颜色
+			mlo.AddConfig("LineWidth", "10.0");						//线宽
+			mlo.AddConfig("LineStyle", "0");						//线样式 0 实线 ；1 虚线
+			mlo.AddConfig("PlaneColor", "1,1,0.5,0.5");				//面颜色
+			mlo.AddConfig("LiftUp", "0");							//抬高高度
+			mlo.AddConfig("BlockHeight","0");						//体块高度默认0 不拉升
+			mlo.AddConfig("StickType","0");							//贴地类型 默认0 补贴第
+			mlo.AddConfig("PlotType", value);						//标绘类型
+			mlo.AddConfig("PlotMode","MODE_DRAW");					//MODE_EDIT-编辑模式	MODE_DRAW-绘制模式	MODE_NULL-默认配置
+			if (false)
+			{
+				mlo.AddConfig( "IsLoad","true" );					//点是否预先设置
+				mlo.AddConfig("Points","120.205420708,30.2416892474,15.0748782353;120.20489575,30.2417527978,-4.90313395858e-005;|");
+																	//|表示单个图层中多个同类型点集分隔
+			}				
+			plot = map.CreateLayer("AnalysisLayer", mlo);			//创建分析图层，第一项参数必须为AnalysisLayer
+			map.AddLayer(plot); 									//添加分析图层
+			
+			//layermap[plot.GetLayerID()] = plot;
+			//plot.AddObserver();
+		}
+		
+		//更新标绘--添加模式
+		function ModifyPlot(){
+			var mySelect = document.getElementById("Select");
+			var index = mySelect.selectedIndex;
+			var value = mySelect.options[index].value;
+			
+			var mlo = map.CreateLayerOptions("plot");				//创建分析图层配置，给配置起个名称，任意名称
+			mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			mlo.AddConfig("DataSourceTypeName", "as_plot");        	//数据源类型,代表缓冲区分析，必须是此键值对
+			mlo.AddConfig("PointColor","1,0,0,0.6");				//点颜色
+			mlo.AddConfig("PointSize","6");							//点大小
+			mlo.AddConfig("LineColor", "0,1,0,0.5");				//线框颜色
+			mlo.AddConfig("LineWidth", "10.0");						//线宽
+			mlo.AddConfig("LineStyle", "0");						//线样式 0 实线 ；1 虚线
+			mlo.AddConfig("PlaneColor", "1,1,0.5,0.5");				//面颜色
+			mlo.AddConfig("LiftUp", "30");							//抬高高度
+			mlo.AddConfig("BlockHeight","0");						//体块高度默认0 不拉升
+			mlo.AddConfig("StickType","0");							//贴地类型 默认0 补贴第
+			mlo.AddConfig("PlotType", value);						//标绘类型
+			mlo.AddConfig("PlotMode","MODE_DRAW");					//MODE_EDIT-编辑模式	MODE_DRAW-绘制模式	MODE_NULL-默认配置
+			plot.UpdateLayerOptions(mlo);							//更新标绘
+		}
+		
+		//更新标绘--编辑模式
+		function EditPlot(){
+			var mySelect = document.getElementById("Select");
+			var index = mySelect.selectedIndex;
+			var value = mySelect.options[index].value;
+			//编辑开始后，点击黄色的点可控制其位置；点击标绘表面，可整体拖拽标绘；右键为退出编辑模式
+			var mlo = map.CreateLayerOptions("plot");		//创建分析图层配置，给配置起个名称，任意名称
+			mlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); // 创建配置类型, AnalysisLayerOptions代表分析图层数据配置，必须是此键值对
+			mlo.AddConfig("DataSourceTypeName", "as_plot");        	//数据源类型,代表缓冲区分析，必须是此键值对
+			mlo.AddConfig("PointColor","1,1,1,0.6");				//点颜色
+			mlo.AddConfig("PointSize","5");							//点大小
+			mlo.AddConfig("LineColor", "0,0,0,0.5");				//线框颜色
+			mlo.AddConfig("LineWidth", "10.0");						//线宽
+		//	mlo.AddConfig("LineStyle", "3");						//线样式 1 2 3 4 5
+			mlo.AddConfig("PlaneColor", "1,1,0.5,0.5");				//面颜色
+			mlo.AddConfig("LiftUp", "30");							//抬高高度
+			mlo.AddConfig("BlockHeight","100");						//体块高度默认0 不拉升
+			mlo.AddConfig("StickType","0");							//贴地类型 默认0 ：0 不贴地 1 地形高度贴地 3 纹理贴地
+			mlo.AddConfig("PlotType", value);						//标绘类型
+			mlo.AddConfig("PlotMode","MODE_EDIT");					//MODE_EDIT-编辑模式	MODE_DRAW-绘制模式	MODE_NULL-默认配置 
+			plot.UpdateLayerOptions(mlo);							//更新标绘
+		}
+		
+		//删除标绘
+		function ClearPlot(){
+			map.RemoveLayer(plot); 									//删除标绘
+		}
+    </script>
+</head>
+<body onload = "InitScene()">
+<select id="Select">
+	<option value="1000">点</option>
+	<option value="2000">圆</option>
+	<option value="2001">椭圆</option>
+	<option value="2002">弓形</option>
+	<option value="2003">扇形</option>
+	<option value="2004">曲线面</option>
+	<option value="2005">多边形</option>
+	<option value="2006">矩形</option>
+	<option value="2008">聚集地</option>
+	<option value="2100">钳击</option>
+	<option value="2101">直箭头</option>
+	<option value="2102">细直箭头</option>
+	<option value="2103">突击方向</option>
+	<option value="2104">进攻方向</option>
+	<option value="2105">进攻方向（尾）</option>
+	<option value="2106">分队战斗行动</option>
+	<option value="2107">分队战斗行动（尾）</option>
+</select>
+<input id="Button3" type="button" value="创建标绘" onclick="CreatePlot()" />
+<input id="Button3" type="button" value="开启标绘添加模式" onclick="ModifyPlot()" />
+<input id="Button3" type="button" value="开启标绘编辑模式" onclick="EditPlot()" />
+<input id="Button3" type="button" value="清除标绘类型" onclick="ClearPlot()" />
+<br>
+    <object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width:100%;
+        height:100%">
+    </object>
+</body>
+</html>

@@ -1,0 +1,1135 @@
+﻿<html>
+<head>
+    <meta name="GENERATOR" content="Microsoft Visual Studio 8.0">
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=8">
+    <title>6.0球面版本测试用类视点图层</title>
+    <script language="javascript" type="text/javascript" event="FireOnResponserNotify(x , y)" for="VPSDKCtrl">
+        var str = res.GetResponserResult().GetConfigValueByKey("PickPointList");
+        var PickName = res.GetResponserResult().GetConfigValueByKey("PickName");
+        PickLayerId = res.GetResponserResult().GetConfigValueByKey("PickLayerList");
+		
+        alert("PickPoint:" + str + " PickName: " + PickName + " PickLayerId: " + PickLayerId);
+    </script>
+    <script language="javascript" type="text/javascript">
+        var obj;
+        var map;
+        var tools;
+        var PickLayerId = -1;
+        var addState = false;
+        var count = 0;
+        var addFeature;
+
+        function InitScene() {
+            obj = document.getElementById("VPSDKCtrl");
+            map = obj.GetIMapMgrPtr();
+            var ret = obj.InitLic("127.0.0.1@9095@");
+            tools = obj.GetIToolsCOMPtr();
+            //LoadDOMMTDS();
+            transformate = map.CreateTransformation();
+        }
+
+
+        function LoadDOMDEM() {
+            LoadDOMMTDS();
+        }
+
+        function LoadCPM() {
+            /*var tlo = map.CreateLayerOptions("球面模型");
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions");
+            tlo.AddConfig("DataSourceTypeName", "cpm");
+            tlo.AddConfig("Url", "F:\\大华演示\\大华数据\\大华模型\\sceneName.L000_000.wrl");
+            cpmLayer = map.CreateLayer("ModelLayer", tlo);
+            map.AddLayer(cpmLayer);
+            cpmLayer.Locate();*/
+            //CreatePointTextEditLayer();
+            //CreatePointModelEditLayer();
+            var tlo = map.CreateLayerOptions("test"); //给配置起个名称，必须和配置项Name的值一致
+            tlo.AddConfig("LayerOptionsName", "ModelLayerOptions"); // 创建配置类型, ModelLayerOptions代表模型数据配置，必须是此键值对
+            tlo.AddConfig("Name", "ZBJCYLOD1028_Compressed"); /////图层数据名称
+            tlo.AddConfig("DataSourceTypeName", "gms"); // 数据源类型,代表GMS插件，必须是此键值对
+            tlo.AddConfig("Url", "http://192.168.1.80:8089/kelan/淄博检察院/"); /////要加载的数据路径，此数据需为GMS数据，只支持压缩数据
+            gmsLayer = map.CreateLayer("ModelLayer", tlo); //创建模型图层，第一项参数必须为ModelLayer
+            map.AddLayer(gmsLayer); ///添加模型图层
+            gmsLayer.Locate(); ////模型图层定位
+        }
+
+        //************************
+        //矢量编辑 以点模型符号化为例：
+        //***********************
+        //首先创建待编辑图层：
+        var polygoneditLayer;
+        var shpLayer;
+
+        function CreatePointModelEditLayer() {
+            var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+            pSymbol.AddConfig("Size", "5"); ////点大小，范围0-10
+            pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+            var tSymbol = map.CreateSymbol("ModelSymbol"); ////创建类型为ModelSymbol的符号，必须为ModelSymbol字符串
+            tSymbol.AddConfig("Heading", "0"); ////绕Z轴(世界坐标系方向相同 far->near)旋转,从far(-Z)向near(+Z)看去,逆时针为正，弧度表示
+            tSymbol.AddConfig("Pitch", "-3.14"); //////绕Y轴(世界坐标系方向相同 down(-Y)向up(Y))旋转,从down(-Y)向up(+Y)看去,逆时针为正，弧度表示
+            tSymbol.AddConfig("Roll", "0"); ////绕X轴(世界坐标系方向相同 left->right)旋转,从left(-X)向right(+X)看去,逆时针为正，弧度表示
+
+            tSymbol.AddConfig("XScale", "10"); ////模型x方向放大比例
+            tSymbol.AddConfig("YScale", "10"); ////模型y方向放大比例
+            tSymbol.AddConfig("ZScale", "10"); ////模型z方向放大比例
+            tSymbol.AddConfig("ModelOriginDir", "0,0,1"); ////模型原始轴向
+            tSymbol.AddConfig("FeatureLiftUp", "1"); 				//接地线抬升值(配置该项接地线将是文字到点之间，否则是文字、点到地底)
+            tSymbol.AddConfig("LineColor", "1,1,1,1"); ////接地线颜色
+            tSymbol.AddConfig("IsAddGroundLine", "true"); ////是否开启接地线
+            tSymbol.AddConfig("Url", "F:\\大华演示\\大华数据\\kakou\\gun.wrl"); ////模型资源路径
+            tSymbol.AddConfig("LibraryName", "reslib"); ////资源名称
+
+            var res = map.CreateResource("ModelSymbol"); ////创建模型资源，此处必须为ModelSymbol
+            res.AddConfig("Uri", "F:\\大华演示\\大华数据\\kakou\\gun.wrl"); ////模型资源路径
+            var reslib = map.CreateResourceLibrary("reslib"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+            reslib.AddResource(res); ////将资源添加至资源库
+
+            var pStyle = map.CreateStyle("Pointmm"); ////创建名称为Point的样式，名称任意
+            pStyle.SetName("pointmm"); ////设置别名point
+            pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); ////将点符号配置添加到该样式
+            pStyle.AddFilterName("BuildGeometryFilter"); //设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+            pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为ModelSymbol字符串
+            pStyle.AddFilterName("SubstituteModelFilter"); ////设置构建器符号为SubstituteModelFilter，必须为SubstituteModelFilter字符串，此为图标符号化和模型符号化共有
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            styleSheet.AddResLib(reslib.GetConfig()); ////将资源库添加至样式表
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "F:\\zhumh\\testPoint3.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+            tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+            shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(shpLayer); ////添加矢量图层
+            var id = shpLayer.GetLayerID(); ////获取图层id
+            polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+
+            //addState = true;//事件响应器
+        }
+
+        function CreatePointTextEditLayer() {
+            var pSymbol = map.CreateSymbol("PointSymbol"); ////创建类型为PointSymbol的符号，必须为PointSymbol字符串
+            pSymbol.AddConfig("Size", "10"); ////点大小，范围0-10
+            pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); ////颜色值0-1（RGBA），最后一位代表透明度，0为透明，1为不透
+
+            /////////////////////此部分是文字在场景中显示的配置/////////////////
+            var tSymbol = map.CreateSymbol("TextSymbol"); ////创建类型为TextSymbol的符号，必须为TextSymbol字符串
+            tSymbol.AddConfig("FillingColor", "0.82, 0.36, 0.0, 1.0"); ////文字颜色（RGBA），颜色值0-1，最后一位代表透明度，0为透明，1为不透
+            tSymbol.AddConfig("Font", "C:\\Program Files\\浙江科澜信息技术有限公司\\CooGis SDK 6.0\\data\\Fonts\\msyh.ttf"); ////文字字体，从系统字体目录中取，字体文件必须存在，配置一些参数时，如果没生效可能与字体文件相关，例如中文
+            tSymbol.AddConfig("Size", "40"); ////字体精度大小
+            tSymbol.AddConfig("CharacterSize", "0.5"); ////文字大小
+            tSymbol.AddConfig("CharacterMode", "0"); ////字符大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值
+            tSymbol.AddConfig("AlignmentMode", "5"); ////设置文字位于要素的位置
+            tSymbol.AddConfig("AxisAlignment", "6"); ////设置文字旋转模式0 - 7 ， 6: 自动
+            tSymbol.AddConfig("RemoveDuplicateLabels", "false"); ////是否移除重复的多重标注
+            tSymbol.AddConfig("IsEmbolden", "false"); ////是否加粗
+            tSymbol.AddConfig("IsTransform", "false"); ////是否斜体
+            tSymbol.AddConfig("IsUnderline", "false"); ////是否加下划线
+            tSymbol.AddConfig("IsBack", "true"); 					//是否有背景
+            tSymbol.AddConfig("BackColor", "0.88,0.87,0.76,1.0"); 	//设置文字背景色
+            tSymbol.AddConfig("LineColor", "0.6,0.6,0.6,1.0"); 		//接地线颜色
+            tSymbol.AddConfig("IsAddGroundLine", "true"); 			//是否开启接地线
+            tSymbol.AddConfig("FeatureLiftUp", "2"); 				//接地线抬升值(配置该项接地线将是文字到点之间，否则是文字、点到地底)
+            tSymbol.AddConfig("Content", "[NAME]"); 				//[]里代表矢量的某字段名称
+            //***********如果需要配置背景图片，则需要添加图片资源库*********/
+            tSymbol.AddConfig("ImageURL", "F:\\AlarmCarPhoto\\aa.jpg"); //背景图片地址
+            tSymbol.AddConfig("LibraryName", "Library"); 			//设置资源库名称
+            tSymbol.AddConfig("BackdropMarginLeft", "4.0"); 		//背景边框左边大小
+            tSymbol.AddConfig("BackdropMarginRight", "4.0"); 		//背景边框右边大小
+            tSymbol.AddConfig("BackdropMarginUp", "2.0"); 			//背景边框上边大小
+            tSymbol.AddConfig("BackdropMarginDown", "2.0"); 		//背景边框下边大小
+
+            //*图片资源库配置信息*/
+
+            var res = map.CreateResource("TextSymbol"); ////创建图标资源，此处必须为TextSymbol
+            res.AddConfig("Uri", "F:\\AlarmCarPhoto\\aa.jpg"); ////图标资源路径
+            var reslib = map.CreateResourceLibrary("Library"); ////创建资源库，名称和图层配置LibraryName设置的名称对应
+            reslib.AddResource(res); ////将资源添加至资源库
+
+            var pStyle = map.CreateStyle("Point"); 					//创建名称为Point的样式，名称任意
+            pStyle.AddSymbol("TextSymbol", tSymbol.GetConfig()); 	//将符号配置添加到该样式，第一参必须为TextSymbol字符串
+            pStyle.AddFilterName("BuildTextFilter"); 				//设置文字构建器符号为BuildTextFilter，必须为BuildGeometryFilter字符串
+            /////////////////////此部分是文字在场景中显示的配置/////////////////
+
+            /////////////////////此部分是点在场景中显示的配置/////////////////
+            pStyle.SetName("point"); 								//设置别名point
+            pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); 	//将符号配置添加到该样式
+            //pStyle.AddFilterName("BuildGeometryFilter");  			//设置构建器符号为BuildGeometryFilter，必须为BuildGeometryFilter字符串
+            /////////////////////此部分是点在场景中显示的配置/////////////////
+
+            var styleSheet = map.CreateStyleSheet(); 				//创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); 				//将样式配置添加至样式表
+            //styleSheet.AddResLib(reslib.GetConfig()); 				//将资源库添加至样式表
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Ddfriver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "F:\\zhumh\\testPoint1.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+            tlo.AddConfig("GeometryType", "Point"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "0"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "80000000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+
+            shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(shpLayer); ////添加矢量图层
+            var id = shpLayer.GetLayerID(); ////获取图层id
+            polygoneditLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+
+            addState = true;//事件响应器
+        }
+
+        ////编辑后保存图层或者另存为：
+        function polygonLayerSave() {
+            polygoneditLayer.SaveLayer(); ////编辑面图层保存，一般用于首次创建保存
+        }
+
+        function polygonLayerAsSave() {
+            polygoneditLayer.SaveAsLayer("F:\\Zhumh\\polygontest.shp"); ////编辑面图层另保存。用于多次打开后保存
+        }
+
+        //关闭标注创建
+        function CloseTextEditLayer() {
+            addState = false;
+        }
+
+        //开启标注创建
+        function OpenTextEditLayer() {
+            addState = true;
+            //CreatePointTextEditLayer();
+            //CreatePointModelEditLayer();
+        }
+
+        function AddFeature(x, y, z) {
+            var addFeature = map.CreateFeature(); 							//创建要素对象
+            addFeature.SetGeometryType(1); 								//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+            addFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）
+            addFeature.AddAttribute("Height", "43.5", 4);			//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)
+            addFeature.AddAttribute("Name", "大华楼", 5);			//添加属性值
+            addFeature.AddAttribute("Width", "54", 3);				//添加属性值
+            addFeature.AddPoint(x, y, z);////向编辑图层添加坐标点信息
+            var featureId = polygoneditLayer.GetMaxFeatureID();		//获取矢量图层要素最大ID
+            addFeature.SetFeatureId(featureId + 1); 				//设置FeatureID
+            polygoneditLayer.AddFeature(addFeature);				//添加到矢量图层
+        }
+
+        //清除标注
+        function ClearEditLayer() {
+            if (shpLayer) {
+                map.RemoveLayer(shpLayer);
+            }
+        }
+
+        var mtdsdomlayer;
+
+        //////加载DOM数据
+        function LoadDOMMTDS() {
+            var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////////////以下部分可以通过图层信息获取获得相应的配置////////////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "png"); ///////切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", " 30.5651224875501"); ////数据的范围Y向最大值
+            tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+            mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); ////创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtdsdomlayer); ///添加DOM图层
+            mtdsdomlayer.Locate(); ////DOM图层定位
+        }
+
+
+        //********************************
+        // osgb服务加载
+        //********************************
+        //加载osgb服务
+        var parseOsgbTool = null;
+
+        function LoadOsgbServer() {
+            if (null != parseOsgbTool) {
+                alert("Repeat Load The Same Layer!!!");
+                return;
+            }
+            if (null != tools) {
+                var tlo = tools.CreateToolsOptions("ToolsOption");  //配置对象类名不可任意更改
+                if (null != tlo) {
+                    tlo.AddConfig("Url", "127.0.0.1");           //服务ip
+                    tlo.AddConfig("Port", 9095);                    //服务端口
+                    tlo.AddConfig("Type", "osgb");                  //加载的服务类型
+                    tlo.AddConfig("Name", "admin");                 //用户名
+                    tlo.AddConfig("Password", "admin");             //密码
+                    tlo.AddConfig("ServerName", "杭州钱江倾斜");        //服务名
+                    tlo.AddConfig("Version", "6.4");		     	//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+                    tlo.AddConfig("LocateState", "1");              //服务定位状态
+
+                    parseOsgbTool = tools.CreateToolsObject("ParseDemDomOsgbWebData", tlo);   //工具对象类名，不可任意更改
+                    if (null != parseOsgbTool) {
+
+                        var res = tools.ActiveTools(parseOsgbTool);                               //激活工具对象
+                        // res = tools.DestoryTools(parseModelTool);                               //销毁工具对象
+                    }
+                }
+            } else {
+                alert("null tools invalid handle");
+            }
+        }
+
+        //定位osgb服务
+        function SetOsgbLocate() {
+            if (null != parseOsgbTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	 //创建工具配置项，名称不可任意
+                mlo.AddConfig("LocateState", "1");                   //c3s定位
+                parseOsgbTool.UpdateToolsOption(mlo);                //更新工具配置项
+            }
+        }
+
+        //显影osgb服务
+        var bVisible = 1;
+        var strVisible;
+
+        function SetOsgbVisible() {
+            if (null != parseOsgbTool) {
+                bVisible = !bVisible;
+                if (bVisible) {
+                    strVisible = "1";
+                } else {
+                    strVisible = "0";
+                }
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置配置项
+                mlo.AddConfig("Visible", strVisible); 				//设置图层显隐装台 0,隐藏， 1，显示（使用字符创“0” or "1"）
+                parseOsgbTool.UpdateToolsOption(mlo); 				//更新工具配置项
+            }
+        }
+
+        //卸载osgb服务
+        function SetOsgbUnLoad() {
+            if (null != parseOsgbTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//工具配置项
+                mlo.AddConfig("LoadState", "0"); 					//卸载该服务
+                parseOsgbTool.UpdateToolsOption(mlo); 				//更新配置项
+                tools.DestoryTools(parseOsgbTool);
+                parseOsgbTool = null;
+            }
+        }
+
+        //********************************
+        // 地形服务加载
+        //********************************
+        //加载地形服务
+        var parseDemTool = null;
+
+        function LoadDemServer() {
+            if (null != parseDemTool) {
+                alert("Repeat Load The Same Layer!!!");
+                return;
+            }
+            if (null != tools) {
+                var tlo = tools.CreateToolsOptions("ToolsOption"); 		//工具配置选项
+                if (null != tlo) {
+                    tlo.AddConfig("Url", "127.0.0.1"); 				//服务ip
+                    tlo.AddConfig("Port", 9095); 						//服务端口
+                    tlo.AddConfig("Type", "dem"); 						//加载的数据类型
+                    tlo.AddConfig("Name", "admin"); 					//用户名
+                    tlo.AddConfig("Password", "admin"); 				//密码
+                    tlo.AddConfig("ServerName", "杭州地形"); 			//服务名
+                    tlo.AddConfig("Version", "6.4");		     		//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+                    tlo.AddConfig("LocateState", "1"); 					//服务定位状态
+                    parseDemTool = tools.CreateToolsObject("ParseDemDomOsgbWebData", tlo);   //创建的加载对象类名，不可任意更改
+                    if (null != parseDemTool) {
+                        var res = tools.ActiveTools(parseDemTool); 		//激活加载工具对象
+                    }
+                }
+            } else {
+                alert("null tools invalid handle");
+            }
+        }
+
+        //卸载地形服务
+        function UnLoadDemServer() {
+            if (null != parseDemTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+                mlo.AddConfig("LoadState", "0");                    //设置加载内容显隐状态 0，隐藏， 1，显示（使用字符创“0” or "1"）
+                parseDemTool.UpdateToolsOption(mlo);                //更新工具配置项
+                tools.DestoryTools(parseDemTool);
+                parseDemTool = null;
+            }
+        }
+
+        //********************************
+        // 影像服务加载
+        //********************************
+        //加载影像
+        var parseDomTool;
+
+        function LoadDomServer() {
+            if (null != parseDomTool) {
+                alert("Repeat Load The Same Layer!!!");
+                return;
+            }
+            if (null != tools) {
+                var tlo = tools.CreateToolsOptions("ToolsOption"); //工具配置选项
+                if (null != tlo) {
+                    tlo.AddConfig("Url", "192.168.1.177"); 			//服务ip
+                    tlo.AddConfig("Port", 9091); 					//服务端口
+                    tlo.AddConfig("Type", "dom"); 					//服务数据类型
+                    tlo.AddConfig("Name", "admin"); 				//用户名
+                    tlo.AddConfig("Password", "admin"); 			//密码
+                    tlo.AddConfig("ServerName", "三维地图"); 		//服务名
+                    tlo.AddConfig("Version", "6.4"); 				//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+                    tlo.AddConfig("LocateState", "1"); 				//服务定位状态
+                    parseDomTool = tools.CreateToolsObject("ParseDemDomOsgbWebData", tlo);  //创建的加载对象类名，不可任意更改
+                    if (null != parseDomTool) {
+
+                        var res = tools.ActiveTools(parseDomTool); 	//激活加载工具
+                        //res = tools.DestoryTools(parseModelTool);                                 //销毁加载工具,在不使用时记得销毁
+                    }
+                }
+            } else {
+                alert("null tools invalid handle");
+            }
+        }
+
+        //定位影像
+        function LocateDomServer() {
+            if (null != parseDomTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	 //创建工具配置项，名称不可任意
+                mlo.AddConfig("LocateState", "1");                   //c3s定位
+                parseDomTool.UpdateToolsOption(mlo);                 //更新工具配置项
+            }
+        }
+
+        //显隐影像服务
+        var bVisible = 1;
+        var strVisible;
+
+        function VisibleDomServer() {
+            if (null != parseDomTool) {
+                bVisible = !bVisible;
+                if (bVisible) {
+                    strVisible = "1";
+                } else {
+                    strVisible = "0";
+                }
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+                mlo.AddConfig("Visible", strVisible);               //设置加载内容显隐状态 0，隐藏， 1，显示（使用字符创“0” or "1"）
+                parseDomTool.UpdateToolsOption(mlo);                //更新工具配置项
+            }
+        }
+
+        //卸载影像服务
+        function UnLoadDomServer() {
+            if (null != parseDomTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+                mlo.AddConfig("LoadState", "0");                    //设置加载载状态 0,卸载
+                parseDomTool.UpdateToolsOption(mlo);                //更新工具配置项
+                tools.DestoryTools(parseDomTool);
+                parseDomTool = null;
+            }
+        }
+
+        //********************************
+        // Model服务加载
+        //********************************
+        //加载Model服务
+        var parseModelTool = null;
+
+        function LoadModelServer() {
+            if (null != parseModelTool) {
+                alert("Repeat Load The Same Layer!!!");
+                return;
+            }
+            if (null != tools) {
+                var tlo = tools.CreateToolsOptions("ToolsOption");
+                if (null != tlo) {
+                    tlo.AddConfig("Url", "192.168.1.177"); 		//服务ip 67
+                    tlo.AddConfig("Port", 9091); 				//服务端口 9015
+                    tlo.AddConfig("Type", "gms"); 				//服务类型
+                    tlo.AddConfig("Name", "admin"); 			//服务用户名
+                    tlo.AddConfig("Password", "admin"); 		//服务密码
+                    tlo.AddConfig("Version", "6.4"); 			//服务版本标示，6.3为老服务，6.4为新服务.默认6.3
+                    tlo.AddConfig("ServerName", "小田社区");		//服务名称  nanjingmodel 南京C3S数据 杭州wrl
+                    tlo.AddConfig("LocateState", "1"); 			//服务定位状态
+                    parseModelTool = tools.CreateToolsObject("ParseModelWebData", tlo); 	//加载服务的工具对象类名
+                    if (null != parseModelTool) {
+                        var res = tools.ActiveTools(parseModelTool); 		//激活对象工具
+                    }
+                }
+            } else {
+                alert("null tools invalid handle");
+            }
+        }
+
+        //显隐Model服务
+        var bVisible = 1;
+        var strVisible;
+
+        function VisibleModelServer() {
+            if (null != parseModelTool) {
+                bVisible = !bVisible;
+                if (bVisible) {
+                    strVisible = "1";
+                } else {
+                    strVisible = "0";
+                }
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+                mlo.AddConfig("Visible", strVisible);               //设置加载图层显隐状态0，隐藏 1，显示（使用字符创“0” or "1"）
+                parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项
+            }
+        }
+
+        //定位Model服务
+        function LocateModelServer() {
+            if (null != parseModelTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项，名称不可任意
+                mlo.AddConfig("LocateState", "1");                  //c3s定位
+                parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项
+            }
+        }
+
+        //卸载Model服务
+        function UnLoadModelServer() {
+            if (null != parseModelTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	//创建工具配置项
+                mlo.AddConfig("LoadState", "0");                    //设置加载载状态 0,卸载
+                parseModelTool.UpdateToolsOption(mlo);                //更新工具配置项
+                tools.DestoryTools(parseModelTool);					//销毁工具
+                parseModelTool = null;
+            }
+        }
+
+
+        //********************************
+        // 逻辑树服务加载(6.3版本特有功能)
+        //********************************
+        //添加配置选项
+        function AddOption() {
+            var Option = document.getElementById("SelOption");
+            if (null != Option) {
+                var TextNode;
+                var ElementOption;
+                for (var i = 0; i < serverArray.length; ++i) {
+                    ElementOption = document.createElement("option");
+                    TextNode = document.createTextNode(serverArray[i]);
+                    ElementOption.appendChild(TextNode);
+                    Option.appendChild(ElementOption);
+                }
+            }
+        }
+
+        function RemoveOption() {
+            var Option = document.getElementById("SelOption");
+            if (null != Option) {
+                Option.options.remove(Option.selectedIndex);
+                if (Option.options.length == 1) {
+                    Option.options.length = 0;
+                    serverArray.length = 0;
+                    if (null != parseLogicTool) {
+                        tools.DestoryTools(parseLogicTool);                       //销毁加载工具
+                        parseLogicTool = null;
+                    }
+                }
+            }
+        }
+
+        //加载逻辑树服务
+        var parseLogicTool = null;
+        var serverArray;
+
+        function LoadLogicTreeNew() {
+            if (null != parseLogicTool) {
+                alert("Repeat Load The Same Layer!!!");
+                return;
+            }
+            if (null != tools) {
+                var tlo = tools.CreateToolsOptions("ToolsOption");
+                if (null != tlo) {
+                    tlo.AddConfig("Url", "192.168.1.177");         //服务ip
+                    tlo.AddConfig("Port", 9091);                  //服务端口
+                    tlo.AddConfig("Type", "logic");               //服务类型
+                    tlo.AddConfig("Name", "admin");               //用户名
+                    tlo.AddConfig("Password", "admin");           //密码
+                    tlo.AddConfig("ServerName", "LogicTest");     //服务名
+
+                    parseLogicTool = tools.CreateToolsObject("ParseLogicTreeWebData", tlo);         //加载服务的对象类名
+                    if (null != parseLogicTool) {
+                        var res = tools.ActiveTools(parseLogicTool);                               //激活加载工具
+                        var serversName = "";
+                        var toolResult = parseLogicTool.GetToolsResult();
+                        if (null != toolResult) {
+                            serversName = toolResult.GetConfigValueByKey("ServersName");           //此处为获取加载的服务名集合
+                        }
+                        serverArray = serversName.split(";");
+                        alert("ServersName: " + serversName);
+                        AddOption();
+                        //res = tools.DestoryTools(parseModelTool);                               //销毁激活工具,在不使用时记得销毁
+                    }
+                }
+            } else {
+                alert("null tools invalid handle");
+            }
+        }
+
+        var bVisible = 1;
+        var strVisible;
+
+        function SetLogicVisible() {
+            if (null != parseLogicTool) {
+                bVisible = !bVisible;
+                if (bVisible) {
+                    strVisible = "1";
+                } else {
+                    strVisible = "0";
+                }
+                var mlo = tools.CreateToolsOptions("ToolsOption"); //创建工具配置项，名字不可任意
+                mlo.AddConfig("Visible", strVisible);              //设置显隐状态 0，隐藏， 1，显示（使用字符创“0” or "1"）
+                parseLogicTool.UpdateToolsOption(mlo);             //更新配置项
+            }
+        }
+
+        //根据服务名定位
+        function LogicTreeLocateByName() {
+            if (serverArray.length <= 0) {
+                alert("Can,t Find ServerName From serverArray");
+                return;
+            }
+            var selOption = document.getElementById("SelOption");
+            var serverName = SelOption.options.item(SelOption.selectedIndex).value;
+
+            if (null != parseLogicTool) {
+
+                alert("serverName:" + serverName);
+
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+                mlo.AddConfig("ServerName", serverName.toString());      //设置服务名，这里假设取服务数组中第0个元素
+                mlo.AddConfig("LocateState", "1");                        //服务定位状态
+                parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项
+            }
+        }
+
+        //根据服务名显隐
+        var visibleByName = 1;
+
+        function LogicTreeVisibleByName() {
+            if (null != parseLogicTool) {
+                if (serverArray.length <= 0) {
+                    alert("Can,t Find ServerName From serverArray");
+                    return;
+                }
+                visibleByName = !visibleByName;
+                if (visibleByName) {
+                    strVisible = "1";
+                } else {
+                    strVisible = "0";
+                }
+                var selOption = document.getElementById("SelOption");
+                var serverName = SelOption.options.item(SelOption.selectedIndex).value;
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+                mlo.AddConfig("ServerName", serverName.toString());   //设置服务名，这里假设取服务数组中第0个元素
+                mlo.AddConfig("Visible", strVisible);                     //显隐状态
+                parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项
+            }
+        }
+
+        //根据服务名卸载
+        function LogicTreeUnLoadByName() {
+            if (null != parseLogicTool) {
+                if (serverArray.length <= 0) {
+                    alert("Can,t Find ServerName From serverArray");
+                    return;
+                }
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+                var selOption = document.getElementById("SelOption");
+                var serverName = SelOption.options.item(SelOption.selectedIndex).value;
+
+                mlo.AddConfig("ServerName", serverName.toString());       //设置服务名，这里假设取服务数组中第0个元素
+                mlo.AddConfig("LoadState", "0");                          //卸载该服务
+                parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项
+                RemoveOption();
+            }
+        }
+
+        //整体卸载逻辑树服务
+        function SetLogicLoadState() {
+            if (null != parseLogicTool) {
+                var mlo = tools.CreateToolsOptions("ToolsOption"); 	      //创建工具配置项
+                mlo.AddConfig("LoadState", "0");                          //卸载该服务
+                parseLogicTool.UpdateToolsOption(mlo);                    //更新工具配置项
+                tools.DestoryTools(parseLogicTool);                       //销毁加载工具
+                parseLogicTool = null;
+            }
+        }
+
+        //********************************
+
+
+        //打开模型拾取响应器
+        var res;
+
+        function OpenPick() {
+            var resp = map.CreateResponserOptions("123");
+            resp.AddConfig("PickLayerIdList", -1); //c3sLayer.GetLayerID()
+            resp.AddConfig("PickColor", "1.0,0.0,0.0,0.8");
+            resp.AddConfig("IsChangeColor", "true");
+            resp.AddConfig("IsGetLayerID", "true");
+            res = map.CreateResponser("PickModelResponser", resp);
+            res.AddObserver();
+            map.AddResponser(res);
+        }
+
+        //关闭模型拾取响应器
+        function ClosePick() {
+            map.RemoveResponser("PickModelResponser");						//移除响应器
+            res = null;
+        }
+
+        //获取图层配置信息
+        function GetPickLayerAtt() {
+            if (PickLayerId != -1) {
+                var Layer = map.GetLayerObject(PickLayerId);
+                if (Layer) {
+                    var LayerOpt = Layer.GetLayerOption();
+                    var ServerName = LayerOpt.GetConfigValueByKey("ServerName");
+                    alert("ServerName:" + ServerName);
+                }
+            }
+        }
+
+        //********************************
+        // DOM数据加载
+        //********************************
+        var mtdsdomlayer;
+
+        //加载DOM数据
+        function LoadDOMMTDS() {
+            var tlo = map.CreateLayerOptions("domlayer"); 	// 创建dom图层，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "ImageLayerOptions"); // 创建配置类型, ImageLayerOptions代表影像数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "mtds"); // 数据源类型,代表MTDS插件，必须是此键值对
+            tlo.AddConfig("Driver", "terrainquadtree"); // 代表地形驱动，必须是此键值对
+
+            //////以下部分可以通过图层信息获取获得相应的配置////
+            tlo.AddConfig("Url", "http://192.168.1.50:8088/files/HZDOM/"); /////要加载的数据路径，此数据必须是通过MTD切割工具生成的数据，并且进行了网络发布
+            tlo.AddConfig("Format", "png"); ///切割形成的数据格式
+            tlo.AddConfig("Srs", "EPSG:4326"); /////数据的坐标参考
+            tlo.AddConfig("MaxX", " 120.714010586176"); /////数据的范围X向最大值
+            tlo.AddConfig("MinX", " 118.339686018686"); /////数据的范围X向最小值
+            tlo.AddConfig("MaxY", " 30.5651224875501"); //数据的范围Y向最大值
+            tlo.AddConfig("MinY", " 29.188584444612"); /////数据的范围Y向最小值
+            tlo.AddConfig("TileSize", "256"); /////切割数据的瓦片大小，可以往小于256的方向设置，但绝对不能往大于256的方向设置，但最好用切割的大小设置，否则会影响效率
+            tlo.AddConfig("MinLevel", "0"); /////数据显示的最小层级
+            tlo.AddConfig("MaxLevel", "16"); /////数据显示的最大层级
+
+            mtdsdomlayer = map.CreateLayer("ImageLayer", tlo); //创建DEM图层，第一项参数必须为ImageLayer
+            map.AddLayer(mtdsdomlayer); ///添加DOM图层
+            mtdsdomlayer.Locate(); //DOM图层定位
+        }
+
+        //删除DOM数据
+        function RemoveDOMMTDS() {
+            map.RemoveLayer(mtdsdomlayer); ////删除DOM数据
+        }
+
+
+        function CreateDistanceMeasure() {
+            obj = document.getElementById("VPSDKCtrl");
+            obj.OnFireOnLButtonDown = function () {
+                alert('右键点击')
+            }
+
+
+            map = obj.GetIMapMgrPtr();
+            //创建图层配置信息
+            var tlo = map.CreateLayerOptions("distanceMesure"); //创建分析图层配置，给配置起个名称，任意名称
+            tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions 代表分析图层数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "as_distance");//数据源类型,代表距离测量，必须是此键值对
+            tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); //设置点击点的颜色透明度（RGBA） 1 为不透明 0 为透明
+            tlo.AddConfig("PointSize", "5"); //设置点击点的大小
+            tlo.AddConfig("DistanceMeasureLineColor", "1.0,0.0,0.0,1.0"); //设置线的颜色（RGBA）
+            tlo.AddConfig("LineWidth", "5"); //线宽
+            tlo.AddConfig("MeasureUnit", "0"); //0-米； 1-公里；2-海里
+            tlo.AddConfig("MeasureUnitLanguage", "1"); //0-英文； 1-中文
+            tlo.AddConfig("IsDepthTest", "false"); //是否开启深度测试。false 不开启，结果会浮在场景上，true实际显示位置
+//创建文字符号
+            var pSymbol = map.CreateSymbol("TextSymbol");//创建文字符号，必须为 TextSymbol 字符串
+            pSymbol.AddConfig("FillingColor", "1.0, 0.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+            pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+            pSymbol.AddConfig("Size", "40"); //字体精度大小
+            pSymbol.AddConfig("CharacterSize", "20"); //文字大小
+            pSymbol.AddConfig("CharacterMode", "1"); //取值 1 -- 始终朝向相机
+            pSymbol.AddConfig("AlignmentMode", "5"); //文字对齐方式
+            pSymbol.AddConfig("AxisAlignment", "6"); //旋转轴 0 - 7 ， 6: 自动
+            pSymbol.AddConfig("RemoveDuplicateLabels", "false"); //去重复
+            pSymbol.AddConfig("IsEmbolden", "false"); //字体是否加粗
+            pSymbol.AddConfig("IsTransform", "true"); //字体是否为斜体
+            pSymbol.AddConfig("IsUnderline", "false"); //字体是否有下划线
+            pSymbol.AddConfig("IsBack", "false"); //是否设置背景色
+            pSymbol.AddConfig("BackColor", "0,1.0,1.0,1"); //背景颜色，是否设置背景色为 true 有效
+//tlo.AddConfig("IsLoad","true" ); //是否加载点坐标
+//tlo.AddConfig("Points","120.215667656,30.2136383941,-1.10956306104;120.215749997,30.2133926474,-1.11031961534;120.
+//             214122717, 30.2124231319, -1.11372030433;
+//             120.213973507, 30.2126992441, -1.11202969588;
+//             "); //点坐标
+//tlo.AddConfig("IsActive","true" ); //是否激活测量
+//创建样式
+            var pStyle = map.CreateStyle("Text"); //创建 Style，名字可以任意pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到 Style 里，第一参必须为 TextSymbol 字符串，第二参为上面创建的文字符号的配置信息，通过pSymbol.GetConfig()获取
+//将样式添加到图层配置里
+            tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为 Style 字符串，第二参为上面创建的 Style 的配置信息，通过pStyle.GetConfig()获取
+            distanceMesure = map.CreateLayer("AnalysisLayer", tlo); //创建分析图层，第一项参数必须为 AnalysisLayer
+            map.AddLayer(distanceMesure); //添加分析图层
+        }
+
+        //更新三维距离测量
+        function UpdateDistanceMeasure() {
+            if (null != distanceMesure) {
+                var tlo = map.CreateLayerOptions("distanceMesure"); //创建分析图层配置，给配置起个名称，任意名称
+                tlo.AddConfig("LayerOptionsName", "AnalysisLayerOptions"); //创建配置类型, AnalysisLayerOptions 代表分析图层数据配置，必须是此键值对
+                tlo.AddConfig("DataSourceTypeName", "as_distance");//数据源类型,代表距离测量，必须是此键值对
+                tlo.AddConfig("PointColor", "0.0,0.0,1.0,1.0"); //设置点击点的颜色透明度（RGBA） 1 为不透明 0 为透明
+                tlo.AddConfig("PointSize", "10"); //设置点击点的大小
+                tlo.AddConfig("DistanceMeasureLineColor", "0.0,1.0,0.0,1.0"); //设置线的颜色（RGBA）
+                tlo.AddConfig("LineWidth", "10"); //线宽
+                tlo.AddConfig("MeasureUnit", "0"); //0-米； 1-公里；2-海里
+                tlo.AddConfig("MeasureUnitLanguage", "1"); //0-英文； 1-中文
+                tlo.AddConfig("IsDepthTest", "false"); //是否开启深度测试。false 不开启，结果会浮在场景上，true实际显示位置
+//下列三个配置可选
+//tlo.AddConfig("IsLoad","true" ); //是否加载点坐标
+//tlo.AddConfig("Points","120.16119,30.261164,17.042929;120.16151,30.261482,28.522919;"); //点坐标
+//tlo.AddConfig("IsActive","false" ); //是否激活测量
+//创建文字符号
+                var pSymbol = map.CreateSymbol("TextSymbol"); //创建文字符号，必须为 TextSymbol 字符串
+                pSymbol.AddConfig("FillingColor", "1.0, 1.0, 0.0, 1.0"); //设置文字颜色（RGBA）
+                pSymbol.AddConfig("Font", "C:\\WINDOWS\\Fonts\\STXIHEI.TTF"); //设置字体类型,字体文件一定要存在
+                pSymbol.AddConfig("Size", "40"); //字体精度大小
+                pSymbol.AddConfig("CharacterSize", "20"); //文字大小
+                pSymbol.AddConfig("CharacterMode", "1"); //取值 1 -- 始终朝向相机
+                pSymbol.AddConfig("AlignmentMode", "5"); //文字对齐方式
+                pSymbol.AddConfig("AxisAlignment", "6"); //旋转轴 0 - 7 ， 6: 自动
+                pSymbol.AddConfig("RemoveDuplicateLabels", "false"); // 去重复
+                pSymbol.AddConfig("IsEmbolden", "false"); //字体是否加粗
+                pSymbol.AddConfig("IsTransform", "true"); //字体是否为斜体
+                pSymbol.AddConfig("IsUnderline", "false"); //字体是否有下划线
+                pSymbol.AddConfig("IsBack", "ture"); //是否设置背景色
+                pSymbol.AddConfig("BackColor", "1.0,0,1.0,1"); //背景颜色，是否设置背景色为 true 有效
+//创建样式
+                var pStyle = map.CreateStyle("Text");//创建 Style，名字可以任意
+                pStyle.AddSymbol("TextSymbol", pSymbol.GetConfig()); //添加文字符号到 Style 里，第一参必须为 TextSymbol 字符串，第二参为上面创建的文字符号的配置信息，通过pSymbol.GetConfig()获取
+//将样式添加到图层配置里
+                tlo.AddConfig("Style", pStyle.GetConfig()); //第一参必须为 Style 字符串，第二参为上面创建的 Style 的配置信息，通过pStyle.GetConfig()获取
+                distanceMesure.UpdateLayerOptions(tlo); //更新参数设置项
+            }
+        }
+
+        //获取三维距离测量结果
+        function GetDistanceMeasure() {
+            var opt = distanceMesure.GetLayerResult(); //获取图层结果
+//判断当前图层数据源类型
+            if (opt.GetConfigValueByKey("DataSourceTypeName") == "as_distance") {
+                var points = opt.GetConfigValueByKey("ClickPoints"); //获取点击点坐标
+                alert("ClickPoints:" + points);
+                var DistanceResult = opt.GetConfigValueByKey("DistanceResult"); //获取测量结果
+                alert("DistanceResult:" + DistanceResult);
+            }
+        }
+
+        //删除三维距离测量
+        function RemoveDistanceMeasure() {
+            map.RemoveLayer(distanceMesure);//删除三维距离测量
+        }
+
+
+        //首先创建待编辑图层：
+        var pointeditLayer;
+
+        function CreatePointModelEditLayer() {
+            var pSymbol = map.CreateSymbol("PointSymbol"); //创建类型为 PointSymbol 的符号，必须为 PointSymbol 字符串
+            pSymbol.AddConfig("Size", "10"); //点大小，范围 0-10
+            pSymbol.AddConfig("Color", "1.0,1.0,0.0,1.0"); //颜色值 0-1（RGBA），最后一位代表透明度，0 为透明，1 为不透
+            var tSymbol = map.CreateSymbol("ModelSymbol"); //创建类型为 ModelSymbol 的符号，必须为 ModelSymbol 字符串
+            tSymbol.AddConfig("Heading", "0"); //绕 Z 轴(世界坐标系方向相同 far->near)旋转,从 far(-Z)向 near(+Z)看去,逆时针为正，弧度表示
+            tSymbol.AddConfig("Pitch", "-3.14"); //绕 Y 轴(世界坐标系方向相同 down(-Y)向 up(Y))旋转,从 down(-Y)向 up(+Y)看去,逆时针为正，弧度表示
+            tSymbol.AddConfig("Roll", "0"); //绕X轴(世界坐标系方向相同 left->right)旋转,从left(-X)向right(+X)看去,逆时针为正，弧度表示
+            tSymbol.AddConfig("XScale", "1"); //模型 x 方向放大比例
+            tSymbol.AddConfig("YScale", "1"); //模型 y 方向放大比例
+            tSymbol.AddConfig("ZScale", "1"); //模型 z 方向放大比例
+            tSymbol.AddConfig("ModelOriginDir", "0,0,1"); //模型原始轴向
+            //tSymbol.AddConfig("Url", "F:\\大华演示\\大华数据\\kakou\\球型.wrl"); //模型资源路径
+            tSymbol.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\球机.wrl"); //模型资源路径
+            tSymbol.AddConfig("LibraryName", "reslib"); //资源名称
+            var res = map.CreateResource("ModelSymbol"); //创建模型资源，此处必须为 ModelSymbol
+            //res.AddConfig("Uri", "F:\\大华演示\\大华数据\\kakou\\球型.wrl"); //模型资源路径
+            res.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\独立设备模型\\球机.wrl"); //模型资源路径
+
+            var reslib = map.CreateResourceLibrary("reslib"); //创建资源库，名称和图层配置 LibraryName 设置的名称对应
+            reslib.AddResource(res); //将资源添加至资源库
+            var pStyle = map.CreateStyle("Point"); //创建名称为 Point 的样式，名称任意
+            pStyle.SetName("point"); //设置别名 point
+            pStyle.AddSymbol("PointSymbol", pSymbol.GetConfig()); //将点符号配置添加到该样式
+            pStyle.AddFilterName("BuildGeometryFilter"); //设置构建器符号为 BuildGeometryFilter，必须为 BuildGeometryFilter字符串
+            pStyle.AddSymbol("ModelSymbol", tSymbol.GetConfig()); //将符号配置添加到该样式，第一参必须为 ModelSymbol 字符串
+            pStyle.AddFilterName("SubstituteModelFilter"); //设置构建器符号为 SubstituteModelFilter，必须为SubstituteModelFilter 字符串，此为图标符号化和模型符号化共有
+            var styleSheet = map.CreateStyleSheet(); //创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); //将样式配置添加至样式表
+            styleSheet.AddResLib(reslib.GetConfig()); //将资源库添加至样式表
+            var tlo = map.CreateLayerOptions("shp"); //创建图层配置对象
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); //创建配置类型, FeatureModelLayerOptions 代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); //数据源类型,代表 fmgeom 插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); //数据驱动，针对 shp、dxf 数据源必须是 ESRI Shapefile
+            //tlo.AddConfig("Url", "F:\\zhumh\\testPoint.shp");
+            tlo.AddConfig("Url", "G:\\试用平台及用例\\样例数据\\矢量样例数据shp\\TestShpData\\TestData.shp"); //初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+            tlo.AddConfig("FeatureSourceType", "ogr"); //要素数据源类型，针对 shp、dxf 数据源必须是 ogr
+            tlo.AddConfig("Fields", "Name:String:100:0,Height:Double:100:3,Width:Float:100:3"); //创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+            tlo.AddConfig("GeometryType", "Point"); //几何类型 Point 为点 Polyline 为线 Polygon 为面 此项配置不能少或
+            //字符串一定不能错误，否则保存文件不成功
+            tlo.AddConfig("TileSizeFactor", "1.0"); //瓦片大小的影响因子，建议是 1.0
+            tlo.AddConfig("TileSize", "500"); //瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "0"); //抬升高度，任意值
+            tlo.AddConfig("MaxRange", "10000000.0"); //最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); //最小显示范围，0-无穷大
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); //将样式表配置添加至图层配置对象，第一参必须为 StyleSheet字符串
+            var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); //创建矢量图层，第一项参数必须为 FeatureModelLayer
+            map.AddLayer(shpLayer); //添加矢量图层
+            var id = shpLayer.GetLayerID(); //获取图层 id
+            polygoneditLayer = map.GetFeatureModelLayer(id); //获取矢量图层
+        }
+
+        //编辑后保存图层或者另存为：
+        function pointLayerSave() {
+            pointeditLayer.SaveLayer(); //编辑点图层保存，一般用于首次创建保存
+        }
+
+        function pointLayerAsSave() {
+            pointeditLayer.SaveAsLayer("G:\\Zhumh\\pointtest.shp");
+            ; //编辑点图层另保存。用于多次打开后保存
+        }
+
+
+        var modelLayer;
+        var iconLayer;
+
+        //***********************
+        //首先创建待编辑图层：
+        function CreateIconLayer() {
+            var pSymbol = map.CreateSymbol("PolygonSymbol"); ////创建类型为PolygonSymbol的符号，必须为PolygonSymbol字符串
+            pSymbol.AddConfig("Color", "0.5,0.5,0.1,0.9"); ////颜色值（RGBA）0-1，最后一位代表透明度，0为透明，1为不透
+            var tSymbol = map.CreateSymbol("IconSymbol"); 							//// 创建类型为IconSymbol的符号，必须为IconSymbol字符串
+            tSymbol.AddConfig("Align", "5"); 										//// 设置图片与要素的相对位置
+            tSymbol.AddConfig("AxisAlignmentType", "0"); 							//// 设置图片旋转模式
+            tSymbol.AddConfig("CharacterMode", "2"); 								//// 图片大小变化模式，0：随对象变化显示，1:随相机远近变化，2：随相机远近变化，同时不超过上限值Scale
+            tSymbol.AddConfig("Scale", "5"); 										//// 图片大小变化上限值
+            tSymbol.AddConfig("XScale", "0.1"); 									//// 图片x方向放大比例
+            tSymbol.AddConfig("YScale", "0.1"); 									//// 图片y方向放大比例
+            tSymbol.AddConfig("ZScale", "0.1"); 									//// 图片z方向放大比例
+            tSymbol.AddConfig("LineColor", "1,0,1,1"); 								//// 接地线颜色
+            tSymbol.AddConfig("FeatureLiftUp", "4"); 								//// 要素抬升值
+            tSymbol.AddConfig("IsAddGroundLine", "true"); 							//// 是否开启接地线
+            tSymbol.AddConfig("Url", "F:\\AlarmCarPhoto\\aa.jpg"); ////图标资源路径
+            tSymbol.AddConfig("LibraryName", "reslib"); 							//// 资源名称
+
+            var res = map.CreateResource("IconSymbol"); 							//// 创建图标资源，此处必须为IconSymbol
+            res.AddConfig("Uri", "F:\\AlarmCarPhoto\\aa.jpg"); ////图标资源路径
+            var reslib = map.CreateResourceLibrary("reslib"); 						//// 创建资源库，名称和图层配置LibraryName设置的名称对应
+            reslib.AddResource(res);
+            var pStyle = map.CreateStyle("Polygon"); ////创建名称为Polygon的样式，名称任意
+            pStyle.SetName("polygon"); ////设置别名polygon
+            pStyle.AddSymbol("PolygonSymbol", pSymbol.GetConfig()); ////将符号配置添加到该样式，第一参必须为PolygonSymbol字符串
+            pStyle.AddFilterName("BuildGeometryFilter"); ////设置构建器符号为BuildGeometryFilter必须为BuildGeometryFilter字符串
+            pStyle.AddSymbol("IconSymbol", tSymbol.GetConfig());
+            pStyle.AddFilterName("SubstituteModelFilter");
+
+            var tlo = map.CreateLayerOptions("shp"); ////创建图层配置对象，名称任意
+            tlo.AddConfig("LayerOptionsName", "FeatureModelLayerOptions"); ////创建配置类型, FeatureModelLayerOptions代表矢量数据配置，必须是此键值对
+            tlo.AddConfig("DataSourceTypeName", "fmgeom"); ////数据源类型,代表fmgeom插件，必须是此键值对
+            tlo.AddConfig("Driver", "ESRI Shapefile"); ////数据驱动，针对shp、dxf数据源必须是ESRI Shapefile
+            tlo.AddConfig("Url", "C:\\testpolygon2.shp"); ////初次创建需选择没有数据的目录，其在保存后会自动生成。当前设置的路径为不存在
+            tlo.AddConfig("FeatureSourceType", "ogr"); ////要素数据源类型，针对shp、dxf数据源必须是ogr
+            tlo.AddConfig("Fields", "ID:String:100:0,XRotate:Double:100:3,YRotate:Double:100:3,ZRotate:Double:100:3,XScale:Double:100:3,YScale:Double:100:3,ZScale:Double:100:3"); ////创建矢量的属性字段，属性名：属性类型：类型长度：小数点后几位
+            //tlo.AddConfig("GeometryType", "Polygon"); ////几何类型     Point为点 Polyline为线 Polygon为面 此项配置不能少或字符串一定不能错误，否则保存文件不成功
+            tlo.AddConfig("TileSizeFactor", "1.0"); ////瓦片大小的影响因子，建议是1.0
+            tlo.AddConfig("TileSize", "500"); ////瓦片大小，根据数据实际情况设置，根据数据面积来，面积越大值越大
+            tlo.AddConfig("LiftUp", "2"); ////抬升高度，任意值
+            tlo.AddConfig("MaxRange", "100000.0"); ////最大显示范围，大于最小显示范围-无穷大
+            tlo.AddConfig("MinRange", "0.0"); ////最小显示范围，0-无穷大
+
+            var styleSheet = map.CreateStyleSheet(); ////创建样式表
+            styleSheet.AddStyle(pStyle.GetConfig()); ////将样式配置添加至样式表
+            styleSheet.AddResLib(reslib.GetConfig());
+            tlo.AddConfig("StyleSheet", styleSheet.GetConfig()); ////将样式表配置添加至图层配置对象，第一参必须为StyleSheet字符串
+            var shpLayer = map.CreateLayer("FeatureModelLayer", tlo); ////创建矢量图层，第一项参数必须为FeatureModelLayer
+            map.AddLayer(shpLayer); ////添加矢量图层
+            var id = shpLayer.GetLayerID(); ////获取图层id
+            iconLayer = map.GetFeatureModelLayer(id); ////获取矢量图层
+        }
+
+    </script>
+
+
+    <script language="javascript" type="text/javascript" event="FireOnLButtonDblClk(tx,ty)"
+            for="VPSDKCtrl">////此为鼠标左键弹起事件，返回屏幕坐标点
+    //yi  120.13791565000001 30.2696531921 38.1676616184
+    // er 120.13826814100001 30.2696638295 38.7432642765
+
+
+    if (addState) {
+        if (shpLayer) {
+            //map.RemoveLayer(shpLayer); //移除标记
+        }
+        //addState = false;
+    }
+
+    if (false) {
+        if (shpLayer) {
+            map.RemoveLayer(shpLayer);
+        }
+        CreatePointTextEditLayer();
+        var j = 0;
+
+        for (var i = 0; i < 1; i++) {
+            var str = "哈哈哈";
+            str = prompt("请输入您的名字？", "")
+            var addFeature = map.CreateFeature();								//创建要素对象
+            addFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+            addFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）
+            var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+
+            //alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+            if (i % 5 == 0 && i != 0) {
+                j = j + 0.00004;
+                addFeature.AddPoint(pos.GetX() + j, pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+                console.log(pos.GetX() + j, pos.GetY(), pos.GetZ());
+            } else {
+                j = j + 0.00002;
+                addFeature.AddPoint(pos.GetX() + j, pos.GetY(), pos.GetZ());////向编辑图层添加坐标点信息
+                console.log(pos.GetX() + j, pos.GetY(), pos.GetZ());
+            }
+            addFeature.AddAttribute("Height", "43.5", 4);			//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)
+            addFeature.AddAttribute("Name", str, 5);				//添加属性值
+            addFeature.AddAttribute("Width", "54", 3);				//添加属性值
+            var featureId = polygoneditLayer.GetMaxFeatureID();		//获取矢量图层要素最大ID
+            addFeature.SetFeatureId(featureId + 1); 				//设置FeatureID
+            polygoneditLayer.AddFeature(addFeature);				//添加到矢量图层
+        }
+        //addState = false;
+    }
+    </script>
+    <script language="javascript" type="text/javascript">
+        function haha() {
+            var data = [['120.13791565000001', '30.2696531921', '38.1676616184', '标注一'], ['120.13826814100001', '30.2696638295', '38.7432642765', '标注二']];
+            CreatePointTextEditLayer();
+            var j = 0;
+
+            for (var i = 0; i < data.length; i++) {
+                var str = "哈哈哈";
+                str = data[i][3];
+                var addFeature = map.CreateFeature();								//创建要素对象
+                addFeature.SetGeometryType(1);									//设置要素几何类型(1:点; 2:线; 3:环; 4:面; 5:多结构)
+                addFeature.SetComponentType(1);									//创建子几何类型（当GeometryType为5时生效）
+                //var pos = transformate.ScreenPosToWorldPos(tx, ty);////将屏幕坐标点转换成经纬度坐标
+
+                 //alert("screen:" + tx + "," + ty + ";" + "position:" + pos.GetX() + "," + pos.GetY() + "," + pos.GetZ() + ";");
+                if (i % 5 == 0 && i != 0) {
+                    j = j + 0.00004;
+                    addFeature.AddPoint(data[i][0], data[i][1],data[i][2]
+                )
+                    ;////向编辑图层添加坐标点信息
+                   // console.log(pos.GetX() + j, pos.GetY(), pos.GetZ());
+                } else {
+                    j = j + 0.00002;
+                    addFeature.AddPoint(data[i][0], data[i][1],data[i][2]
+                )////向编辑图层添加坐标点信息
+                    //console.log(pos.GetX() + j, pos.GetY(), pos.GetZ());
+                }
+                addFeature.AddAttribute("Height", "43.5", 4);			//添加属性值(1:int; 2:long; 3:float; 4:double; 5:string; 6:bool)
+                addFeature.AddAttribute("Name", str, 5);				//添加属性值
+                addFeature.AddAttribute("Width", "54", 1);				//添加属性值
+               // addFeature.AddAttribute("PickName", "hahaha", 5);				//添加属性值
+                var featureId = polygoneditLayer.GetMaxFeatureID();		//获取矢量图层要素最大ID
+				console.log(featureId);
+                addFeature.SetFeatureId(featureId + 1); 				//设置FeatureID
+                polygoneditLayer.AddFeature(addFeature);					//添加到矢量图层
+				
+				//console.log(document.getElementById(featureId + 1));
+				 
+			 
+            }
+
+        };
+        
+    </script>
+
+</head>
+<body onload="InitScene()">
+<button onclick=CreateIconLayer()> 添加标注</button>
+<button onclick=OpenTextEditLayer()> 开启标注</button>
+<button onclick=CloseTextEditLayer()> 关闭标注</button>
+<button onclick=haha()> 添加00000000标注</button>
+
+<button onclick=CreateDistanceMeasure()> 创建三维距离测量结果</button>
+<button onclick=GetDistanceMeasure()> 获取三维距离测量结果</button>
+<button onclick=RemoveDistanceMeasure()> 删除三维距离测量</button>
+
+
+<button onclick=CreatePointModelEditLayer()> 自定义模型</button>
+<button onclick=pointLayerSave()> 编辑模型</button>
+<input id="Button1" type="button" value="设置透视角度" onclick="SetFovy()"/>
+<input id="FovyID" type="text" value="55"/>
+</br>倾斜摄影:
+<input id="Button2" type="button" value="加载倾斜摄影" onclick="LoadOsgbServer()"/>
+<input id="Button3" type="button" value="倾斜摄影定位" onclick="SetOsgbLocate()"/>
+<input id="Button4" type="button" value="设置倾斜摄影显隐" onclick="SetOsgbVisible()"/>
+<input id="Button5" type="button" value="卸载倾斜摄影" onclick="SetOsgbUnLoad()"/>
+
+</br>地形影像：
+<input id="Button6" type="button" value="加载DEM" onclick="LoadDemServer()"/>
+<input id="Button7" type="button" value="卸载DEM" onclick="UnLoadDemServer()"/>
+&nbsp;
+<input id="Button8" type="button" value="加载DOM" onclick="LoadDomServer()"/>
+<input id="Button9" type="button" value="DOM定位" onclick="LocateDomServer()"/>
+<input id="Button10" type="button" value="DOM显隐" onclick="VisibleDomServer()"/>
+<input id="Button11" type="button" value="卸载DOM" onclick="UnLoadDomServer()"/>
+
+</br>Model:
+<input id="Button12" type="button" value="加载模型数据T" onclick="LoadModelServer()"/>
+<input id="Button13" type="button" value="模型数据定位" onclick="LocateModelServer()"/>
+<input id="Button14" type="button" value="模型数据显隐" onclick="VisibleModelServer()"/>
+<input id="Button15" type="button" value="模型数据卸载" onclick="UnLoadModelServer()"/>
+<input id="Button16" type="button" value="打开模型拾取" onclick="OpenPick()"/>
+<input id="Button17" type="button" value="关闭模型拾取" onclick="ClosePick()"/>
+<input id="Button171" type="button" value="获取图层配置信息" onclick="GetPickLayerAtt()"/>
+
+</br>逻辑树:
+<input id="Button18" type="button" value="加载逻辑树" onclick="LoadLogicTreeNew()"/>
+&nbsp 服务名选择: <select id="SelOption" style="width:110px;height= 44px "/>
+<input id="Button19" type="button" value="根据服务名定位" onclick="LogicTreeLocateByName()"/>
+<input id="Button20" type="button" value="根据服务名显隐" onclick="LogicTreeVisibleByName()"/>
+<input id="Button21" type="button" value="根据服务名卸载" onclick="LogicTreeUnLoadByName()"/>
+<input id="Button22" type="button" value="逻辑树整体显隐" onclick="SetLogicVisible()"/>
+<input id="Button23" type="button" value="逻辑树整体卸载" onclick="SetLogicLoadState()"/>
+<object id="VPSDKCtrl" classid="CLSID:A1F1748A-2B6E-4616-954D-3F39B11DF57D" style="width: 100%; height: 980px">
+</object>
+</body>
+</html>
